@@ -3679,10 +3679,7 @@ function App() {
                           style={{
                             padding: '8px 12px',
                             cursor: 'pointer',
-                            borderBottom: '1px solid #333',
-                            ':hover': {
-                              backgroundColor: '#2a2a2a'
-                            }
+                            borderBottom: '1px solid #333'
                           }}
                           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2a2a2a'}
                           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -3717,10 +3714,7 @@ function App() {
                           padding: '8px 12px',
                           cursor: 'pointer',
                           fontSize: '13px',
-                          color: '#60a5fa',
-                          ':hover': {
-                            backgroundColor: '#2a2a2a'
-                          }
+                          color: '#60a5fa'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2a2a2a'}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
