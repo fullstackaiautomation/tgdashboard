@@ -62,6 +62,8 @@ const ContentLibrary = () => {
     tags: [],
     is_favorite: false,
   })
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
   const [thumbnailPreview, setThumbnailPreview] = useState<string>('')
 
   useEffect(() => {
