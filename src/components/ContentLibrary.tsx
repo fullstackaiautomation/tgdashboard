@@ -62,7 +62,6 @@ const ContentLibrary = () => {
     tags: [],
     is_favorite: false,
   })
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
   const [thumbnailPreview, setThumbnailPreview] = useState<string>('')
 
   useEffect(() => {
