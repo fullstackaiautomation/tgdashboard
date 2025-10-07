@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where:*)",
+      "Bash(findstr:*)",
+      "Bash(npm install:*)",
+      "Bash(npx md-to-pdf:*)",
+      "Bash(cat:*)",
+      "Bash(md-tree:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
