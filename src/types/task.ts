@@ -76,6 +76,7 @@ export interface TaskHub {
   automation: Automation | null
   priority: Priority
   effort_level: EffortLevel | null
+  progress_percentage: number
 
   // Relationships (nullable - task can be business OR life area)
   business_id: string | null
@@ -119,6 +120,7 @@ export interface CreateTaskDTO {
   description?: string
   status?: TaskStatus
   priority?: Priority
+  progress_percentage?: number
 
   // Relationships
   business_id?: string
@@ -146,35 +148,36 @@ export interface CreateTaskDTO {
 
 export interface UpdateTaskDTO {
   task_name?: string
-  description?: string
+  description?: string | null
   status?: TaskStatus
   priority?: Priority
+  progress_percentage?: number
 
   // Relationships
-  business_id?: string
-  project_id?: string
-  phase_id?: string
-  life_area_id?: string
+  business_id?: string | null
+  project_id?: string | null
+  phase_id?: string | null
+  life_area_id?: string | null
 
   // Legacy fields
-  area?: Area
-  task_type?: TaskType
-  automation?: Automation
-  effort_level?: EffortLevel
+  area?: Area | null
+  task_type?: TaskType | null
+  automation?: Automation | null
+  effort_level?: EffortLevel | null
 
   // Time tracking
-  due_date?: string
-  completed_at?: string
+  due_date?: string | null
+  completed_at?: string | null
   past_due?: boolean
-  hours_projected?: number
-  hours_worked?: number
-  scheduled_start?: string
-  scheduled_end?: string
+  hours_projected?: number | null
+  hours_worked?: number | null
+  scheduled_start?: string | null
+  scheduled_end?: string | null
 
   // Recurring
-  recurring_type?: RecurringType
-  recurring_interval?: number
-  recurring_days?: number[]
+  recurring_type?: RecurringType | null
+  recurring_interval?: number | null
+  recurring_days?: number[] | null
 
   // Checklist
   checklist?: ChecklistItem[]

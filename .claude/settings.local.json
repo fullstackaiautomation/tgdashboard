@@ -18,7 +18,13 @@
       "Bash(npx supabase:*)",
       "Bash(curl -i --location --request POST 'https://rnlijzolilwweptwbakv.supabase.co/functions/v1/analyze-content' --header 'Content-Type: application/json' --data '{\"\"url\"\":\"\"https://www.youtube.com/watch?v=dQw4w9WgXcQ\"\"}')",
       "Bash(curl:*)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(for:*)",
+      "Bash(done)",
+      "Bash(head:*)",
+      "Bash(fi)",
+      "Bash(while read file)",
+      "Bash(timeout 5 bash -c 'until curl -s http://localhost:5173 > /dev/null 2>&1; do sleep 0.5; done && echo \"\"Server is ready!\"\"')"
     ],
     "deny": [],
     "ask": []

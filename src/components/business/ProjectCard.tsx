@@ -2,7 +2,10 @@ import type { FC } from 'react';
 import { useState } from 'react';
 import type { Project } from '../../types/project';
 import { usePhases } from '../../hooks/useProjects';
+import { useTasks } from '../../hooks/useTasks';
+import { useProjectProgress } from '../../hooks/useProjectProgress';
 import { PhaseCard } from './PhaseCard';
+import { ProgressBar } from '../shared/ProgressBar';
 
 interface ProjectCardProps {
   project: Project;
@@ -12,6 +15,16 @@ interface ProjectCardProps {
 export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const { data: phases, isLoading } = usePhases(project.id);
+  const { data: allTasks } = useTasks();
+
+  // Filter tasks for this project
+  const projectTasks = allTasks?.filter((task) => task.project_id === project.id) || [];
+
+  // Calculate project progress
+  const { progress, completedPhases, totalPhases, isStalled } = useProjectProgress(
+    phases || [],
+    projectTasks
+  );
 
   const statusColors = {
     active: 'bg-green-500',
@@ -48,9 +61,26 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId }) => {
             </svg>
             <h3 className="text-lg font-semibold text-white">{project.name}</h3>
             <span className={`w-2 h-2 rounded-full ${statusColor}`} />
+            {isStalled && (
+              <span className="text-xs text-yellow-500" title="No activity in 7+ days">
+                ⚠️ No recent activity
+              </span>
+            )}
           </div>
-          <div className="text-sm text-gray-400">
-            {phases?.length || 0} phase{phases?.length !== 1 ? 's' : ''}
+          <div className="flex items-center gap-3">
+            {totalPhases > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="w-32">
+                  <ProgressBar progress={progress} size="md" />
+                </div>
+                <span className="text-sm text-gray-400 whitespace-nowrap">
+                  {progress.toFixed(1)}%
+                </span>
+              </div>
+            )}
+            <div className="text-sm text-gray-400">
+              {phases?.length || 0} phase{phases?.length !== 1 ? 's' : ''}
+            </div>
           </div>
         </div>
         {project.description && (

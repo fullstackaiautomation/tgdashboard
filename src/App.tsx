@@ -46,7 +46,7 @@ function App() {
   const [selectedArea, setSelectedArea] = useState<Area | 'All Areas'>('All Areas')
   const [scheduledTasks, setScheduledTasks] = useState<{[hour: number]: {task: Task, duration: number}[]}>({})  // Track tasks with duration (in 30-min slots)
   const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>(new Date().toISOString().split('T')[0]) // YYYY-MM-DD format
-  const [activeMainTab, setActiveMainTab] = useState<'daily' | 'tasks' | 'business' | 'content'>('daily')
+  const [activeMainTab, setActiveMainTab] = useState<'daily' | 'tasks' | 'business' | 'content' | 'review'>('daily')
   const [activeSubTab, setActiveSubTab] = useState<'todo' | 'schedule' | 'deepwork'>('todo')
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<'All Time' | 'Today' | 'This Week' | 'This Month'>('All Time')
   const [selectedDWArea, setSelectedDWArea] = useState<Area | 'All Areas'>('All Areas')
@@ -814,6 +814,11 @@ function App() {
     }
   }
 
+  const todayTasks = tasks.filter(t => isToday(t.due_date))
+  const todayCompleted = todayTasks.filter(t => t.status === 'Done').length
+  const todayTotal = todayTasks.length
+  const dailyCompletion = todayTotal > 0 ? Math.round((todayCompleted / todayTotal) * 100) : 0
+
   const stats = {
     active: tasks.filter(t => t.status !== 'Done').length,
     completed: tasks.filter(t => t.status === 'Done').length,
@@ -822,6 +827,9 @@ function App() {
     dueToday: tasks.filter(t => isToday(t.due_date) && t.status !== 'Done').length,
     completedToday: tasks.filter(t => t.status === 'Done' && t.updated_at && isToday(t.updated_at)).length,
     dueTomorrow: tasks.filter(t => isTomorrow(t.due_date) && t.status !== 'Done').length,
+    dailyCompletion,
+    todayCompleted,
+    todayTotal,
   }
 
   const areaStats = {
@@ -1184,6 +1192,35 @@ function App() {
               Content Library
             </button>
           </div>
+
+          {/* Main Tab - Review Dashboard */}
+          <div style={{ marginBottom: '8px' }}>
+            <button
+              onClick={() => setActiveMainTab('review')}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                backgroundColor: activeMainTab === 'review' ? '#ec4899' : 'transparent',
+                color: activeMainTab === 'review' ? 'white' : '#ec4899',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '15px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="2" width="12" height="12" rx="2" />
+                <rect x="5" y="5" width="6" height="2" fill="currentColor" />
+                <rect x="5" y="9" width="4" height="2" fill="currentColor" />
+              </svg>
+              Review
+            </button>
+          </div>
         </div>
 
         {/* User Profile / Sign Out */}
@@ -1422,6 +1459,24 @@ function App() {
                 >
                   <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '4px' }}>🟡 Due Today</div>
                   <div style={{ fontSize: '32px', fontWeight: 'bold' }}>{stats.dueToday}</div>
+                  <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px' }}>
+                    {stats.todayCompleted} of {stats.todayTotal} complete - {stats.dailyCompletion}%
+                  </div>
+                  <div style={{
+                    width: '100%',
+                    height: '4px',
+                    backgroundColor: '#374151',
+                    borderRadius: '2px',
+                    overflow: 'hidden',
+                    marginTop: '8px'
+                  }}>
+                    <div style={{
+                      width: `${stats.dailyCompletion}%`,
+                      height: '100%',
+                      backgroundColor: stats.dailyCompletion < 33 ? '#ef4444' : stats.dailyCompletion < 67 ? '#eab308' : '#22c55e',
+                      transition: 'all 0.3s'
+                    }} />
+                  </div>
                 </button>
                 <button
                   onClick={() => setSelectedStatusFilter('completedToday')}
@@ -3602,6 +3657,242 @@ function App() {
         {activeMainTab === 'content' && (
           <div style={{ flex: 1, overflowY: 'auto' }}>
             <ContentLibrary />
+          </div>
+        )}
+
+        {activeMainTab === 'review' && (
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+            <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+              <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '24px', color: 'white' }}>
+                📊 Review Dashboard
+              </h1>
+
+              {/* Area Cards Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+
+                {/* DAILY Card */}
+                <button
+                  onClick={() => setActiveMainTab('daily')}
+                  style={{
+                    backgroundColor: '#1a1a1a',
+                    border: '2px solid #f97316',
+                    borderRadius: '12px',
+                    padding: '24px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#fb923c'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#f97316'}
+                >
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#f97316', marginBottom: '12px' }}>
+                    📅 DAILY
+                  </div>
+                  <div style={{ fontSize: '48px', fontWeight: 'bold', color: 'white', marginBottom: '8px' }}>
+                    {stats.dailyCompletion}%
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '12px' }}>
+                    {stats.todayCompleted} of {stats.todayTotal} tasks complete
+                  </div>
+                  <div style={{
+                    width: '100%',
+                    height: '8px',
+                    backgroundColor: '#374151',
+                    borderRadius: '4px',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      width: `${stats.dailyCompletion}%`,
+                      height: '100%',
+                      backgroundColor: stats.dailyCompletion < 33 ? '#ef4444' : stats.dailyCompletion < 67 ? '#eab308' : '#22c55e',
+                      transition: 'all 0.3s'
+                    }} />
+                  </div>
+                </button>
+
+                {/* TASKS Card */}
+                <button
+                  onClick={() => setActiveMainTab('tasks')}
+                  style={{
+                    backgroundColor: '#1a1a1a',
+                    border: '2px solid #3b82f6',
+                    borderRadius: '12px',
+                    padding: '24px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#60a5fa'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
+                >
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#3b82f6', marginBottom: '12px' }}>
+                    ✓ TASKS
+                  </div>
+                  <div style={{ fontSize: '48px', fontWeight: 'bold', color: 'white', marginBottom: '8px' }}>
+                    {Math.round((stats.completed / (stats.active + stats.completed)) * 100) || 0}%
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '12px' }}>
+                    {stats.active} active · {stats.completed} complete
+                  </div>
+                  <div style={{
+                    width: '100%',
+                    height: '8px',
+                    backgroundColor: '#374151',
+                    borderRadius: '4px',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      width: `${Math.round((stats.completed / (stats.active + stats.completed)) * 100) || 0}%`,
+                      height: '100%',
+                      backgroundColor: '#3b82f6',
+                      transition: 'all 0.3s'
+                    }} />
+                  </div>
+                </button>
+
+                {/* BUSINESS Card - Expanded */}
+                <div style={{
+                  backgroundColor: '#1a1a1a',
+                  border: '2px solid #a855f7',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  gridColumn: 'span 2'
+                }}>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#a855f7', marginBottom: '16px' }}>
+                    💼 BUSINESS
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {['Full Stack AI', 'Huge Capital', 'S4', '808', 'Service SaaS'].map((businessName) => {
+                      const businessTasks = tasks.filter(t => {
+                        if (businessName === 'Full Stack AI') return t.area === 'Full Stack'
+                        if (businessName === 'Huge Capital') return t.area === 'Huge Capital'
+                        if (businessName === 'S4') return t.area === 'S4'
+                        if (businessName === '808') return t.area === '808'
+                        return false
+                      })
+                      const totalTasks = businessTasks.length
+                      const completedTasks = businessTasks.filter(t => t.status === 'Done').length
+                      const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+
+                      return (
+                        <div key={businessName} style={{ padding: '12px', backgroundColor: '#0a0a0a', borderRadius: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: '500', color: 'white' }}>{businessName}</span>
+                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: progress < 33 ? '#ef4444' : progress < 67 ? '#eab308' : '#22c55e' }}>
+                              {progress}%
+                            </span>
+                          </div>
+                          <div style={{
+                            width: '100%',
+                            height: '6px',
+                            backgroundColor: '#374151',
+                            borderRadius: '3px',
+                            overflow: 'hidden'
+                          }}>
+                            <div style={{
+                              width: `${progress}%`,
+                              height: '100%',
+                              backgroundColor: progress < 33 ? '#ef4444' : progress < 67 ? '#eab308' : '#22c55e',
+                              transition: 'all 0.3s'
+                            }} />
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>
+                            {completedTasks} of {totalTasks} tasks
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* CONTENT Card */}
+                <button
+                  onClick={() => setActiveMainTab('content')}
+                  style={{
+                    backgroundColor: '#1a1a1a',
+                    border: '2px solid #10b981',
+                    borderRadius: '12px',
+                    padding: '24px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#34d399'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#10b981'}
+                >
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#10b981', marginBottom: '12px' }}>
+                    📚 CONTENT
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#9ca3af' }}>
+                    Click to view content library
+                  </div>
+                </button>
+
+                {/* HEALTH Placeholder Card */}
+                <div style={{
+                  backgroundColor: '#1a1a1a',
+                  border: '2px solid #444',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  opacity: 0.5
+                }}>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#9ca3af', marginBottom: '12px' }}>
+                    💪 HEALTH
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#9ca3af' }}>
+                    Coming soon
+                  </div>
+                </div>
+
+                {/* FINANCES Placeholder Card */}
+                <div style={{
+                  backgroundColor: '#1a1a1a',
+                  border: '2px solid #444',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  opacity: 0.5
+                }}>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#9ca3af', marginBottom: '12px' }}>
+                    💰 FINANCES
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#9ca3af' }}>
+                    Coming soon
+                  </div>
+                </div>
+
+                {/* LIFE Placeholder Card */}
+                <div style={{
+                  backgroundColor: '#1a1a1a',
+                  border: '2px solid #444',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  opacity: 0.5
+                }}>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#9ca3af', marginBottom: '12px' }}>
+                    🌟 LIFE
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#9ca3af' }}>
+                    Coming soon
+                  </div>
+                </div>
+
+                {/* GOLF Placeholder Card */}
+                <div style={{
+                  backgroundColor: '#1a1a1a',
+                  border: '2px solid #444',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  opacity: 0.5
+                }}>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#9ca3af', marginBottom: '12px' }}>
+                    ⛳ GOLF
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#9ca3af' }}>
+                    Coming soon
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

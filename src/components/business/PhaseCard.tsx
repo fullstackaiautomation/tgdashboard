@@ -2,6 +2,8 @@ import type { FC } from 'react';
 import { useState } from 'react';
 import type { Phase } from '../../types/project';
 import { useTasks } from '../../hooks/useTasks';
+import { usePhaseProgress } from '../../hooks/usePhaseProgress';
+import { ProgressBar } from '../shared/ProgressBar';
 import { TaskForm } from './TaskForm';
 
 interface PhaseCardProps {
@@ -19,6 +21,8 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
   const phaseTasks = allTasks?.filter(
     (task) => task.phase_id === phase.id && task.project_id === projectId
   ) || [];
+
+  const { progress, completedCount, totalCount } = usePhaseProgress(phaseTasks);
 
   const completedTasks = phaseTasks.filter((task) => task.status === 'Done').length;
 
@@ -58,11 +62,20 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
             <span className="font-medium text-white text-sm">{phase.name}</span>
             <span className={`w-2 h-2 rounded-full ${statusColor}`} />
           </div>
-          <div className="flex items-center gap-3 text-xs text-gray-400">
-            <span>
-              {completedTasks}/{phaseTasks.length} tasks
-            </span>
-            <span>#{phase.sequence_order}</span>
+          <div className="flex items-center gap-3">
+            {totalCount > 0 ? (
+              <div className="flex items-center gap-2">
+                <div className="w-24">
+                  <ProgressBar progress={progress} size="sm" />
+                </div>
+                <span className="text-xs text-gray-400 whitespace-nowrap">
+                  {completedCount}/{totalCount}
+                </span>
+              </div>
+            ) : (
+              <span className="text-xs text-gray-400">No tasks</span>
+            )}
+            <span className="text-xs text-gray-400">#{phase.sequence_order}</span>
           </div>
         </div>
         {phase.description && (
