@@ -55,7 +55,7 @@ export const DetailsModal: FC<DetailsModalProps> = ({
   onUpdate,
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [editingTags, setEditingTags] = useState(false)
+  const [_editingTags, _setEditingTags] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const [currentTags, setCurrentTags] = useState<string[]>([])
 
@@ -109,7 +109,7 @@ export const DetailsModal: FC<DetailsModalProps> = ({
     }).filter(Boolean) as { id: string; name: string; color: string }[]
   }
 
-  const dashboardAreas = getDashboardAreas()
+  const _dashboardAreas = getDashboardAreas()
 
   // Get status color
   const getStatusColor = (status: string) => {

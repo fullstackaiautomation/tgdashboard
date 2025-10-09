@@ -317,29 +317,8 @@ const ContentLibrary = () => {
     }
   }
 
-  const handleDeleteContent = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this content?')) return
-
-    try {
-      const { error } = await supabase.from('content_library').delete().eq('id', id)
-
-      if (error) throw error
-      setContents(contents.filter((c) => c.id !== id))
-      setShowDetailsModal(false)
-    } catch (error) {
-      console.error('Error deleting content:', error)
-    }
-  }
-
   const handleToggleFavorite = async (id: string, currentValue: boolean) => {
     await handleUpdateContent(id, { is_favorite: !currentValue })
-  }
-
-  const handleCompleteContent = async (id: string) => {
-    await handleUpdateContent(id, {
-      status: 'Completed',
-      completed_at: new Date().toISOString(),
-    })
   }
 
   const handleImageUpload = (file: File) => {
@@ -747,8 +726,8 @@ const ContentLibrary = () => {
                 }}
                 onToggleFavorite={handleToggleFavorite}
                 getSourceIcon={getSourceIcon}
-                getStatusIcon={getStatusIcon}
-                getStatusColor={getStatusColor}
+                getStatusIcon={(status: string) => getStatusIcon(status as ContentStatus)}
+                getStatusColor={(status: string) => getStatusColor(status as ContentStatus)}
                 getPriorityColor={(priority: string) => getPriorityColor(priority as ContentPriority)}
               />
             </div>
