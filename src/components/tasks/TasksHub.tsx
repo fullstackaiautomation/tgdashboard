@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useTasks } from '../../hooks/useTasks';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { supabase } from '../../lib/supabase';
-import { EnhancedTaskCard } from './EnhancedTaskCard';
+import { TaskCard } from './TaskCard';
 import { TaskFilters } from './TaskFilters';
 import type { TaskHub } from '../../types/task';
 
@@ -116,7 +116,7 @@ export const TasksHub: FC = () => {
       ) : (
         <div className="space-y-3">
           {filteredTasks.map((task) => (
-            <EnhancedTaskCard key={task.id} task={task} />
+            <TaskCard key={task.id} task={task} />
           ))}
         </div>
       )}
