@@ -7,7 +7,18 @@
       "Bash(npx md-to-pdf:*)",
       "Bash(cat:*)",
       "Bash(md-tree:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout 10 npm run dev:*)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)",
+      "Bash(npx supabase:*)",
+      "Bash(curl -i --location --request POST 'https://rnlijzolilwweptwbakv.supabase.co/functions/v1/analyze-content' --header 'Content-Type: application/json' --data '{\"\"url\"\":\"\"https://www.youtube.com/watch?v=dQw4w9WgXcQ\"\"}')",
+      "Bash(curl:*)",
+      "Bash(psql:*)"
     ],
     "deny": [],
     "ask": []
