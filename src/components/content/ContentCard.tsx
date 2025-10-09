@@ -78,8 +78,8 @@ export const ContentCard: FC<ContentCardProps> = ({
   onClick,
   onToggleFavorite,
   getSourceIcon,
-  getStatusIcon,
-  getStatusColor,
+  getStatusIcon: _getStatusIcon,
+  getStatusColor: _getStatusColor,
   getPriorityColor,
 }) => {
   // Fetch businesses for dashboard area display
@@ -96,8 +96,8 @@ export const ContentCard: FC<ContentCardProps> = ({
     },
   })
 
-  // Get dashboard area details
-  const getDashboardAreaDetails = (areaId: string) => {
+  // Get dashboard area details (currently unused but kept for future features)
+  const _getDashboardAreaDetails = (areaId: string) => {
     // Check if it's a life area
     if (LIFE_AREAS[areaId]) {
       return LIFE_AREAS[areaId]
@@ -110,7 +110,7 @@ export const ContentCard: FC<ContentCardProps> = ({
     return null
   }
 
-  const dashboardAreas = content.dashboard_areas || []
+  const _dashboardAreas = content.dashboard_areas || []
   const hasAISummary = content.ai_summary && content.ai_summary.trim().length > 0
 
   return (

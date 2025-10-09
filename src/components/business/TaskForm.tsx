@@ -1,7 +1,7 @@
 import type { FC, FormEvent } from 'react';
 import { useState } from 'react';
 import { useCreateTask } from '../../hooks/useTasks';
-import type { CreateTaskDTO } from '../../types/task';
+import type { CreateTaskDTO, TaskStatus } from '../../types/task';
 
 interface TaskFormProps {
   businessId: string;
@@ -21,7 +21,7 @@ export const TaskForm: FC<TaskFormProps> = ({
   const [taskName, setTaskName] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [status, setStatus] = useState<string>('Not started');
+  const [status, setStatus] = useState<TaskStatus>('Not started');
 
   const createTask = useCreateTask();
 
