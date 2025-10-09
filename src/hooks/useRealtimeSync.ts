@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { syncLogger } from '../utils/syncLogger';
 
-export const useRealtimeSync = (userId: string | null) => {
+export const useRealtimeSync = (userId: string | null | undefined) => {
   const queryClient = useQueryClient();
 
   useEffect(() => {

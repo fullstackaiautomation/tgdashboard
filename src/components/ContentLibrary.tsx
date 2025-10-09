@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactElement } from 'react'
 import { supabase } from '../lib/supabase'
 import type {
   ContentItem,
@@ -749,7 +749,7 @@ const ContentLibrary = () => {
                 getSourceIcon={getSourceIcon}
                 getStatusIcon={getStatusIcon}
                 getStatusColor={getStatusColor}
-                getPriorityColor={getPriorityColor}
+                getPriorityColor={(priority: string) => getPriorityColor(priority as ContentPriority)}
               />
             </div>
           ))}
