@@ -13,13 +13,8 @@ import {
   Plus,
   Filter,
   Star,
-  Trash2,
   ExternalLink,
   BookmarkPlus,
-  FolderOpen,
-  Tag,
-  Calendar,
-  Clock,
   CheckCircle2,
   PlayCircle,
   Archive,
@@ -406,8 +401,8 @@ const ContentLibrary = () => {
     setThumbnailPreview('')
   }
 
-  const getSourceIcon = (source: ContentSource) => {
-    const icons: Record<ContentSource, string> = {
+  const getSourceIcon = (source: string): string => {
+    const icons: Record<string, string> = {
       Twitter: '𝕏',
       YouTube: '▶',
       Instagram: '📷',
@@ -417,11 +412,13 @@ const ContentLibrary = () => {
       Book: '📚',
       Course: '🎓',
       Other: '🔗',
+      Website: '🌐',
+      GitHub: '💻',
     }
-    return icons[source]
+    return icons[source] || '🔗'
   }
 
-  const getStatusIcon = (status: ContentStatus) => {
+  const getStatusIcon = (status: string): ReactElement => {
     switch (status) {
       case 'To Watch':
         return <BookmarkPlus className="w-4 h-4" />
@@ -434,11 +431,13 @@ const ContentLibrary = () => {
       case 'Archived':
         return <Archive className="w-4 h-4" />
       case 'Vault':
-        return <FolderOpen className="w-4 h-4" />
+        return <BookmarkPlus className="w-4 h-4" />
+      default:
+        return <BookmarkPlus className="w-4 h-4" />
     }
   }
 
-  const getPriorityColor = (priority: ContentPriority) => {
+  const getPriorityColor = (priority: ContentPriority): string => {
     switch (priority) {
       case 'High':
         return 'bg-red-900 text-red-300 border-red-700'
@@ -446,10 +445,12 @@ const ContentLibrary = () => {
         return 'bg-yellow-900 text-yellow-300 border-yellow-700'
       case 'Low':
         return 'bg-green-900 text-green-300 border-green-700'
+      default:
+        return 'bg-gray-900 text-gray-300 border-gray-700'
     }
   }
 
-  const getStatusColor = (status: ContentStatus) => {
+  const getStatusColor = (status: ContentStatus): string => {
     switch (status) {
       case 'To Watch':
         return 'bg-blue-900 text-blue-300'
@@ -463,6 +464,8 @@ const ContentLibrary = () => {
         return 'bg-gray-700 text-gray-300'
       case 'Vault':
         return 'bg-indigo-900 text-indigo-300'
+      default:
+        return 'bg-gray-900 text-gray-300'
     }
   }
 
