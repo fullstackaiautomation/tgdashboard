@@ -24,7 +24,9 @@ export const useRealtimeSync = (userId: string | null | undefined) => {
           console.log('[Real-time] Tasks change detected:', payload);
 
           try {
-            const taskId = payload.new?.id || payload.old?.id || null;
+            const newRecord = payload.new as any;
+            const oldRecord = payload.old as any;
+            const taskId = newRecord?.id || oldRecord?.id || null;
             const operation = payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE';
 
             // Log the sync event
@@ -44,9 +46,11 @@ export const useRealtimeSync = (userId: string | null | undefined) => {
             }
           } catch (error: any) {
             // Log sync error
+            const newRecord = payload.new as any;
+            const oldRecord = payload.old as any;
             syncLogger.logError(
               'SYNC_ERROR',
-              payload.new?.id || payload.old?.id || null,
+              newRecord?.id || oldRecord?.id || null,
               error?.message || 'Unknown sync error',
               { payload, error }
             );

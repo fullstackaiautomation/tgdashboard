@@ -103,7 +103,7 @@ export const BusinessDashboard: FC = () => {
             ) : (
               <div className="space-y-4">
                 {projects.map((project) => (
-                  <ProjectCard key={project.id} project={project} businessId={selectedBusinessId} />
+                  <ProjectCard key={project.id} project={project} businessId={selectedBusinessId || ''} />
                 ))}
               </div>
             )}

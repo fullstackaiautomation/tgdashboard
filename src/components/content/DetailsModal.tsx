@@ -109,7 +109,8 @@ export const DetailsModal: FC<DetailsModalProps> = ({
     }).filter(Boolean) as { id: string; name: string; color: string }[]
   }
 
-  const _dashboardAreas = getDashboardAreas()
+  // Dashboard areas currently unused but kept for future features
+  // const _dashboardAreas = getDashboardAreas()
 
   // Get status color
   const getStatusColor = (status: string) => {
