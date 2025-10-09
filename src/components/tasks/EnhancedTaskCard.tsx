@@ -51,7 +51,7 @@ const isOverdue = (task: TaskHub): boolean => {
   return new Date(task.due_date) < new Date();
 };
 
-export const EnhancedTaskCard: FC<EnhancedTaskCardProps> = ({ task, className = '', onUndo }) => {
+export const EnhancedTaskCard: FC<EnhancedTaskCardProps> = ({ task, className = '', onUndo: _onUndo }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editedTitle, setEditedTitle] = useState(task.task_name);

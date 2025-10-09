@@ -131,7 +131,7 @@ export const QuickAddModal: FC<QuickAddModalProps> = ({
       } else if (parsedUrl.hostname.includes('instagram.com')) {
         source = 'Instagram'
       } else if (parsedUrl.hostname.includes('github.com')) {
-        source = 'GitHub'
+        source = 'Article'
       }
 
       setFormData({

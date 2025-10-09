@@ -1,6 +1,6 @@
 import { type FC, useState, useEffect } from 'react'
 import { X, Save } from 'lucide-react'
-import type { ContentItem } from '../../types/content'
+import type { ContentItem, ContentSource, ContentCategory, ContentStatus, ContentPriority } from '../../types/content'
 import type { Business } from '../../types/business'
 
 interface EditModalProps {
@@ -125,7 +125,7 @@ export const EditModal: FC<EditModalProps> = ({
               <label className="block text-sm font-medium text-gray-300 mb-2">Source</label>
               <select
                 value={formData.source || ''}
-                onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, source: e.target.value as ContentSource })}
                 className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {SOURCES.map(source => (
@@ -137,7 +137,7 @@ export const EditModal: FC<EditModalProps> = ({
               <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
               <select
                 value={formData.category || ''}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value as ContentCategory })}
                 className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {CATEGORIES.map(category => (
@@ -153,7 +153,7 @@ export const EditModal: FC<EditModalProps> = ({
               <label className="block text-sm font-medium text-gray-300 mb-2">Status</label>
               <select
                 value={formData.status || ''}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as ContentStatus })}
                 className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {STATUSES.map(status => (
@@ -165,7 +165,7 @@ export const EditModal: FC<EditModalProps> = ({
               <label className="block text-sm font-medium text-gray-300 mb-2">Priority</label>
               <select
                 value={formData.priority || ''}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value as ContentPriority })}
                 className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {PRIORITIES.map(priority => (

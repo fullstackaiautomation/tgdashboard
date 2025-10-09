@@ -80,37 +80,8 @@ export const ContentCard: FC<ContentCardProps> = ({
   getSourceIcon,
   getStatusIcon: _getStatusIcon,
   getStatusColor: _getStatusColor,
-  getPriorityColor: _getPriorityColor,
+  getPriorityColor,
 }) => {
-  // Fetch businesses for dashboard area display
-  const { data: _businesses = [] } = useQuery({
-    queryKey: ['businesses'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('businesses')
-        .select('id, name, color')
-        .order('name')
-
-      if (error) throw error
-      return (data || []) as Business[]
-    },
-  })
-
-  // Get dashboard area details (currently unused but kept for future features)
-  const _getDashboardAreaDetails = (areaId: string) => {
-    // Check if it's a life area
-    if (LIFE_AREAS[areaId]) {
-      return LIFE_AREAS[areaId]
-    }
-    // Check if it's a business
-    const business = _businesses.find((b) => b.id === areaId)
-    if (business) {
-      return { name: business.name, color: business.color }
-    }
-    return null
-  }
-
-  const _dashboardAreas = content.dashboard_areas || []
   const hasAISummary = content.ai_summary && content.ai_summary.trim().length > 0
 
   return (

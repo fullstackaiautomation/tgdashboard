@@ -144,7 +144,7 @@ export async function reanalyzeContent(url: string, existingData?: Partial<AIAna
  *
  * TODO: Implement Open Graph scraping or screenshot service
  */
-export async function extractThumbnail(url: string): Promise<string | undefined> {
+export async function extractThumbnail(_url: string): Promise<string | undefined> {
   // TODO: Implement thumbnail extraction
   // Options:
   // 1. Open Graph meta tags scraping
