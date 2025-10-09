@@ -25,20 +25,52 @@ import {
   Archive,
   TrendingUp,
   X,
+  Loader2,
 } from 'lucide-react'
+import { DashboardAreaSelector } from './content/DashboardAreaSelector'
+import { ValueRatingInput } from './content/ValueRatingInput'
+import { ContentCard } from './content/ContentCard'
+import { QuickAddModal } from './content/QuickAddModal'
+import { DetailsModal } from './content/DetailsModal'
+import { EditModal } from './content/EditModal'
+import { useQuery } from '@tanstack/react-query'
+import type { Business } from '../types/business'
+import { analyzeContentURL } from '../services/aiContentAnalyzer'
 
 const ContentLibrary = () => {
   const [contents, setContents] = useState<ContentItem[]>([])
   const [filteredContents, setFilteredContents] = useState<ContentItem[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Fetch businesses for dashboard areas
+  const { data: businesses = [] } = useQuery<Business[]>({
+    queryKey: ['businesses'],
+    queryFn: async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session) return []
+
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('name')
+
+      if (error) throw error
+      return data || []
+    },
+  })
   const [searchTerm, setSearchTerm] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showQuickAddModal, setShowQuickAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
-  const [sortBy, setSortBy] = useState<'saved_at' | 'priority' | 'title' | 'status'>('saved_at')
+  const [sortBy, setSortBy] = useState<'saved_at' | 'priority' | 'title' | 'status' | 'value_rating'>('saved_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [aiAnalyzing, setAiAnalyzing] = useState(false)
 
   const [filters, setFilters] = useState<ContentFilter>({
     source: [],
@@ -49,6 +81,8 @@ const ContentLibrary = () => {
     folder: undefined,
     searchTerm: '',
     isFavorite: undefined,
+    dashboardAreas: [],
+    minValueRating: null,
   })
 
   const [formData, setFormData] = useState<Partial<ContentItem>>({
@@ -59,7 +93,10 @@ const ContentLibrary = () => {
     status: 'To Watch',
     priority: 'Medium',
     notes: '',
+    ai_summary: '',
     tags: [],
+    dashboard_areas: [],
+    value_rating: null,
     is_favorite: false,
   })
   const [_thumbnailFile, setThumbnailFile] = useState<File | null>(null)
@@ -146,6 +183,20 @@ const ContentLibrary = () => {
       filtered = filtered.filter((item) => item.folder === filters.folder)
     }
 
+    // Dashboard Areas filter
+    if (filters.dashboardAreas && filters.dashboardAreas.length > 0) {
+      filtered = filtered.filter((item) =>
+        item.dashboard_areas?.some((area) => filters.dashboardAreas!.includes(area))
+      )
+    }
+
+    // Value Rating filter
+    if (filters.minValueRating) {
+      filtered = filtered.filter(
+        (item) => item.value_rating && item.value_rating >= filters.minValueRating!
+      )
+    }
+
     // Sorting
     filtered.sort((a, b) => {
       let comparison = 0
@@ -163,11 +214,45 @@ const ContentLibrary = () => {
         case 'status':
           comparison = a.status.localeCompare(b.status)
           break
+        case 'value_rating':
+          const aRating = a.value_rating || 0
+          const bRating = b.value_rating || 0
+          comparison = aRating - bRating
+          break
       }
       return sortOrder === 'asc' ? comparison : -comparison
     })
 
     setFilteredContents(filtered)
+  }
+
+  const handleAnalyzeWithAI = async () => {
+    if (!formData.url) {
+      alert('Please enter a URL first')
+      return
+    }
+
+    setAiAnalyzing(true)
+    try {
+      const analysis = await analyzeContentURL(formData.url)
+
+      // Merge AI analysis with existing form data
+      setFormData({
+        ...formData,
+        title: analysis.title || formData.title,
+        ai_summary: analysis.ai_summary || formData.ai_summary,
+        creator: analysis.creator || formData.creator,
+        time_estimate: analysis.time_estimate || formData.time_estimate,
+        tags: analysis.tags && analysis.tags.length > 0 ? analysis.tags : formData.tags,
+        value_rating: analysis.value_rating !== undefined ? analysis.value_rating : formData.value_rating,
+        thumbnail_url: analysis.thumbnail_url || formData.thumbnail_url,
+      })
+    } catch (error) {
+      console.error('Error analyzing content:', error)
+      alert('Failed to analyze content. Please try again.')
+    } finally {
+      setAiAnalyzing(false)
+    }
   }
 
   const handleAddContent = async () => {
@@ -314,6 +399,7 @@ const ContentLibrary = () => {
       priority: 'Medium',
       notes: '',
       tags: [],
+      dashboard_areas: [],
       is_favorite: false,
     })
     setThumbnailFile(null)
@@ -408,13 +494,22 @@ const ContentLibrary = () => {
             Your personal knowledge base of learning resources
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Add Content
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowQuickAddModal(true)}
+            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <ExternalLink className="w-5 h-5" />
+            Quick Add URL
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Add Content
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -472,6 +567,7 @@ const ContentLibrary = () => {
           >
             <option value="saved_at">Sort by Date</option>
             <option value="priority">Sort by Priority</option>
+            <option value="value_rating">Sort by Value Rating</option>
             <option value="title">Sort by Title</option>
             <option value="status">Sort by Status</option>
           </select>
@@ -637,150 +733,21 @@ const ContentLibrary = () => {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="masonry-grid">
           {filteredContents.map((content) => (
-            <div
-              key={content.id}
-              className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden hover:shadow-xl hover:border-gray-600 transition-all cursor-pointer group"
-              onClick={() => {
-                setSelectedContent(content)
-                setShowDetailsModal(true)
-              }}
-            >
-              {/* Thumbnail */}
-              {content.thumbnail_url ? (
-                <div className="relative aspect-video w-full bg-gray-900">
-                  <img
-                    src={content.thumbnail_url}
-                    alt={content.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-2 right-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleToggleFavorite(content.id, content.is_favorite)
-                      }}
-                      className="p-1.5 bg-black bg-opacity-50 rounded-full hover:bg-opacity-70 transition-all"
-                    >
-                      <Star
-                        className={`w-5 h-5 ${
-                          content.is_favorite
-                            ? 'text-yellow-500 fill-yellow-500'
-                            : 'text-white'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="relative aspect-video w-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                  <span className="text-6xl opacity-20">{getSourceIcon(content.source)}</span>
-                  <div className="absolute top-2 right-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleToggleFavorite(content.id, content.is_favorite)
-                      }}
-                      className="p-1.5 bg-black bg-opacity-50 rounded-full hover:bg-opacity-70 transition-all"
-                    >
-                      <Star
-                        className={`w-5 h-5 ${
-                          content.is_favorite
-                            ? 'text-yellow-500 fill-yellow-500'
-                            : 'text-white'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Card Content */}
-              <div className="p-4">
-                <div className="flex items-start gap-2 mb-2">
-                  <span className="text-xl mt-0.5">{getSourceIcon(content.source)}</span>
-                  <h3 className="text-base font-semibold text-white line-clamp-2 flex-1">
-                    {content.title}
-                  </h3>
-                </div>
-
-                {content.creator && (
-                  <p className="text-sm text-gray-400 mb-2">by {content.creator}</p>
-                )}
-
-                {content.notes && (
-                  <p className="text-sm text-gray-400 mb-3 line-clamp-2">{content.notes}</p>
-                )}
-
-                <div className="flex items-center gap-2 flex-wrap mb-3">
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${getStatusColor(
-                      content.status
-                    )}`}
-                  >
-                    {getStatusIcon(content.status)}
-                    {content.status}
-                  </span>
-                  <span
-                    className={`px-2 py-1 rounded-md text-xs font-medium border ${getPriorityColor(
-                      content.priority
-                    )}`}
-                  >
-                    {content.priority}
-                  </span>
-                  {content.time_to_consume && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-gray-700 text-gray-300">
-                      <Clock className="w-3 h-3" />
-                      {content.time_to_consume}m
-                    </span>
-                  )}
-                </div>
-
-                <div className="text-xs text-gray-500 mb-2">{content.category}</div>
-
-                {content.tags.length > 0 && (
-                  <div className="flex items-center gap-1 flex-wrap">
-                    {content.tags.slice(0, 3).map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-blue-900 text-blue-300"
-                      >
-                        <Tag className="w-3 h-3" />
-                        {tag}
-                      </span>
-                    ))}
-                    {content.tags.length > 3 && (
-                      <span className="text-xs text-gray-500">+{content.tags.length - 3}</span>
-                    )}
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-700">
-                  <a
-                    href={content.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm text-gray-300"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Open
-                  </a>
-                  {content.status !== 'Completed' && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleCompleteContent(content.id)
-                      }}
-                      className="px-3 py-2 bg-green-900 hover:bg-green-800 rounded-lg transition-colors text-sm text-green-300"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </div>
+            <div key={content.id} className="masonry-item">
+              <ContentCard
+                content={content}
+                onClick={() => {
+                  setSelectedContent(content)
+                  setShowDetailsModal(true)
+                }}
+                onToggleFavorite={handleToggleFavorite}
+                getSourceIcon={getSourceIcon}
+                getStatusIcon={getStatusIcon}
+                getStatusColor={getStatusColor}
+                getPriorityColor={getPriorityColor}
+              />
             </div>
           ))}
         </div>
@@ -820,13 +787,33 @@ const ContentLibrary = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">URL *</label>
-                  <input
-                    type="url"
-                    value={formData.url}
-                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="https://..."
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={formData.url}
+                      onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                      className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="https://..."
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAnalyzeWithAI}
+                      disabled={!formData.url || aiAnalyzing}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors whitespace-nowrap"
+                    >
+                      {aiAnalyzing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <TrendingUp className="w-4 h-4" />
+                          Analyze with AI
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
@@ -928,7 +915,7 @@ const ContentLibrary = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-1">
                       Status
@@ -983,6 +970,11 @@ const ContentLibrary = () => {
                       placeholder="30"
                     />
                   </div>
+
+                  <ValueRatingInput
+                    value={formData.value_rating || null}
+                    onChange={(rating) => setFormData({ ...formData, value_rating: rating })}
+                  />
                 </div>
 
                 <div>
@@ -1023,6 +1015,23 @@ const ContentLibrary = () => {
                     className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Optional folder name"
                   />
+                </div>
+
+                <DashboardAreaSelector
+                  selectedAreas={formData.dashboard_areas || []}
+                  onChange={(areas) => setFormData({ ...formData, dashboard_areas: areas })}
+                />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">AI Summary</label>
+                  <textarea
+                    value={formData.ai_summary || ''}
+                    onChange={(e) => setFormData({ ...formData, ai_summary: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 italic"
+                    placeholder="AI-generated summary will appear here, or add your own..."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Auto-filled by AI or manually entered</p>
                 </div>
 
                 <div>
@@ -1109,13 +1118,33 @@ const ContentLibrary = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">URL *</label>
-                  <input
-                    type="url"
-                    value={formData.url}
-                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="https://..."
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={formData.url}
+                      onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                      className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="https://..."
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAnalyzeWithAI}
+                      disabled={!formData.url || aiAnalyzing}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors whitespace-nowrap"
+                    >
+                      {aiAnalyzing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <TrendingUp className="w-4 h-4" />
+                          Analyze with AI
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
@@ -1292,6 +1321,23 @@ const ContentLibrary = () => {
                   />
                 </div>
 
+                <DashboardAreaSelector
+                  selectedAreas={formData.dashboard_areas || []}
+                  onChange={(areas) => setFormData({ ...formData, dashboard_areas: areas })}
+                />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">AI Summary</label>
+                  <textarea
+                    value={formData.ai_summary || ''}
+                    onChange={(e) => setFormData({ ...formData, ai_summary: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 italic"
+                    placeholder="AI-generated summary will appear here, or add your own..."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Auto-filled by AI or manually entered</p>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Notes</label>
                   <textarea
@@ -1302,6 +1348,11 @@ const ContentLibrary = () => {
                     placeholder="Add notes about this content..."
                   />
                 </div>
+
+                <ValueRatingInput
+                  value={formData.value_rating || null}
+                  onChange={(rating) => setFormData({ ...formData, value_rating: rating })}
+                />
 
                 <div>
                   <label className="flex items-center gap-2">
@@ -1341,174 +1392,113 @@ const ContentLibrary = () => {
       )}
 
       {/* Details Modal */}
-      {showDetailsModal && selectedContent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-3xl">{getSourceIcon(selectedContent.source)}</span>
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      {selectedContent.title}
-                    </h2>
-                    {selectedContent.is_favorite && (
-                      <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
-                    )}
-                  </div>
-                  {selectedContent.creator && (
-                    <p className="text-gray-600">by {selectedContent.creator}</p>
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowDetailsModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
+      <DetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        content={selectedContent}
+        businesses={businesses}
+        onEdit={() => {
+          setShowDetailsModal(false)
+          setShowEditModal(true)
+        }}
+        onDelete={async (id) => {
+          try {
+            const { error } = await supabase
+              .from('content_library')
+              .delete()
+              .eq('id', id)
 
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span
-                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-md text-sm font-medium ${getStatusColor(
-                      selectedContent.status
-                    )}`}
-                  >
-                    {getStatusIcon(selectedContent.status)}
-                    {selectedContent.status}
-                  </span>
-                  <span
-                    className={`px-3 py-1 rounded-md text-sm font-medium border ${getPriorityColor(
-                      selectedContent.priority
-                    )}`}
-                  >
-                    {selectedContent.priority} Priority
-                  </span>
-                  <span className="px-3 py-1 rounded-md text-sm font-medium bg-gray-100 text-gray-700">
-                    {selectedContent.category}
-                  </span>
-                </div>
+            if (error) throw error
+            fetchContents()
+            setShowDetailsModal(false)
+          } catch (error) {
+            console.error('Error deleting content:', error)
+            alert('Failed to delete content')
+          }
+        }}
+        onUpdate={async (id, updates) => {
+          try {
+            const { error } = await supabase
+              .from('content_library')
+              .update(updates)
+              .eq('id', id)
 
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Calendar className="w-4 h-4" />
-                    <span>
-                      Saved: {new Date(selectedContent.saved_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                  {selectedContent.time_to_consume && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Clock className="w-4 h-4" />
-                      <span>{selectedContent.time_to_consume} minutes</span>
-                    </div>
-                  )}
-                  {selectedContent.completed_at && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>
-                        Completed: {new Date(selectedContent.completed_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  )}
-                  {selectedContent.folder && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <FolderOpen className="w-4 h-4" />
-                      <span>{selectedContent.folder}</span>
-                    </div>
-                  )}
-                </div>
+            if (error) throw error
+            fetchContents()
+            if (selectedContent?.id === id) {
+              setSelectedContent({ ...selectedContent, ...updates })
+            }
+          } catch (error) {
+            console.error('Error updating content:', error)
+            alert('Failed to update content')
+          }
+        }}
+      />
 
-                <div>
-                  <a
-                    href={selectedContent.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:underline"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Open Link
-                  </a>
-                </div>
+      {/* Edit Modal */}
+      <EditModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        content={selectedContent}
+        businesses={businesses}
+        onSave={async (id, updates) => {
+          try {
+            const { error } = await supabase
+              .from('content_library')
+              .update(updates)
+              .eq('id', id)
 
-                {selectedContent.tags.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-700 mb-2">Tags</h3>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {selectedContent.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-sm bg-blue-50 text-blue-700"
-                        >
-                          <Tag className="w-3 h-3" />
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            if (error) throw error
 
-                {selectedContent.notes && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-700 mb-2">Notes</h3>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-gray-700 whitespace-pre-wrap">{selectedContent.notes}</p>
-                    </div>
-                  </div>
-                )}
+            // Refresh content list
+            fetchContents()
 
-                <div className="flex items-center gap-3 pt-6 border-t border-gray-700">
-                  <button
-                    onClick={() => {
-                      setFormData(selectedContent)
-                      setShowDetailsModal(false)
-                      setShowEditModal(true)
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-blue-300 rounded-lg hover:bg-blue-800 transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleToggleFavorite(selectedContent.id, selectedContent.is_favorite)}
-                    className="flex items-center gap-2 px-4 py-2 bg-yellow-900 text-yellow-300 rounded-lg hover:bg-yellow-800 transition-colors"
-                  >
-                    <Star
-                      className={`w-5 h-5 ${
-                        selectedContent.is_favorite ? 'fill-yellow-500' : ''
-                      }`}
-                    />
-                    {selectedContent.is_favorite ? 'Unfavorite' : 'Favorite'}
-                  </button>
-                  {selectedContent.status !== 'Completed' && (
-                    <button
-                      onClick={() => {
-                        handleCompleteContent(selectedContent.id)
-                        setShowDetailsModal(false)
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-900 text-green-300 rounded-lg hover:bg-green-800 transition-colors"
-                    >
-                      <CheckCircle2 className="w-5 h-5" />
-                      Mark as Completed
-                    </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      handleDeleteContent(selectedContent.id)
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-900 text-red-300 rounded-lg hover:bg-red-800 transition-colors ml-auto"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+            // Update selected content if details modal will be shown again
+            if (selectedContent?.id === id) {
+              setSelectedContent({ ...selectedContent, ...updates })
+            }
+          } catch (error) {
+            console.error('Error updating content:', error)
+            alert('Failed to update content')
+          }
+        }}
+      />
+
+      {/* Quick Add Modal */}
+      <QuickAddModal
+        isOpen={showQuickAddModal}
+        onClose={() => setShowQuickAddModal(false)}
+        onSave={async (content) => {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession()
+          if (!session) return
+
+          const newContent = {
+            ...content,
+            user_id: session.user.id,
+            saved_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }
+
+          console.log('💾 Saving content:', newContent)
+
+          const { data, error } = await supabase
+            .from('content_library')
+            .insert([newContent])
+            .select()
+
+          if (error) {
+            console.error('❌ Error adding content:', error)
+            console.error('Error details:', error.message, error.details, error.hint)
+            throw error
+          }
+
+          console.log('✅ Content saved successfully:', data)
+          setContents([...contents, data[0]])
+        }}
+      />
     </div>
   )
 }

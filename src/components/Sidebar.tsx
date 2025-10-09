@@ -5,7 +5,8 @@ import {
   DollarSign,
   Heart,
   Settings,
-  BookMarked
+  BookMarked,
+  ListTodo
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -16,6 +17,7 @@ interface SidebarProps {
 const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'tasks', label: 'Tasks Hub', icon: ListTodo },
     { id: 'todos', label: 'To-Do List', icon: CheckSquare },
     { id: 'calendar', label: 'Calendar', icon: Calendar },
     { id: 'content', label: 'Content Library', icon: BookMarked },

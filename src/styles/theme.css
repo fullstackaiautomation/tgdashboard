@@ -1,0 +1,18 @@
+/* Business Color Variables */
+:root {
+  /* Business Colors */
+  --color-business-fullstack: #10b981;
+  --color-business-hugecapital: #a855f7;
+  --color-business-s4: #3b82f6;
+  --color-business-808: #f97316;
+
+  /* Life Area Colors */
+  --color-area-personal: #ec4899;
+  --color-area-health: #14b8a6;
+  --color-area-golf: #f97316;
+
+  /* Progress Colors */
+  --color-progress-low: #ef4444;
+  --color-progress-medium: #eab308;
+  --color-progress-high: #22c55e;
+}

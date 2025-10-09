@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from './lib/supabase'
 import ContentLibrary from './components/ContentLibrary'
+import { TasksHub } from './components/tasks/TasksHub'
+import { BusinessDashboard } from './components/business/BusinessDashboard'
 
 type Area = 'Full Stack' | 'S4' | '808' | 'Personal' | 'Huge Capital' | 'Golf' | 'Health'
 type EffortLevel = '$$$ Printer $$$' | '$ Makes Money $' | '-$ Save Dat $-' | ':( No Money ):' | '8) Vibing (8'
@@ -44,7 +46,7 @@ function App() {
   const [selectedArea, setSelectedArea] = useState<Area | 'All Areas'>('All Areas')
   const [scheduledTasks, setScheduledTasks] = useState<{[hour: number]: {task: Task, duration: number}[]}>({})  // Track tasks with duration (in 30-min slots)
   const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>(new Date().toISOString().split('T')[0]) // YYYY-MM-DD format
-  const [activeMainTab, setActiveMainTab] = useState<'daily' | 'content'>('daily')
+  const [activeMainTab, setActiveMainTab] = useState<'daily' | 'tasks' | 'business' | 'content'>('daily')
   const [activeSubTab, setActiveSubTab] = useState<'todo' | 'schedule' | 'deepwork'>('todo')
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<'All Time' | 'Today' | 'This Week' | 'This Month'>('All Time')
   const [selectedDWArea, setSelectedDWArea] = useState<Area | 'All Areas'>('All Areas')
@@ -1095,6 +1097,61 @@ function App() {
                 <path d="M5 8l2 2 4-4" />
               </svg>
               Daily
+            </button>
+          </div>
+
+          {/* Main Tab - Tasks Hub */}
+          <div style={{ marginBottom: '8px' }}>
+            <button
+              onClick={() => setActiveMainTab('tasks')}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                backgroundColor: activeMainTab === 'tasks' ? '#3b82f6' : 'transparent',
+                color: activeMainTab === 'tasks' ? 'white' : '#3b82f6',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '15px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M2 4h12M2 8h12M2 12h12M5 4v8M11 4v8" />
+              </svg>
+              Tasks Hub
+            </button>
+          </div>
+
+          {/* Main Tab - Business */}
+          <div style={{ marginBottom: '8px' }}>
+            <button
+              onClick={() => setActiveMainTab('business')}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                backgroundColor: activeMainTab === 'business' ? '#a855f7' : 'transparent',
+                color: activeMainTab === 'business' ? 'white' : '#a855f7',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '15px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="2" width="12" height="12" rx="2" />
+                <path d="M2 6h12M6 2v12" />
+              </svg>
+              Business
             </button>
           </div>
 
@@ -3525,6 +3582,20 @@ function App() {
         )}
         </div>
           </>
+        )}
+
+        {/* Tasks Hub Tab */}
+        {activeMainTab === 'tasks' && (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <TasksHub />
+          </div>
+        )}
+
+        {/* Business Tab */}
+        {activeMainTab === 'business' && (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <BusinessDashboard />
+          </div>
         )}
 
         {/* Content Library Tab */}
