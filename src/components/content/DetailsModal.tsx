@@ -49,7 +49,7 @@ export const DetailsModal: FC<DetailsModalProps> = ({
   isOpen,
   onClose,
   content,
-  businesses,
+  businesses: _businesses,
   onEdit,
   onDelete,
   onUpdate,
