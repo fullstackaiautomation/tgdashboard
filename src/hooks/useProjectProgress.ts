@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { PhaseHub } from '../types/phase';
+import type { Phase } from '../types/project';
 import type { TaskHub } from '../types/task';
 
 interface ProjectProgress {
@@ -21,7 +21,7 @@ interface ProjectProgress {
  * @returns ProjectProgress object with progress %, phase counts, activity status
  */
 export const useProjectProgress = (
-  phases: PhaseHub[],
+  phases: Phase[],
   tasks: TaskHub[]
 ): ProjectProgress => {
   return useMemo(() => {

@@ -24,7 +24,9 @@
       "Bash(head:*)",
       "Bash(fi)",
       "Bash(while read file)",
-      "Bash(timeout 5 bash -c 'until curl -s http://localhost:5173 > /dev/null 2>&1; do sleep 0.5; done && echo \"\"Server is ready!\"\"')"
+      "Bash(timeout 5 bash -c 'until curl -s http://localhost:5173 > /dev/null 2>&1; do sleep 0.5; done && echo \"\"Server is ready!\"\"')",
+      "Bash(git remote get-url:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []

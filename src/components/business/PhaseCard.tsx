@@ -24,8 +24,6 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
 
   const { progress, completedCount, totalCount } = usePhaseProgress(phaseTasks);
 
-  const completedTasks = phaseTasks.filter((task) => task.status === 'Done').length;
-
   const statusColors = {
     active: 'bg-green-500',
     paused: 'bg-yellow-500',
