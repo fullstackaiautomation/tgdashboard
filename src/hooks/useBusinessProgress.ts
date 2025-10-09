@@ -1,8 +1,6 @@
 import { useMemo } from 'react';
-import type { Project } from '../types/project';
-import type { PhaseHub } from '../types/phase';
+import type { Project, Phase } from '../types/project';
 import type { TaskHub } from '../types/task';
-import { useProjectProgress } from './useProjectProgress';
 
 interface BusinessProgress {
   overallCompletion: number;
@@ -24,7 +22,7 @@ interface BusinessProgress {
  */
 export const useBusinessProgress = (
   projects: Project[],
-  phases: PhaseHub[],
+  phases: Phase[],
   tasks: TaskHub[]
 ): BusinessProgress => {
   return useMemo(() => {

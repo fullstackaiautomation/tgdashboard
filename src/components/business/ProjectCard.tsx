@@ -21,7 +21,7 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId }) => {
   const projectTasks = allTasks?.filter((task) => task.project_id === project.id) || [];
 
   // Calculate project progress
-  const { progress, completedPhases, totalPhases, isStalled } = useProjectProgress(
+  const { progress, totalPhases, isStalled } = useProjectProgress(
     phases || [],
     projectTasks
   );
