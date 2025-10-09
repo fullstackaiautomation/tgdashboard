@@ -1,14 +1,6 @@
 import { type FC, type ReactElement } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '../../lib/supabase'
 import { Star, Clock } from 'lucide-react'
 import type { ContentItem } from '../../types/content'
-
-interface Business {
-  id: string
-  name: string
-  color: string
-}
 
 interface ContentCardProps {
   content: ContentItem
@@ -18,13 +10,6 @@ interface ContentCardProps {
   getStatusIcon: (status: string) => ReactElement
   getStatusColor: (status: string) => string
   getPriorityColor: (priority: string) => string
-}
-
-const LIFE_AREAS: Record<string, { name: string; color: string }> = {
-  Health: { name: 'Health', color: '#10b981' },
-  Finance: { name: 'Finance', color: '#3b82f6' },
-  Life: { name: 'Life', color: '#a855f7' },
-  Golf: { name: 'Golf', color: '#eab308' },
 }
 
 // Tag color mapping

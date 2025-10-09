@@ -85,32 +85,24 @@ export const DetailsModal: FC<DetailsModalProps> = ({
     onUpdate(content.id, { tags: newTags })
   }
 
-  // Get dashboard area details
+  // Dashboard areas feature removed for simplification
+  // Kept for reference if needed later
+  /*
   const getDashboardAreas = () => {
     if (!content.dashboard_areas || content.dashboard_areas.length === 0) return []
-
     const LIFE_AREAS: Record<string, { name: string; color: string }> = {
       Health: { name: 'Health', color: '#10b981' },
       Finance: { name: 'Finance', color: '#3b82f6' },
       Life: { name: 'Life', color: '#a855f7' },
       Golf: { name: 'Golf', color: '#eab308' },
     }
-
     return content.dashboard_areas.map((areaId) => {
-      // Check if it's a life area
-      if (LIFE_AREAS[areaId]) {
-        return { id: areaId, ...LIFE_AREAS[areaId] }
-      }
-      // Otherwise it's a business UUID
+      if (LIFE_AREAS[areaId]) return { id: areaId, ...LIFE_AREAS[areaId] }
       const business = businesses.find((b) => b.id === areaId)
-      return business
-        ? { id: business.id, name: business.name, color: business.color }
-        : null
+      return business ? { id: business.id, name: business.name, color: business.color } : null
     }).filter(Boolean) as { id: string; name: string; color: string }[]
   }
-
-  // Dashboard areas currently unused but kept for future features
-  // const _dashboardAreas = getDashboardAreas()
+  */
 
   // Get status color
   const getStatusColor = (status: string) => {
