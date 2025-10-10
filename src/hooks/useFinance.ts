@@ -6,6 +6,8 @@ import type {
   NetWorthSummary,
   AccountWithBalance,
   BalanceHistoryPoint,
+  NetWorthLogEntry,
+  CreateNetWorthLogInput,
 } from '../types/finance'
 
 // Fetch all accounts
@@ -208,6 +210,76 @@ export const useDeleteAccount = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['finance', 'accounts'] })
+    },
+  })
+}
+
+// Fetch net worth log history
+export const useNetWorthLog = (limit: number = 30) => {
+  return useQuery({
+    queryKey: ['finance', 'net-worth-log', limit],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const { data, error } = await supabase
+        .from('net_worth_log')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('snapshot_date', { ascending: false })
+        .limit(limit)
+
+      if (error) throw error
+      return data as NetWorthLogEntry[]
+    },
+  })
+}
+
+// Save net worth log snapshot
+export const useSaveNetWorthLog = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (input: CreateNetWorthLogInput) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const { data, error } = await supabase
+        .from('net_worth_log')
+        .upsert({
+          ...input,
+          user_id: user.id,
+        }, {
+          onConflict: 'user_id,snapshot_date',
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return data as NetWorthLogEntry
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['finance', 'net-worth-log'] })
+    },
+  })
+}
+
+// Delete net worth log entry
+export const useDeleteNetWorthLog = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('net_worth_log')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+      return id
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['finance', 'net-worth-log'] })
     },
   })
 }

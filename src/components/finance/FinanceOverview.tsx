@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
-import { Wallet, TrendingUp, CreditCard, DollarSign, Calendar, Save, Landmark } from 'lucide-react'
+import { Wallet, TrendingUp, CreditCard, DollarSign, Calendar, Save, Landmark, History } from 'lucide-react'
 import {
   useAccountsWithBalances,
   useNetWorthSummary,
   useSaveBalanceSnapshots,
+  useSaveNetWorthLog,
+  useNetWorthLog,
 } from '../../hooks/useFinance'
+import type { AccountDetail } from '../../types/finance'
 
 const FinanceOverview = () => {
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -34,7 +37,9 @@ const FinanceOverview = () => {
 
   const { data: accounts, isLoading: accountsLoading } = useAccountsWithBalances(selectedDate)
   const { data: summary, isLoading: summaryLoading } = useNetWorthSummary(selectedDate)
+  const { data: netWorthHistory, isLoading: historyLoading } = useNetWorthLog(30)
   const saveBalances = useSaveBalanceSnapshots()
+  const saveNetWorthLog = useSaveNetWorthLog()
 
   // Initialize balances when accounts load
   useEffect(() => {
@@ -82,6 +87,7 @@ const FinanceOverview = () => {
   const handleSave = async () => {
     setIsSaving(true)
     try {
+      // Save individual balance snapshots
       const snapshots = Object.entries(balances).map(([accountId, balance]) => ({
         account_id: accountId,
         balance,
@@ -89,6 +95,70 @@ const FinanceOverview = () => {
       }))
 
       await saveBalances.mutateAsync(snapshots)
+
+      // Build net worth log entry
+      if (accounts && summary) {
+        // Group accounts
+        const cashAccts = accounts.filter((a) => a.subcategory === 'cash')
+        const investmentAccts = accounts.filter((a) => a.subcategory === 'investment' || a.subcategory === 'physical_asset')
+        const creditCardAccts = accounts.filter((a) => a.subcategory === 'credit_card')
+        const loanAccts = accounts.filter((a) => a.subcategory === 'personal_loan' || a.subcategory === 'auto_loan')
+        const taxAccts = accounts.filter((a) => a.subcategory === 'tax')
+
+        // Build account details
+        const cashDetails: AccountDetail[] = cashAccts.map((a) => ({
+          name: a.account_name,
+          balance: balances[a.id] || 0,
+        }))
+
+        const investmentDetails: AccountDetail[] = investmentAccts.map((a) => ({
+          name: a.account_name,
+          balance: balances[a.id] || 0,
+        }))
+
+        const creditCardDetails: AccountDetail[] = creditCardAccts.map((a) => ({
+          name: a.account_name,
+          balance: balances[a.id] || 0,
+          limit: a.credit_limit,
+          available: a.credit_limit - (balances[a.id] || 0),
+        }))
+
+        const loanDetails: AccountDetail[] = loanAccts.map((a) => ({
+          name: a.account_name,
+          balance: balances[a.id] || 0,
+        }))
+
+        const taxDetails: AccountDetail[] = taxAccts.map((a) => ({
+          name: a.account_name,
+          balance: balances[a.id] || 0,
+        }))
+
+        // Calculate totals
+        const cashTotal = cashDetails.reduce((sum, a) => sum + a.balance, 0)
+        const investmentsTotal = investmentDetails.reduce((sum, a) => sum + a.balance, 0)
+        const creditCardsOwed = creditCardDetails.reduce((sum, a) => sum + a.balance, 0)
+        const creditCardsAvailable = creditCardDetails.reduce((sum, a) => sum + (a.available || 0), 0)
+        const loansTotal = loanDetails.reduce((sum, a) => sum + a.balance, 0)
+        const taxesOwed = taxDetails.reduce((sum, a) => sum + a.balance, 0)
+
+        // Save net worth log
+        await saveNetWorthLog.mutateAsync({
+          snapshot_date: selectedDate,
+          net_worth: summary.net_worth,
+          cash_total: cashTotal,
+          investments_total: investmentsTotal,
+          credit_cards_owed: creditCardsOwed,
+          credit_cards_available: creditCardsAvailable,
+          loans_total: loansTotal,
+          taxes_owed: taxesOwed,
+          cash_accounts: cashDetails,
+          investment_accounts: investmentDetails,
+          credit_card_accounts: creditCardDetails,
+          loan_accounts: loanDetails,
+          tax_accounts: taxDetails,
+        })
+      }
+
       alert('Balances saved successfully!')
     } catch (error) {
       console.error('Error saving balances:', error)
@@ -137,7 +207,8 @@ const FinanceOverview = () => {
   const totalDebtUtilization = totalDebtOriginal > 0 ? (totalDebt / totalDebtOriginal) * 100 : 0
 
   return (
-    <div className="space-y-6">
+    <div className="h-full overflow-y-auto p-6 space-y-6" style={{ minWidth: 0 }}>
+      <div className="max-w-full mx-auto" style={{ maxWidth: '1600px' }}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -166,7 +237,7 @@ const FinanceOverview = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Net Worth */}
         <div className="bg-gradient-to-br from-green-600 to-emerald-700 rounded-xl p-6 text-white">
           <div className="flex items-center gap-3 mb-2">
@@ -205,7 +276,7 @@ const FinanceOverview = () => {
       </div>
 
       {/* 4-Column Balance Entry */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Column 1: Cash Accounts */}
         <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 border border-green-500/20 shadow-xl">
           <div className="flex items-center gap-2 mb-3 pb-2 border-b border-green-500/30">
@@ -465,6 +536,212 @@ const FinanceOverview = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Net Worth Log Section - Full Width */}
+      <div className="mt-8">
+        <div className="flex items-center gap-3 mb-5">
+          <History className="text-blue-400" size={28} />
+          <h2 className="text-2xl font-bold text-white">Net Worth History</h2>
+          <span className="text-gray-400 text-sm ml-2">(Last 30 entries)</span>
+        </div>
+
+        {historyLoading ? (
+          <div className="text-gray-400 p-5 text-center">Loading history...</div>
+        ) : !netWorthHistory || netWorthHistory.length === 0 ? (
+          <div className="bg-gray-900 border-2 border-dashed border-gray-700 rounded-xl p-10 text-center text-gray-400">
+            <History size={48} className="mx-auto mb-4 text-gray-600" />
+            <p className="text-base mb-2">No history yet</p>
+            <p className="text-sm">Save your balances to start tracking your net worth over time</p>
+          </div>
+        ) : (
+          <div className="bg-gray-900 border-2 border-gray-800 rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-black border-b-2 border-gray-800">
+                    <th className="px-3 py-4 text-center text-gray-400 text-xs font-semibold uppercase tracking-wide sticky left-0 bg-black z-10">
+                      Date
+                    </th>
+                    <th className="px-3 py-4 text-center text-green-400 text-xs font-semibold uppercase tracking-wide">
+                      Net Worth
+                    </th>
+                    <th className="px-3 py-4 text-center text-gray-400 text-xs font-semibold uppercase tracking-wide">
+                      Change
+                    </th>
+                    {/* Cash Accounts - Green */}
+                    {netWorthHistory[0]?.cash_accounts.map((acc) => (
+                      <th key={acc.name} className="px-3 py-4 text-center text-green-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                        {acc.name}
+                      </th>
+                    ))}
+                    {/* Investment Accounts - Blue */}
+                    {netWorthHistory[0]?.investment_accounts.map((acc) => (
+                      <th key={acc.name} className="px-3 py-4 text-center text-blue-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                        {acc.name}
+                      </th>
+                    ))}
+                    {/* Credit Card Accounts - Amber */}
+                    {netWorthHistory[0]?.credit_card_accounts.map((acc) => (
+                      <th key={acc.name} className="px-3 py-4 text-center text-amber-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                        {acc.name}
+                      </th>
+                    ))}
+                    {/* Loan Accounts - Red */}
+                    {netWorthHistory[0]?.loan_accounts.map((acc) => (
+                      <th key={acc.name} className="px-3 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                        {acc.name}
+                      </th>
+                    ))}
+                    {/* Tax Accounts - Red */}
+                    {netWorthHistory[0]?.tax_accounts.map((acc) => (
+                      <th key={acc.name} className="px-3 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                        {acc.name}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {netWorthHistory.map((entry, index) => {
+                    const previousEntry = index < netWorthHistory.length - 1 ? netWorthHistory[index + 1] : null
+                    const change = previousEntry ? entry.net_worth - previousEntry.net_worth : 0
+                    const changePercentage = previousEntry && previousEntry.net_worth !== 0
+                      ? ((change / Math.abs(previousEntry.net_worth)) * 100)
+                      : 0
+
+                    return (
+                      <tr
+                        key={entry.id}
+                        className={`border-b border-gray-800 ${index === 0 ? 'bg-gray-950' : ''}`}
+                      >
+                        <td className={`px-3 py-4 text-center text-white text-sm sticky left-0 ${index === 0 ? 'bg-gray-950 font-semibold' : 'bg-gray-900'} z-10`}>
+                          {new Date(entry.snapshot_date).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                          {index === 0 && (
+                            <span className="ml-2 text-xs px-2 py-1 bg-blue-500 text-white rounded font-semibold">
+                              LATEST
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-4 text-center text-green-500 text-base font-bold whitespace-nowrap">
+                          {formatCurrency(entry.net_worth)}
+                        </td>
+                        <td className="px-3 py-4 text-center">
+                          {previousEntry ? (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className={`text-sm font-semibold ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {change >= 0 ? '+' : ''}{formatCurrency(change)}
+                              </span>
+                              <span className={`text-xs ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {change >= 0 ? '+' : ''}{changePercentage.toFixed(1)}%
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 text-xs">-</span>
+                          )}
+                        </td>
+                        {/* Cash Account Values */}
+                        {entry.cash_accounts.map((acc, accIndex) => {
+                          const prevAcc = previousEntry?.cash_accounts[accIndex]
+                          const accChange = prevAcc ? acc.balance - prevAcc.balance : 0
+                          const accChangePercent = prevAcc && prevAcc.balance !== 0 ? (accChange / Math.abs(prevAcc.balance)) * 100 : 0
+                          return (
+                            <td key={acc.name} className="px-3 py-4 text-center text-white text-sm whitespace-nowrap">
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span>{formatCurrency(acc.balance)}</span>
+                                {previousEntry && (
+                                  <span className={`text-xs ${accChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {accChange >= 0 ? '+' : ''}{accChangePercent.toFixed(1)}%
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          )
+                        })}
+                        {/* Investment Account Values */}
+                        {entry.investment_accounts.map((acc, accIndex) => {
+                          const prevAcc = previousEntry?.investment_accounts[accIndex]
+                          const accChange = prevAcc ? acc.balance - prevAcc.balance : 0
+                          const accChangePercent = prevAcc && prevAcc.balance !== 0 ? (accChange / Math.abs(prevAcc.balance)) * 100 : 0
+                          return (
+                            <td key={acc.name} className="px-3 py-4 text-center text-white text-sm whitespace-nowrap">
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span>{formatCurrency(acc.balance)}</span>
+                                {previousEntry && (
+                                  <span className={`text-xs ${accChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {accChange >= 0 ? '+' : ''}{accChangePercent.toFixed(1)}%
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          )
+                        })}
+                        {/* Credit Card Account Values */}
+                        {entry.credit_card_accounts.map((acc, accIndex) => {
+                          const prevAcc = previousEntry?.credit_card_accounts[accIndex]
+                          const accChange = prevAcc ? acc.balance - prevAcc.balance : 0
+                          const accChangePercent = prevAcc && prevAcc.balance !== 0 ? (accChange / Math.abs(prevAcc.balance)) * 100 : 0
+                          return (
+                            <td key={acc.name} className="px-3 py-4 text-center text-amber-500 text-sm whitespace-nowrap">
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span>{formatCurrency(acc.balance)}</span>
+                                {previousEntry && (
+                                  <span className={`text-xs ${accChange >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                    {accChange >= 0 ? '+' : ''}{accChangePercent.toFixed(1)}%
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          )
+                        })}
+                        {/* Loan Account Values */}
+                        {entry.loan_accounts.map((acc, accIndex) => {
+                          const prevAcc = previousEntry?.loan_accounts[accIndex]
+                          const accChange = prevAcc ? acc.balance - prevAcc.balance : 0
+                          const accChangePercent = prevAcc && prevAcc.balance !== 0 ? (accChange / Math.abs(prevAcc.balance)) * 100 : 0
+                          return (
+                            <td key={acc.name} className="px-3 py-4 text-center text-red-500 text-sm whitespace-nowrap">
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span>{formatCurrency(acc.balance)}</span>
+                                {previousEntry && (
+                                  <span className={`text-xs ${accChange >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                    {accChange >= 0 ? '+' : ''}{accChangePercent.toFixed(1)}%
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          )
+                        })}
+                        {/* Tax Account Values */}
+                        {entry.tax_accounts.map((acc, accIndex) => {
+                          const prevAcc = previousEntry?.tax_accounts[accIndex]
+                          const accChange = prevAcc ? acc.balance - prevAcc.balance : 0
+                          const accChangePercent = prevAcc && prevAcc.balance !== 0 ? (accChange / Math.abs(prevAcc.balance)) * 100 : 0
+                          return (
+                            <td key={acc.name} className="px-3 py-4 text-center text-red-500 text-sm whitespace-nowrap">
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span>{formatCurrency(acc.balance)}</span>
+                                {previousEntry && (
+                                  <span className={`text-xs ${accChange >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                    {accChange >= 0 ? '+' : ''}{accChangePercent.toFixed(1)}%
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
       </div>
     </div>
   )

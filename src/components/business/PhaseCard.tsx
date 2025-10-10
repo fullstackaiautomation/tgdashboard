@@ -1,10 +1,14 @@
 import type { FC } from 'react';
 import { useState } from 'react';
+import { ChevronDown, ChevronRight, Plus, CheckCircle2, Circle, Clock } from 'lucide-react';
 import type { Phase } from '../../types/project';
 import { useTasks } from '../../hooks/useTasks';
 import { usePhaseProgress } from '../../hooks/usePhaseProgress';
-import { ProgressBar } from '../shared/ProgressBar';
 import { TaskForm } from './TaskForm';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 interface PhaseCardProps {
   phase: Phase;
@@ -13,7 +17,7 @@ interface PhaseCardProps {
 }
 
 export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const { data: allTasks } = useTasks();
 
@@ -24,123 +28,160 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
 
   const { progress, completedCount, totalCount } = usePhaseProgress(phaseTasks);
 
-  const statusColors = {
-    active: 'bg-green-500',
-    paused: 'bg-yellow-500',
-    completed: 'bg-blue-500',
-    archived: 'bg-gray-500',
+  const statusConfig = {
+    active: { label: 'Active', color: 'bg-emerald-500', textColor: 'text-emerald-400' },
+    paused: { label: 'Paused', color: 'bg-amber-500', textColor: 'text-amber-400' },
+    completed: { label: 'Done', color: 'bg-blue-500', textColor: 'text-blue-400' },
+    archived: { label: 'Archived', color: 'bg-gray-500', textColor: 'text-gray-400' },
   };
 
-  const statusColor = statusColors[phase.status as keyof typeof statusColors] || 'bg-gray-500';
+  const status = statusConfig[phase.status as keyof typeof statusConfig] || statusConfig.active;
 
   return (
-    <div className="border border-gray-600 rounded-lg bg-gray-900/50">
+    <Card className="bg-gradient-to-r from-gray-800/60 to-gray-800/40 border-gray-700/60 overflow-hidden">
       {/* Phase Header */}
       <div
-        className="p-3 cursor-pointer hover:bg-gray-900/80 transition-colors"
+        className="p-4 cursor-pointer hover:bg-gray-700/30 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <svg
-              className={`w-4 h-4 text-gray-400 transition-transform ${
-                isExpanded ? 'rotate-90' : ''
-              }`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-            <span className="font-medium text-white text-sm">{phase.name}</span>
-            <span className={`w-2 h-2 rounded-full ${statusColor}`} />
+          <div className="flex items-center gap-3 flex-1">
+            <Button variant="ghost" size="sm" className="w-6 h-6 p-0">
+              {isExpanded ? (
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              )}
+            </Button>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-100">{phase.name}</span>
+              <Badge variant="outline" className={`${status.color} border-0 text-white text-xs px-2 py-0`}>
+                {status.label}
+              </Badge>
+              <Badge variant="outline" className="bg-gray-700/50 border-gray-600 text-gray-300 text-xs px-2 py-0">
+                #{phase.sequence_order}
+              </Badge>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {totalCount > 0 ? (
-              <div className="flex items-center gap-2">
-                <div className="w-24">
-                  <ProgressBar progress={progress} size="sm" />
+              <>
+                <div className="text-right">
+                  <div className="text-xs text-gray-400">Progress</div>
+                  <div className="text-sm font-bold text-gray-100">{progress.toFixed(0)}%</div>
                 </div>
-                <span className="text-xs text-gray-400 whitespace-nowrap">
-                  {completedCount}/{totalCount}
-                </span>
-              </div>
+                <div className="text-right">
+                  <div className="text-xs text-gray-400">Tasks</div>
+                  <div className="text-sm font-bold text-gray-100">{completedCount}/{totalCount}</div>
+                </div>
+              </>
             ) : (
               <span className="text-xs text-gray-400">No tasks</span>
             )}
-            <span className="text-xs text-gray-400">#{phase.sequence_order}</span>
           </div>
         </div>
         {phase.description && (
-          <p className="text-gray-400 text-xs mt-1 ml-6">{phase.description}</p>
+          <p className="text-gray-400 text-sm mt-2 ml-9">{phase.description}</p>
+        )}
+        {totalCount > 0 && (
+          <div className="mt-3 ml-9">
+            <Progress value={progress} className="h-1.5" />
+          </div>
         )}
       </div>
 
       {/* Tasks Section */}
       {isExpanded && (
-        <div className="border-t border-gray-600 p-3">
-          <div className="flex items-center justify-between mb-2">
-            <h5 className="text-xs font-medium text-gray-300">Tasks</h5>
-            <button
-              className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-xs font-medium"
+        <div className="border-t border-gray-700/50 bg-gray-900/30 p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h5 className="text-sm font-semibold text-gray-300">Tasks</h5>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800/50"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowTaskForm(!showTaskForm);
               }}
             >
-              {showTaskForm ? '− Cancel' : '+ Add Task'}
-            </button>
+              {showTaskForm ? (
+                <>Cancel</>
+              ) : (
+                <>
+                  <Plus className="w-3 h-3 mr-1" />
+                  Add Task
+                </>
+              )}
+            </Button>
           </div>
 
           {/* Task Creation Form */}
           {showTaskForm && (
-            <div className="mb-3 p-3 bg-gray-800 rounded border border-gray-700">
-              <TaskForm
-                businessId={businessId}
-                projectId={projectId}
-                phaseId={phase.id}
-                onSuccess={() => setShowTaskForm(false)}
-                onCancel={() => setShowTaskForm(false)}
-              />
-            </div>
+            <Card className="mb-4 bg-gray-800/50 border-gray-700">
+              <CardContent className="p-4">
+                <TaskForm
+                  businessId={businessId}
+                  projectId={projectId}
+                  phaseId={phase.id}
+                  phaseName={phase.name}
+                  onSuccess={() => setShowTaskForm(false)}
+                  onCancel={() => setShowTaskForm(false)}
+                />
+              </CardContent>
+            </Card>
           )}
 
           {phaseTasks.length === 0 ? (
-            <div className="text-gray-400 text-xs text-center py-4 border border-gray-600 rounded">
-              No tasks yet. Add a task to get started.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {phaseTasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="p-2 bg-gray-800 rounded border border-gray-700 hover:border-gray-600 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-white">{task.task_name}</span>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded ${
-                        task.status === 'Done'
-                          ? 'bg-green-500/20 text-green-400'
-                          : task.status === 'In progress'
-                          ? 'bg-blue-500/20 text-blue-400'
-                          : 'bg-gray-500/20 text-gray-400'
-                      }`}
-                    >
-                      {task.status}
-                    </span>
-                  </div>
+            <Card className="bg-gray-800/30 border-gray-700/50 border-dashed">
+              <CardContent className="py-6">
+                <div className="text-center text-gray-400 text-sm">
+                  No tasks yet. Add a task to get started.
                 </div>
-              ))}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              {phaseTasks.map((task) => {
+                const isCompleted = task.progress_percentage === 100;
+                const inProgress = (task.progress_percentage ?? 0) > 0 && (task.progress_percentage ?? 0) < 100;
+
+                return (
+                  <Card
+                    key={task.id}
+                    className={`bg-gray-800/60 border-gray-700 hover:border-gray-600 transition-all hover:shadow-lg group ${
+                      isCompleted ? 'opacity-70' : ''
+                    }`}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-start gap-2">
+                        {isCompleted ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                        ) : inProgress ? (
+                          <Clock className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <Circle className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium leading-tight ${
+                            isCompleted ? 'line-through text-gray-400' : 'text-gray-100'
+                          }`}>
+                            {task.task_name}
+                          </p>
+                          {(task.progress_percentage ?? 0) > 0 && (
+                            <div className="mt-2">
+                              <Progress value={task.progress_percentage ?? 0} className="h-1" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 };
