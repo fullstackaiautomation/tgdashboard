@@ -1,10 +1,10 @@
 import type { FC } from 'react';
 import { useState } from 'react';
-import { format, differenceInDays } from 'date-fns';
-import { CheckCircle2, AlertCircle, Loader2, AlertTriangle, Calendar, Clock } from 'lucide-react';
+import { format /* , differenceInDays */ } from 'date-fns';
+import { Calendar } from 'lucide-react';
 import { useUpdateTask } from '../../hooks/useTasks';
 import { useUndo } from '../../hooks/useUndo';
-import { useProjects, usePhases } from '../../hooks/useProjects';
+// import { useProjects, usePhases } from '../../hooks/useProjects';
 import { ProgressIndicator } from '../shared/ProgressIndicator';
 import { ProgressSlider } from '../shared/ProgressSlider';
 import { DateTimePicker } from './DateTimePicker';
@@ -69,12 +69,12 @@ const isOverdue = (task: TaskHub): boolean => {
 };
 
 /**
- * Calculate days overdue
+ * Calculate days overdue - commented out (unused)
  */
-const getDaysOverdue = (task: TaskHub): number => {
-  if (!task.due_date) return 0;
-  return Math.abs(differenceInDays(new Date(), new Date(task.due_date)));
-};
+// const getDaysOverdue = (task: TaskHub): number => {
+//   if (!task.due_date) return 0;
+//   return Math.abs(differenceInDays(new Date(), new Date(task.due_date)));
+// };
 
 /**
  * TaskCard - Displays a single task with business/area color coding and inline editing
@@ -84,16 +84,16 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editedTitle, setEditedTitle] = useState(task.task_name);
   const [editedDescription, setEditedDescription] = useState(task.description || '');
-  const [showProjectPhaseDropdown, setShowProjectPhaseDropdown] = useState(false);
+  // const [showProjectPhaseDropdown, setShowProjectPhaseDropdown] = useState(false);
   const [showProgressSlider, setShowProgressSlider] = useState(false);
   const [showDateTimePicker, setShowDateTimePicker] = useState(false);
   const [showTimeTrackingModal, setShowTimeTrackingModal] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const [_syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
 
   const updateTask = useUpdateTask();
-  const { canUndo, setupUndo, executeUndo } = useUndo<TaskHub>(30000);
-  const { data: projects } = useProjects(task.business_id || undefined);
-  const { data: phases } = usePhases(task.project_id || undefined);
+  const { /* canUndo, */ setupUndo /* , executeUndo */ } = useUndo<TaskHub>(30000);
+  // const { data: projects } = useProjects(task.business_id || undefined);
+  // const { data: phases } = usePhases(task.project_id || undefined);
 
   const colorClass = getColorClass(task);
   const sourceName = getSourceName(task);
@@ -128,23 +128,24 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
     }
   };
 
-  const handleStatusChange = (newStatus: TaskStatus) => {
-    // Map status to progress percentage
-    let newProgress = progress;
-    if (newStatus === 'Not started') {
-      newProgress = 0;
-    } else if (newStatus === 'Done') {
-      newProgress = 100;
-    } else if (newStatus === 'In progress' && newProgress === 0) {
-      newProgress = 50; // Default to 50% when marking as in progress
-    }
+  // Unused handler - for future status dropdown feature
+  // const handleStatusChange = (newStatus: TaskStatus) => {
+  //   // Map status to progress percentage
+  //   let newProgress = progress;
+  //   if (newStatus === 'Not started') {
+  //     newProgress = 0;
+  //   } else if (newStatus === 'Done') {
+  //     newProgress = 100;
+  //   } else if (newStatus === 'In progress' && newProgress === 0) {
+  //     newProgress = 50; // Default to 50% when marking as in progress
+  //   }
 
-    handleUpdate({
-      status: newStatus,
-      progress_percentage: newProgress,
-      completed_at: newStatus === 'Done' ? new Date().toISOString() : undefined,
-    });
-  };
+  //   handleUpdate({
+  //     status: newStatus,
+  //     progress_percentage: newProgress,
+  //     completed_at: newStatus === 'Done' ? new Date().toISOString() : undefined,
+  //   });
+  // };
 
   const handleTitleSave = () => {
     if (editedTitle.trim() && editedTitle !== task.task_name) {
@@ -176,18 +177,19 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
     }
   };
 
-  const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = e.target.value ? new Date(e.target.value).toISOString() : undefined;
-    handleUpdate({ due_date: newDate });
-  };
+  // Unused handlers - for future features
+  // const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const newDate = e.target.value ? new Date(e.target.value).toISOString() : undefined;
+  //   handleUpdate({ due_date: newDate });
+  // };
 
-  const handleProjectPhaseChange = (projectId: string | null, phaseId: string | null) => {
-    handleUpdate({
-      project_id: projectId,
-      phase_id: phaseId,
-    });
-    setShowProjectPhaseDropdown(false);
-  };
+  // const handleProjectPhaseChange = (projectId: string | null, phaseId: string | null) => {
+  //   handleUpdate({
+  //     project_id: projectId,
+  //     phase_id: phaseId,
+  //   });
+  //   setShowProjectPhaseDropdown(false);
+  // };
 
   const handleProgressChange = (progress: number) => {
     // Update status based on progress
@@ -224,7 +226,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
     });
   };
 
-  const daysOverdue = overdue ? getDaysOverdue(task) : 0;
+  // const daysOverdue = overdue ? getDaysOverdue(task) : 0;
 
   // Get background color based on business or life area
   const getCardBackgroundColor = () => {
