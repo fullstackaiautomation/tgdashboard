@@ -1,12 +1,12 @@
 import type { FC } from 'react';
 import { useState, useMemo, useEffect } from 'react';
-import { useTasks } from '../../hooks/useTasks';
+import { useTasks, useUpdateTask } from '../../hooks/useTasks';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { supabase } from '../../lib/supabase';
 import { TaskCard } from './TaskCard';
 import { TaskFilters } from './TaskFilters';
-import { DeepWorkTimer } from './DeepWorkTimer';
 import { DailySchedulePanel } from './DailySchedulePanel';
+import { AddTaskModal } from './AddTaskModal';
 import type { TaskHub } from '../../types/task';
 import { format } from 'date-fns';
 
@@ -72,9 +72,11 @@ const filterTasks = (
 
 export const TasksHub: FC = () => {
   const { data: tasks, isLoading, error } = useTasks();
+  const updateTaskMutation = useUpdateTask();
   const [businessFilter, setBusinessFilter] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>('due-today');
   const [userId, setUserId] = useState<string | null>(null);
+  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
 
   // Get current user ID for real-time sync
   useEffect(() => {
@@ -86,10 +88,23 @@ export const TasksHub: FC = () => {
   // Enable real-time sync
   useRealtimeSync(userId);
 
-  // Filter tasks based on selected filters
+  // Filter tasks based on selected filters and sort by due date ascending
   const filteredTasks = useMemo(() => {
     if (!tasks) return [];
-    return filterTasks(tasks, businessFilter, statusFilter);
+    const filtered = filterTasks(tasks, businessFilter, statusFilter);
+
+    // Sort by due date ascending (earliest first)
+    return filtered.sort((a, b) => {
+      // Tasks without due dates go to the end
+      if (!a.due_date && !b.due_date) return 0;
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
+
+      // Compare due dates
+      const dateA = new Date(a.due_date).getTime();
+      const dateB = new Date(b.due_date).getTime();
+      return dateA - dateB;
+    });
   }, [tasks, businessFilter, statusFilter]);
 
   // Filter scheduled tasks (tasks with scheduled_date)
@@ -100,21 +115,34 @@ export const TasksHub: FC = () => {
   // Handle drop - update task's scheduled_date and scheduled_time
   const handleTaskDrop = async (taskId: string, date: string, time: string) => {
     try {
-      console.log('Dropping task:', { taskId, date, time });
-
-      const { data, error } = await supabase
-        .from('tasks')
-        .update({
+      await updateTaskMutation.mutateAsync({
+        id: taskId,
+        updates: {
           scheduled_date: date,
           scheduled_time: time,
-        })
-        .eq('id', taskId)
-        .select();
+        },
+        skipConflictCheck: true,
+      });
 
-      if (error) throw error;
-      console.log('Task scheduled successfully:', data);
+      console.log('✅ Task scheduled successfully:', { taskId, date, time });
     } catch (err) {
-      console.error('Failed to schedule task:', err);
+      console.error('❌ Failed to schedule task:', err);
+    }
+  };
+
+  // Handle remove - clear task's scheduled_date and scheduled_time
+  const handleTaskRemove = async (taskId: string) => {
+    try {
+      await updateTaskMutation.mutateAsync({
+        id: taskId,
+        updates: {
+          scheduled_date: null,
+          scheduled_time: null,
+        },
+        skipConflictCheck: true,
+      });
+    } catch (err) {
+      console.error('Failed to remove task from schedule:', err);
     }
   };
 
@@ -137,7 +165,7 @@ export const TasksHub: FC = () => {
 
   if (isLoading) {
     return (
-      <div className="p-6">
+      <div className="py-6 px-8">
         <h1 className="text-3xl font-bold text-gray-100 mb-6">Tasks Hub</h1>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
@@ -150,7 +178,7 @@ export const TasksHub: FC = () => {
 
   if (error) {
     return (
-      <div className="p-6">
+      <div className="py-6 px-8">
         <h1 className="text-3xl font-bold text-gray-100 mb-6">Tasks Hub</h1>
         <div className="bg-red-900/20 border border-red-500 rounded-lg p-4">
           <p className="text-red-400">Failed to load tasks: {error.message}</p>
@@ -160,12 +188,16 @@ export const TasksHub: FC = () => {
   }
 
   return (
-    <div className="px-12 py-6">
+    <div className="py-6 px-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-100">Tasks Hub</h1>
-        <div className="text-sm text-gray-400">
-          {filteredTasks.length} of {tasks?.length || 0} tasks
-        </div>
+        <h1 className="text-3xl font-bold text-gray-100">Tasks</h1>
+        <button
+          onClick={() => setIsAddTaskModalOpen(true)}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+        >
+          <span className="text-xl leading-none">+</span>
+          Add Task
+        </button>
       </div>
 
       <TaskFilters
@@ -173,6 +205,7 @@ export const TasksHub: FC = () => {
         selectedStatus={statusFilter}
         onBusinessChange={setBusinessFilter}
         onStatusChange={setStatusFilter}
+        tasks={tasks || []}
       />
 
       {/* Two-column layout: Main content + Right sidebar */}
@@ -196,17 +229,27 @@ export const TasksHub: FC = () => {
           )}
         </div>
 
-        {/* Right sidebar: Deep Work Timer + Schedule */}
+        {/* Right sidebar: Schedule */}
         <div className="space-y-6">
-          <DeepWorkTimer tasks={tasks || []} />
           <DailySchedulePanel
             scheduledTasks={scheduledTasks}
             onSaveSchedule={handleSaveSchedule}
             onTaskDrop={handleTaskDrop}
+            onTaskRemove={handleTaskRemove}
             className="h-[1200px]"
           />
         </div>
       </div>
+
+      {/* Add Task Modal */}
+      <AddTaskModal
+        isOpen={isAddTaskModalOpen}
+        onClose={() => setIsAddTaskModalOpen(false)}
+        onSuccess={() => {
+          // Modal will close automatically on success
+          console.log('✅ Task created successfully');
+        }}
+      />
     </div>
   );
 };

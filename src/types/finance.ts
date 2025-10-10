@@ -55,3 +55,55 @@ export interface BalanceHistoryPoint {
   total_assets: number
   total_liabilities: number
 }
+
+// Account detail for net worth log
+export interface AccountDetail {
+  name: string
+  balance: number
+  limit?: number
+  available?: number
+  original_amount?: number
+}
+
+// Net Worth Log Entry
+export interface NetWorthLogEntry {
+  id: string
+  user_id: string
+  snapshot_date: string
+
+  // Summary totals
+  net_worth: number
+  cash_total: number
+  investments_total: number
+  credit_cards_owed: number
+  credit_cards_available: number
+  loans_total: number
+  taxes_owed: number
+
+  // Detailed breakdowns
+  cash_accounts: AccountDetail[]
+  investment_accounts: AccountDetail[]
+  credit_card_accounts: AccountDetail[]
+  loan_accounts: AccountDetail[]
+  tax_accounts: AccountDetail[]
+
+  created_at: string
+  updated_at: string
+}
+
+// Input for creating a net worth log entry
+export interface CreateNetWorthLogInput {
+  snapshot_date: string
+  net_worth: number
+  cash_total: number
+  investments_total: number
+  credit_cards_owed: number
+  credit_cards_available: number
+  loans_total: number
+  taxes_owed: number
+  cash_accounts: AccountDetail[]
+  investment_accounts: AccountDetail[]
+  credit_card_accounts: AccountDetail[]
+  loan_accounts: AccountDetail[]
+  tax_accounts: AccountDetail[]
+}

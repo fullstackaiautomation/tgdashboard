@@ -1,5 +1,6 @@
 import type { FC } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, isToday } from 'date-fns';
 import { CheckSquare, Plus, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -13,15 +14,45 @@ interface TodoListProps {
 /**
  * TodoList - Daily todo list showing tasks scheduled or due for a specific day
  * Shows both scheduled_date and due_date tasks
+ * Real-time sync enabled - updates automatically when tasks are created/modified
  */
 export const TodoList: FC<TodoListProps> = ({ date = new Date() }) => {
   const selectedDate = format(date, 'yyyy-MM-dd');
   const tomorrow = format(new Date(date.getTime() + 86400000), 'yyyy-MM-dd');
+  const queryClient = useQueryClient();
+
+  // Real-time sync: Listen for task changes and auto-refresh
+  useEffect(() => {
+    const channel = supabase
+      .channel('todo-tasks-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'tasks',
+        },
+        (payload) => {
+          console.log('[TodoList Real-time] Task change detected:', payload.eventType);
+          // Invalidate all daily task queries to trigger refetch
+          queryClient.invalidateQueries({ queryKey: ['tasks', 'daily'] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('[TodoList Real-time] Subscription status:', status);
+      });
+
+    return () => {
+      console.log('[TodoList Real-time] Unsubscribing from todo-tasks-changes channel');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   // Fetch today's tasks (scheduled or due today)
   const { data: todayTasks, isLoading: loadingToday } = useQuery({
     queryKey: ['tasks', 'daily', 'today', selectedDate],
     queryFn: async () => {
+      console.log('[TodoList] Fetching tasks for date:', selectedDate);
       const { data, error } = await supabase
         .from('tasks')
         .select('*, businesses(name, color), projects(name), phases(name), life_areas(name, color)')
@@ -29,7 +60,13 @@ export const TodoList: FC<TodoListProps> = ({ date = new Date() }) => {
         .order('priority', { ascending: false })
         .order('scheduled_time', { ascending: true, nullsFirst: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[TodoList] Query error:', error);
+        throw error;
+      }
+
+      console.log('[TodoList] Query returned tasks:', data?.length || 0, 'tasks');
+      console.log('[TodoList] Task details:', data);
       return data as TaskHub[];
     },
   });

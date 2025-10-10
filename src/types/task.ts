@@ -122,6 +122,7 @@ export interface TaskHub {
 }
 
 export interface CreateTaskDTO {
+  // Note: user_id is automatically added by useCreateTask hook from auth session
   task_name: string
   description?: string
   status?: TaskStatus
