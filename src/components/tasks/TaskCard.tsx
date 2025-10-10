@@ -1,15 +1,21 @@
 import type { FC } from 'react';
-import { useState } from 'react';
-import { format /* , differenceInDays */ } from 'date-fns';
-import { Calendar } from 'lucide-react';
-import { useUpdateTask } from '../../hooks/useTasks';
+import { useState, useEffect, useRef } from 'react';
+import { format } from 'date-fns';
+import { Calendar, MoreHorizontal, CheckCircle2, Circle, AlertCircle, Trash2 } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+// import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useUpdateTask, useDeleteTask } from '../../hooks/useTasks';
 import { useUndo } from '../../hooks/useUndo';
-// import { useProjects, usePhases } from '../../hooks/useProjects';
-import { ProgressIndicator } from '../shared/ProgressIndicator';
+import { useProjects } from '../../hooks/useProjects';
 import { ProgressSlider } from '../shared/ProgressSlider';
 import { DateTimePicker } from './DateTimePicker';
 import { TimeTrackingModal } from './TimeTrackingModal';
-import type { TaskHub, TaskStatus, Automation } from '../../types/task';
+import type { TaskHub, TaskStatus, Automation, EffortLevel } from '../../types/task';
 
 interface TaskCardProps {
   task: TaskHub;
@@ -18,107 +24,118 @@ interface TaskCardProps {
 }
 
 /**
- * Get color class for business/area badge
+ * Get color for business/area
  */
-const getColorClass = (task: TaskHub): string => {
+const getBusinessColor = (task: TaskHub): string => {
   if (task.businesses) {
     const slug = task.businesses.slug;
-    if (slug === 'full-stack' || slug === 'fullstack') return 'bg-[var(--color-business-fullstack)]';
-    if (slug === 'huge-capital') return 'bg-[var(--color-business-hugecapital)]';
-    if (slug === 's4') return 'bg-[var(--color-business-s4)]';
-    if (slug === '808') return 'bg-[var(--color-business-808)]';
+    if (slug === 'full-stack' || slug === 'fullstack') return 'var(--color-business-fullstack)';
+    if (slug === 'huge-capital') return 'var(--color-business-hugecapital)';
+    if (slug === 's4') return 'var(--color-business-s4)';
+    if (slug === '808') return 'var(--color-business-808)';
   }
 
   if (task.life_areas) {
     const category = task.life_areas.category.toLowerCase();
-    if (category === 'personal') return 'bg-[var(--color-area-personal)]';
-    if (category === 'health') return 'bg-[var(--color-area-health)]';
-    if (category === 'golf') return 'bg-[var(--color-area-golf)]';
+    if (category === 'personal') return 'var(--color-area-personal)';
+    if (category === 'health') return 'var(--color-area-health)';
+    if (category === 'golf') return 'var(--color-area-golf)';
   }
 
-  // Fallback to legacy area
   if (task.area) {
-    if (task.area === 'Full Stack') return 'bg-[var(--color-business-fullstack)]';
-    if (task.area === 'Huge Capital') return 'bg-[var(--color-business-hugecapital)]';
-    if (task.area === 'S4') return 'bg-[var(--color-business-s4)]';
-    if (task.area === '808') return 'bg-[var(--color-business-808)]';
-    if (task.area === 'Personal') return 'bg-[var(--color-area-personal)]';
-    if (task.area === 'Health') return 'bg-[var(--color-area-health)]';
-    if (task.area === 'Golf') return 'bg-[var(--color-area-golf)]';
+    if (task.area === 'Full Stack') return 'var(--color-business-fullstack)';
+    if (task.area === 'Huge Capital') return 'var(--color-business-hugecapital)';
+    if (task.area === 'S4') return 'var(--color-business-s4)';
+    if (task.area === '808') return 'var(--color-business-808)';
+    if (task.area === 'Personal') return 'var(--color-area-personal)';
+    if (task.area === 'Health') return 'var(--color-area-health)';
+    if (task.area === 'Golf') return 'var(--color-area-golf)';
   }
 
-  return 'bg-gray-500';
+  return '#6b7280';
 };
 
-/**
- * Get source display name (Business or Life Area)
- */
 const getSourceName = (task: TaskHub): string => {
+  // Prioritize Project name if it exists
+  if (task.projects) return task.projects.name;
+
+  // Fall back to Business/Area name
   if (task.businesses) return task.businesses.name;
   if (task.life_areas) return task.life_areas.name;
   if (task.area) return task.area;
   return 'Unknown';
 };
 
-/**
- * Check if task is overdue
- */
 const isOverdue = (task: TaskHub): boolean => {
   if (!task.due_date || task.progress_percentage === 100) return false;
   return new Date(task.due_date) < new Date();
 };
 
-/**
- * Calculate days overdue - commented out (unused)
- */
-// const getDaysOverdue = (task: TaskHub): number => {
-//   if (!task.due_date) return 0;
-//   return Math.abs(differenceInDays(new Date(), new Date(task.due_date)));
-// };
+const isDueToday = (task: TaskHub): boolean => {
+  if (!task.due_date) return false;
+  return format(new Date(task.due_date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+};
 
 /**
- * TaskCard - Displays a single task with business/area color coding and inline editing
+ * Minimalist TaskCard - Clean, compact, scannable
  */
 export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [editedTitle, setEditedTitle] = useState(task.task_name);
-  const [editedDescription, setEditedDescription] = useState(task.description || '');
-  // const [showProjectPhaseDropdown, setShowProjectPhaseDropdown] = useState(false);
+  const [editedNotes, setEditedNotes] = useState(task.description || '');
   const [showProgressSlider, setShowProgressSlider] = useState(false);
   const [showDateTimePicker, setShowDateTimePicker] = useState(false);
   const [showTimeTrackingModal, setShowTimeTrackingModal] = useState(false);
+  const [_showProjectDropdown, _setShowProjectDropdown] = useState(false);
   const [_syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const [deleteClickCount, setDeleteClickCount] = useState(0);
+  const [deleteTimeout, setDeleteTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  const progressSliderRef = useRef<HTMLDivElement>(null);
 
   const updateTask = useUpdateTask();
-  const { /* canUndo, */ setupUndo /* , executeUndo */ } = useUndo<TaskHub>(30000);
-  // const { data: projects } = useProjects(task.business_id || undefined);
-  // const { data: phases } = usePhases(task.project_id || undefined);
+  const deleteTask = useDeleteTask();
+  const { setupUndo } = useUndo<TaskHub>(30000);
 
-  const colorClass = getColorClass(task);
+  // Fetch projects for the task's business
+  const { data: projects } = useProjects(task.business_id || undefined);
+
+  const businessColor = getBusinessColor(task);
   const sourceName = getSourceName(task);
   const overdue = isOverdue(task);
-
-  // Default to 0 if progress_percentage is undefined/null
+  const dueToday = isDueToday(task);
   const progress = task.progress_percentage ?? 0;
+  const isCompleted = progress === 100;
+
+  // Close progress slider when clicking outside
+  useEffect(() => {
+    if (!showProgressSlider) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+
+      // Check if click is inside the progress slider container
+      if (progressSliderRef.current && !progressSliderRef.current.contains(target)) {
+        setShowProgressSlider(false);
+      }
+    };
+
+    // Use 'mousedown' to capture before other handlers
+    document.addEventListener('mousedown', handleClickOutside, true);
+    return () => document.removeEventListener('mousedown', handleClickOutside, true);
+  }, [showProgressSlider]);
 
   const handleUpdate = async (updates: Partial<TaskHub>) => {
     setSyncStatus('syncing');
-
-    // Setup undo before making change
     const previousTask = { ...task };
     setupUndo(previousTask, () => {
-      updateTask.mutate({
-        id: task.id,
-        updates: previousTask,
-      });
+      updateTask.mutate({ id: task.id, updates: previousTask });
     });
 
     try {
-      await updateTask.mutateAsync({
-        id: task.id,
-        updates,
-      });
+      await updateTask.mutateAsync({ id: task.id, updates });
       setSyncStatus('success');
       setTimeout(() => setSyncStatus('idle'), 2000);
     } catch (error) {
@@ -127,25 +144,6 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
       setTimeout(() => setSyncStatus('idle'), 3000);
     }
   };
-
-  // Unused handler - for future status dropdown feature
-  // const handleStatusChange = (newStatus: TaskStatus) => {
-  //   // Map status to progress percentage
-  //   let newProgress = progress;
-  //   if (newStatus === 'Not started') {
-  //     newProgress = 0;
-  //   } else if (newStatus === 'Done') {
-  //     newProgress = 100;
-  //   } else if (newStatus === 'In progress' && newProgress === 0) {
-  //     newProgress = 50; // Default to 50% when marking as in progress
-  //   }
-
-  //   handleUpdate({
-  //     status: newStatus,
-  //     progress_percentage: newProgress,
-  //     completed_at: newStatus === 'Done' ? new Date().toISOString() : undefined,
-  //   });
-  // };
 
   const handleTitleSave = () => {
     if (editedTitle.trim() && editedTitle !== task.task_name) {
@@ -163,42 +161,19 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
     }
   };
 
-  const handleDescriptionSave = () => {
-    if (editedDescription !== (task.description || '')) {
-      handleUpdate({ description: editedDescription.trim() || null });
+  const handleNotesSave = () => {
+    if (editedNotes !== (task.description || '')) {
+      handleUpdate({ description: editedNotes.trim() || null });
     }
-    setIsEditingDescription(false);
+    setIsEditingNotes(false);
   };
-
-  const handleDescriptionKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      setEditedDescription(task.description || '');
-      setIsEditingDescription(false);
-    }
-  };
-
-  // Unused handlers - for future features
-  // const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const newDate = e.target.value ? new Date(e.target.value).toISOString() : undefined;
-  //   handleUpdate({ due_date: newDate });
-  // };
-
-  // const handleProjectPhaseChange = (projectId: string | null, phaseId: string | null) => {
-  //   handleUpdate({
-  //     project_id: projectId,
-  //     phase_id: phaseId,
-  //   });
-  //   setShowProjectPhaseDropdown(false);
-  // };
 
   const handleProgressChange = (progress: number) => {
-    // Update status based on progress
     let newStatus: TaskStatus = task.status;
     if (progress === 0) {
       newStatus = 'Not started';
     } else if (progress === 100) {
       newStatus = 'Done';
-      // Show time tracking modal when task reaches 100%
       setShowTimeTrackingModal(true);
       setShowProgressSlider(false);
     } else if (progress > 0 && progress < 100) {
@@ -213,147 +188,138 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
   };
 
   const handleTimeTrackingSave = (hours: number) => {
-    handleUpdate({
-      hours_worked: hours,
-    });
+    handleUpdate({ hours_worked: hours });
     setShowTimeTrackingModal(false);
   };
 
-  const handleScheduleChange = (date: string | null, time: string | null) => {
-    handleUpdate({
-      scheduled_date: date,
-      scheduled_time: time,
-    });
+  const handleScheduleChange = (date: string | null, _time: string | null) => {
+    handleUpdate({ due_date: date });
   };
 
-  // const daysOverdue = overdue ? getDaysOverdue(task) : 0;
+  const handleDeleteClick = () => {
+    // Clear existing timeout if any
+    if (deleteTimeout) {
+      clearTimeout(deleteTimeout);
+    }
 
-  // Get background color based on business or life area
-  const getCardBackgroundColor = () => {
+    const newCount = deleteClickCount + 1;
+    setDeleteClickCount(newCount);
+
+    if (newCount === 2) {
+      // Second click - delete the task
+      deleteTask.mutate(task.id);
+      setDeleteClickCount(0);
+      setDeleteTimeout(null);
+    } else {
+      // First click - set timeout to reset
+      const timeout = setTimeout(() => {
+        setDeleteClickCount(0);
+        setDeleteTimeout(null);
+      }, 2000); // Reset after 2 seconds
+      setDeleteTimeout(timeout);
+    }
+  };
+
+  // Get card background with business color tint (darker)
+  const getCardBackground = () => {
     if (task.businesses) {
       const slug = task.businesses.slug;
       switch(slug) {
-        case 'full-stack': return 'rgba(16, 185, 129, 0.15)'; // green tint
-        case 'huge-capital': return 'rgba(168, 85, 247, 0.15)'; // purple tint
-        case 's4': return 'rgba(59, 130, 246, 0.15)'; // blue tint
-        case '808': return 'rgba(234, 179, 8, 0.15)'; // yellow tint
-        default: return '';
+        case 'full-stack': return 'rgb(25, 95, 75)'; // darker green
+        case 'huge-capital': return 'rgb(85, 45, 120)'; // darker purple
+        case 's4': return 'rgb(35, 70, 130)'; // darker blue
+        case '808': return 'rgb(120, 95, 35)'; // darker yellow/gold
+        default: return 'rgb(31, 41, 55)';
       }
     }
     if (task.life_areas) {
       const category = task.life_areas.category.toLowerCase();
       switch(category) {
-        case 'health': return 'rgba(20, 184, 166, 0.15)'; // teal tint
-        case 'personal': return 'rgba(236, 72, 153, 0.15)'; // pink tint
-        case 'golf': return 'rgba(249, 115, 22, 0.15)'; // orange tint
-        default: return '';
+        case 'health': return 'rgb(25, 90, 85)'; // darker teal
+        case 'personal': return 'rgb(120, 45, 85)'; // darker pink
+        case 'golf': return 'rgb(130, 65, 25)'; // darker orange
+        default: return 'rgb(31, 41, 55)';
       }
     }
-    return '';
+    return 'rgb(31, 41, 55)';
   };
 
-  const cardBgColor = getCardBackgroundColor();
+  // Get lighter expanded section background (lighter but still has color)
+  const getExpandedBackground = () => {
+    if (task.businesses) {
+      const slug = task.businesses.slug;
+      switch(slug) {
+        case 'full-stack': return 'rgb(60, 130, 105)'; // lighter green
+        case 'huge-capital': return 'rgb(130, 85, 165)'; // lighter purple
+        case 's4': return 'rgb(75, 115, 170)'; // lighter blue
+        case '808': return 'rgb(165, 135, 70)'; // lighter yellow/gold
+        default: return 'rgb(31, 41, 55)';
+      }
+    }
+    if (task.life_areas) {
+      const category = task.life_areas.category.toLowerCase();
+      switch(category) {
+        case 'health': return 'rgb(60, 130, 120)'; // lighter teal
+        case 'personal': return 'rgb(165, 85, 125)'; // lighter pink
+        case 'golf': return 'rgb(175, 105, 60)'; // lighter orange
+        default: return 'rgb(31, 41, 55)';
+      }
+    }
+    return 'rgb(31, 41, 55)';
+  };
 
   return (
-    <div
-      className={`rounded-lg p-6 border ${
-        overdue ? 'border-red-500/50' : 'border-gray-700'
-      } hover:border-gray-600 transition-colors ${className}`}
-      style={{ backgroundColor: cardBgColor || '#1f2937' }}
+    <Card
+      className={`border-gray-700 group hover:border-gray-600 transition-all duration-200 ${
+        isCompleted ? 'opacity-60' : ''
+      } ${className}`}
+      style={{ backgroundColor: getCardBackground() }}
     >
-      <div className="flex items-start gap-6">
-        {/* Left Section: Calendar + Progress Indicator */}
-        <div className="flex flex-col items-center gap-3">
-          {/* Calendar/Due Date Display - Square Box */}
-          <div
-            className="flex flex-col items-center justify-center w-24 px-3 py-2 rounded-lg border-2 cursor-pointer transition-all hover:border-orange-500"
-            onClick={() => setShowDateTimePicker(true)}
-            style={{
-              borderColor: overdue ? '#ef4444' :
-                          format(new Date(task.due_date || new Date()), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? '#eab308' :
-                          format(new Date(task.due_date || new Date()), 'yyyy-MM-dd') === format(new Date(new Date().setDate(new Date().getDate() + 1)), 'yyyy-MM-dd') ? '#f97316' :
-                          '#4b5563',
-              backgroundColor: overdue ? 'rgba(239, 68, 68, 0.1)' :
-                              format(new Date(task.due_date || new Date()), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? 'rgba(234, 179, 8, 0.1)' :
-                              format(new Date(task.due_date || new Date()), 'yyyy-MM-dd') === format(new Date(new Date().setDate(new Date().getDate() + 1)), 'yyyy-MM-dd') ? 'rgba(249, 115, 22, 0.1)' :
-                              'rgba(75, 85, 99, 0.1)'
-            }}
-          >
-            {task.due_date ? (
-              <>
-                {/* Top Label - DUE/OVERDUE */}
-                <div className={`text-xs font-bold uppercase tracking-wide mb-1 ${
-                  overdue ? 'text-red-400' :
-                  format(new Date(task.due_date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? 'text-yellow-400' :
-                  'text-gray-400'
-                }`}>
-                  {overdue ? 'OVERDUE' :
-                   format(new Date(task.due_date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? 'DUE' :
-                   format(new Date(task.due_date), 'yyyy-MM-dd') === format(new Date(new Date().setDate(new Date().getDate() + 1)), 'yyyy-MM-dd') ? 'DUE' :
-                   'DUE'}
-                </div>
-
-                {/* Main Date Display - Month & Day or "Today" */}
-                {format(new Date(task.due_date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? (
-                  <div className="text-xl font-bold text-yellow-400">
-                    Today
-                  </div>
-                ) : (
-                  <div className={`text-lg font-bold ${
-                    overdue ? 'text-red-400' : 'text-gray-100'
-                  }`}>
-                    {format(new Date(task.due_date), 'MMM d').toUpperCase()}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="text-center">
-                <Calendar className="w-8 h-8 text-gray-500 mb-1" />
-                <div className="text-xs text-gray-500">No Date</div>
-              </div>
-            )}
-          </div>
-
-          {/* Progress Indicator below calendar */}
-          <div
-            className="cursor-pointer relative"
+      {/* Compact Main Row */}
+      <div className="p-4">
+        <div className="flex items-center gap-3">
+          {/* Status Icon (Clickable) */}
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setShowProgressSlider(!showProgressSlider)}
+            className="w-8 h-8 p-0 relative shrink-0"
           >
-            <ProgressIndicator progress={progress} size="lg" />
-
-            {/* Progress Slider Popup */}
+            {isCompleted ? (
+              <CheckCircle2 className="w-5 h-5 text-green-400" />
+            ) : (
+              <Circle className="w-5 h-5 text-gray-500" />
+            )}
             {showProgressSlider && (
-              <div className="absolute top-full left-0 mt-2 z-20">
+              <div ref={progressSliderRef} className="absolute top-full left-0 mt-2 z-20">
                 <ProgressSlider
                   progress={progress}
                   onChange={handleProgressChange}
                   onClose={() => setShowProgressSlider(false)}
                   onTimeTrack={(hours) => handleUpdate({ hours_worked: hours })}
+                  hoursWorked={task.hours_worked}
                 />
               </div>
             )}
-          </div>
-        </div>
+          </Button>
 
-        {/* Middle Section: Title + Badges */}
-        <div className="flex-1 min-w-0">
-          {/* Task Title */}
-          <div className="mb-3">
+          {/* Title (Editable) */}
+          <div className="flex-1 min-w-0">
             {isEditingTitle ? (
-              <input
+              <Input
                 type="text"
                 value={editedTitle}
                 onChange={(e) => setEditedTitle(e.target.value)}
                 onBlur={handleTitleSave}
                 onKeyDown={handleTitleKeyDown}
                 autoFocus
-                className="w-full text-xl font-semibold bg-gray-700 text-gray-100 px-2 py-1 rounded border border-gray-600 focus:border-orange-500 focus:outline-none"
+                className="h-8 text-sm"
               />
             ) : (
               <h3
                 onClick={() => setIsEditingTitle(true)}
-                className={`text-xl font-semibold cursor-pointer hover:text-orange-400 transition-colors ${
-                  progress === 100 ? 'line-through text-gray-500 opacity-75' : 'text-gray-100'
+                className={`text-sm font-medium cursor-pointer hover:text-blue-400 transition-colors truncate ${
+                  isCompleted ? 'line-through text-gray-500' : 'text-gray-100'
                 }`}
               >
                 {task.task_name}
@@ -361,101 +327,273 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
             )}
           </div>
 
-          {/* Badges Row: Area, Phase/Task Type, Money Maker */}
-          <div className="flex items-center gap-2 mb-4">
-            {/* Badge 1: Business/Area */}
-            <span className={`px-3 py-1.5 text-sm font-medium text-white rounded ${colorClass}`}>
-              {sourceName}
-            </span>
-
-            {/* Badge 2: Phase or Task Type */}
-            {task.phases ? (
-              <span className="px-3 py-1.5 text-sm font-medium bg-blue-900/30 text-blue-400 rounded border border-blue-500/50">
-                {task.phases.name}
-              </span>
-            ) : task.task_type ? (
-              <span className="px-3 py-1.5 text-sm font-medium bg-gray-700 text-gray-300 rounded">
-                {task.task_type}
-              </span>
-            ) : null}
-
-            {/* Badge 3: Money Maker / Effort Level */}
-            {task.effort_level && (
-              <span className={`px-3 py-1.5 text-sm font-medium rounded border ${
-                task.effort_level.includes('MoneyMaker') || task.effort_level.includes('Money')
-                  ? 'bg-green-900/30 text-green-400 border-green-500/50'
-                  : 'bg-gray-700 text-gray-300 border-gray-600'
-              }`}>
-                {task.effort_level}
-              </span>
+          {/* Compact Badges */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Business/Area/Project Badge */}
+            {task.projects ? (
+              <Badge
+                className="text-white border-0 text-xs px-2 py-0.5 font-medium"
+                style={{ backgroundColor: businessColor }}
+              >
+                {sourceName}
+              </Badge>
+            ) : (
+              <Select
+                value={task.project_id || ''}
+                onValueChange={(projectId) => handleUpdate({ project_id: projectId })}
+              >
+                <SelectTrigger
+                  className="h-6 text-xs px-2 py-0 border-0 gap-1"
+                  style={{
+                    backgroundColor: businessColor,
+                    color: 'white',
+                    minWidth: '100px'
+                  }}
+                >
+                  <SelectValue placeholder="+ Project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects?.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  )) || <SelectItem value="no-projects" disabled>No projects available</SelectItem>}
+                </SelectContent>
+              </Select>
             )}
-          </div>
 
-          {/* Automation/Delegation Row */}
-          <div className="flex items-center gap-3 mb-3">
-            <label className="text-sm text-gray-400">Automation:</label>
-            <select
-              value={task.automation || ''}
-              onChange={(e) => handleUpdate({ automation: e.target.value as Automation })}
-              className="px-3 py-1 text-sm bg-gray-700 text-gray-300 rounded border border-gray-600 hover:border-gray-500 focus:border-orange-500 focus:outline-none cursor-pointer"
-            >
-              <option value="">None</option>
-              <option value="Automate">Automate</option>
-              <option value="Delegate">Delegate</option>
-              <option value="Manual">Manual</option>
-            </select>
+            {/* Due Date Badge */}
+            {task.due_date ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDateTimePicker(true)}
+                className={`h-6 px-2 text-xs gap-1 ${
+                  overdue
+                    ? 'text-red-400 hover:bg-red-500/10'
+                    : dueToday
+                    ? 'text-yellow-400 hover:bg-yellow-500/10'
+                    : 'text-gray-400 hover:bg-gray-700'
+                }`}
+              >
+                {overdue && <AlertCircle className="w-3 h-3" />}
+                <Calendar className="w-3 h-3" />
+                <span>
+                  {dueToday
+                    ? 'Today'
+                    : overdue
+                    ? 'Overdue'
+                    : format(new Date(task.due_date), 'MMM d')}
+                </span>
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDateTimePicker(true)}
+                className="h-6 px-2 text-xs gap-1 text-gray-500 hover:bg-gray-700 hover:text-gray-300"
+              >
+                <Calendar className="w-3 h-3" />
+                <span>Set Date</span>
+              </Button>
+            )}
 
-            {/* Hours Projected */}
-            <label className="text-sm text-gray-400 ml-4">Hours Projected:</label>
-            <input
-              type="number"
-              value={task.hours_projected || ''}
-              onChange={(e) => handleUpdate({ hours_projected: e.target.value ? parseFloat(e.target.value) : null })}
-              placeholder="0"
-              step="0.25"
-              className="w-20 px-2 py-1 text-sm bg-gray-700 text-gray-300 rounded border border-gray-600 hover:border-gray-500 focus:border-orange-500 focus:outline-none"
-            />
-          </div>
-        </div>
+            {/* Expand Button with Delete Dropdown */}
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="w-6 h-6 p-0"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
 
-        {/* Right Section: Description */}
-        <div className="w-80 flex-shrink-0">
-          <label className="text-xs text-gray-400 block mb-1">Description</label>
-          {isEditingDescription ? (
-            <textarea
-              value={editedDescription}
-              onChange={(e) => setEditedDescription(e.target.value)}
-              onBlur={handleDescriptionSave}
-              onKeyDown={handleDescriptionKeyDown}
-              autoFocus
-              rows={6}
-              placeholder="Add description..."
-              className="w-full text-sm bg-gray-700 text-gray-300 px-3 py-2 rounded border border-gray-600 focus:border-orange-500 focus:outline-none resize-none"
-            />
-          ) : (
-            <div
-              onClick={() => setIsEditingDescription(true)}
-              className={`w-full min-h-[144px] text-sm cursor-pointer hover:bg-gray-700/50 transition-colors px-3 py-2 rounded border border-gray-600 ${
-                task.description ? 'text-gray-300' : 'text-gray-500 italic'
-              }`}
-            >
-              {task.description || 'Click to add description...'}
+              {/* Delete Button - appears when expanded */}
+              {isExpanded && (
+                <div className="absolute top-full right-0 mt-2 z-10 bg-gray-200 rounded-lg shadow-lg border border-gray-300 p-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDeleteClick}
+                    className={`w-8 h-8 p-0 text-red-600 hover:bg-red-100 hover:text-red-700 transition-all ${
+                      deleteClickCount === 1 ? 'bg-red-300 animate-pulse' : 'hover:bg-gray-300'
+                    }`}
+                    title={deleteClickCount === 1 ? 'Click again to confirm' : 'Delete task'}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
+
+        {/* Progress Bar - more prominent */}
+        {progress > 0 && progress < 100 && (
+          <div className="mt-3">
+            <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className="h-full transition-all duration-300 rounded-full bg-green-500"
+                style={{
+                  width: `${progress}%`
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Date/Time Picker Modal */}
+      {/* Expanded Details */}
+      {isExpanded && (
+        <>
+          <div className="border-t border-gray-700/30" />
+          <div className="p-6" style={{ backgroundColor: getExpandedBackground() }}>
+            {/* Two-column layout */}
+            <div className="grid grid-cols-[400px_1fr] gap-6">
+              {/* Left Column - Metadata */}
+              <div className="space-y-4">
+                {/* Row 1: Area & Money Maker Level */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Area</label>
+                    <div className="px-4 py-2.5 bg-gray-800/50 rounded-lg text-sm text-gray-100 font-medium border border-gray-700/50">
+                      {task.businesses?.name || task.life_areas?.name || task.area || 'None'}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Money Maker</label>
+                    <Select
+                      value={task.effort_level || 'none'}
+                      onValueChange={(value) =>
+                        handleUpdate({ effort_level: value === 'none' ? null : (value as EffortLevel) })
+                      }
+                    >
+                      <SelectTrigger className="h-10 text-sm bg-gray-800/50 border-gray-700/50 hover:bg-gray-800/70 transition-colors text-gray-100">
+                        <SelectValue placeholder="Select level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="$$$ Printer $$$">$$$ Printer $$$</SelectItem>
+                        <SelectItem value="$ Makes Money $">$ Makes Money $</SelectItem>
+                        <SelectItem value="-$ Save Dat $-">-$ Save Dat $-</SelectItem>
+                        <SelectItem value=":( No Money ):">:( No Money ):</SelectItem>
+                        <SelectItem value="8) Vibing (8">8) Vibing (8</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Row 2: Hours Worked & Hours Projected */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Hours Worked</label>
+                    <Input
+                      type="number"
+                      value={task.hours_worked || ''}
+                      onChange={(e) =>
+                        handleUpdate({ hours_worked: e.target.value ? parseFloat(e.target.value) : null })
+                      }
+                      placeholder="0.00"
+                      step="0.25"
+                      className="h-10 text-sm bg-gray-800/50 border-gray-700/50 hover:bg-gray-800/70 transition-colors text-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Hours Projected</label>
+                    <Input
+                      type="number"
+                      value={task.hours_projected || ''}
+                      onChange={(e) =>
+                        handleUpdate({ hours_projected: e.target.value ? parseFloat(e.target.value) : null })
+                      }
+                      placeholder="0.00"
+                      step="0.25"
+                      className="h-10 text-sm bg-gray-800/50 border-gray-700/50 hover:bg-gray-800/70 transition-colors text-gray-100"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 3: Automation */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Automation</label>
+                  <Select
+                    value={task.automation || 'none'}
+                    onValueChange={(value) =>
+                      handleUpdate({ automation: value === 'none' ? null : (value as Automation) })
+                    }
+                  >
+                    <SelectTrigger className="h-10 text-sm bg-gray-800/50 border-gray-700/50 hover:bg-gray-800/70 transition-colors text-gray-100">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="Automate">🤖 Automate</SelectItem>
+                      <SelectItem value="Delegate">👥 Delegate</SelectItem>
+                      <SelectItem value="Manual">✋ Manual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-gray-700/30 my-1" />
+
+                {/* Row 4: Created Date */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Created</label>
+                  <div className="px-4 py-2.5 bg-gray-800/30 rounded-lg text-sm text-gray-100 border border-gray-700/30">
+                    {task.created_at ? format(new Date(task.created_at), 'MMM d, yyyy · h:mm a') : 'Unknown'}
+                  </div>
+                </div>
+
+                {/* Row 5: Completed Date */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Completed</label>
+                  <div className="px-4 py-2.5 bg-gray-800/30 rounded-lg text-sm text-gray-100 border border-gray-700/30">
+                    {task.completed_at ? format(new Date(task.completed_at), 'MMM d, yyyy · h:mm a') : '—'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Notes Panel */}
+              <div className="flex flex-col">
+                <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Notes</label>
+                {isEditingNotes ? (
+                  <Textarea
+                    value={editedNotes}
+                    onChange={(e) => setEditedNotes(e.target.value)}
+                    onBlur={handleNotesSave}
+                    autoFocus
+                    rows={16}
+                    placeholder="Add notes, thoughts, or details..."
+                    className="text-sm resize-none bg-gray-800/30 border-gray-700/30 focus:bg-gray-800/50 transition-colors flex-1 leading-relaxed text-gray-100 placeholder:text-gray-500"
+                  />
+                ) : (
+                  <div
+                    onClick={() => setIsEditingNotes(true)}
+                    className={`text-sm cursor-pointer hover:bg-gray-800/30 transition-all px-4 py-3 rounded-lg border border-gray-700/30 flex-1 leading-relaxed ${
+                      task.description ? 'text-gray-100' : 'text-gray-500 italic'
+                    }`}
+                  >
+                    {task.description || 'Click to add notes, thoughts, or details...'}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Modals */}
       {showDateTimePicker && (
         <DateTimePicker
-          scheduledDate={task.scheduled_date}
-          scheduledTime={task.scheduled_time}
+          scheduledDate={task.due_date}
+          scheduledTime={null}
           onSchedule={handleScheduleChange}
           onClose={() => setShowDateTimePicker(false)}
         />
       )}
 
-      {/* Time Tracking Modal */}
       {showTimeTrackingModal && (
         <TimeTrackingModal
           taskName={task.task_name}
@@ -463,6 +601,6 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
           onClose={() => setShowTimeTrackingModal(false)}
         />
       )}
-    </div>
+    </Card>
   );
 };

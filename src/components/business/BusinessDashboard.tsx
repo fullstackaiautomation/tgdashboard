@@ -1,17 +1,22 @@
 import type { FC } from 'react';
 import { useState, useEffect, useMemo } from 'react';
+import { ChevronDown, ChevronRight, Plus, CheckCircle2, Folder, ListTodo, Target } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { useBusinesses } from '../../hooks/useBusinesses';
 import { useProjects, usePhases } from '../../hooks/useProjects';
 import { useTasks } from '../../hooks/useTasks';
-import { useBusinessProgress } from '../../hooks/useBusinessProgress';
+// import { useBusinessProgress } from '../../hooks/useBusinessProgress';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { supabase } from '../../lib/supabase';
 import { ProjectCard } from './ProjectCard';
-import { ProgressBar } from '../shared/ProgressBar';
 
 export const BusinessDashboard: FC = () => {
   const { data: businesses, isLoading: businessesLoading } = useBusinesses();
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
+  const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(new Set());
   const [userId, setUserId] = useState<string | null>(null);
 
   // Get current user ID for real-time sync
@@ -21,66 +26,63 @@ export const BusinessDashboard: FC = () => {
     });
   }, []);
 
-  // Enable real-time sync for Business pages too
+  // Enable real-time sync
   useRealtimeSync(userId);
 
-  const selectedBusiness = businesses?.find(b => b.id === selectedBusinessId);
-  const { data: projects, isLoading: projectsLoading } = useProjects(selectedBusinessId || undefined);
+  // Load all data
+  const { data: allProjects } = useProjects();
   const { data: allPhases } = usePhases();
   const { data: allTasks } = useTasks();
 
-  // Filter phases and tasks for selected business
-  const businessPhases = useMemo(() => {
-    if (!allPhases || !projects) return [];
-    const projectIds = projects.map(p => p.id);
-    return allPhases.filter(phase => projectIds.includes(phase.project_id));
-  }, [allPhases, projects]);
+  // Toggle project expansion
+  const toggleProject = (projectId: string) => {
+    const newExpanded = new Set(expandedProjectIds);
+    if (newExpanded.has(projectId)) {
+      newExpanded.delete(projectId);
+    } else {
+      newExpanded.add(projectId);
+    }
+    setExpandedProjectIds(newExpanded);
+  };
 
-  const businessTasks = useMemo(() => {
-    if (!allTasks || !selectedBusinessId) return [];
-    return allTasks.filter(task => task.business_id === selectedBusinessId);
+  // Filter projects and tasks based on selected business
+  const filteredProjects = useMemo(() => {
+    if (!allProjects) return [];
+    if (!selectedBusinessId) return allProjects;
+    return allProjects.filter(p => p.business_id === selectedBusinessId);
+  }, [allProjects, selectedBusinessId]);
+
+  const filteredTasks = useMemo(() => {
+    if (!allTasks) return [];
+    if (!selectedBusinessId) return allTasks;
+    return allTasks.filter(t => t.business_id === selectedBusinessId);
   }, [allTasks, selectedBusinessId]);
 
-  // Calculate business progress
-  const {
-    overallCompletion,
-    totalProjects,
-    activeTasks,
-    completedTasks,
-    totalTasks,
-    isStalled,
-  } = useBusinessProgress(projects || [], businessPhases, businessTasks);
+  // Calculate aggregate stats for overview cards
+  const stats = useMemo(() => {
+    const totalProjects = filteredProjects.length;
+    const activeProjects = filteredProjects.filter(p => {
+      const projectTasks = filteredTasks.filter(t => t.project_id === p.id);
+      return projectTasks.some(t => (t.progress_percentage ?? 0) < 100);
+    }).length;
 
-  // Sort projects by completion (least complete first)
-  const sortedProjects = useMemo(() => {
-    if (!projects) return [];
-    return [...projects].sort((a, b) => {
-      const aPhases = businessPhases.filter(p => p.project_id === a.id);
-      const aTasks = businessTasks.filter(t => t.project_id === a.id);
-      const bPhases = businessPhases.filter(p => p.project_id === b.id);
-      const bTasks = businessTasks.filter(t => t.project_id === b.id);
+    const totalTasks = filteredTasks.length;
+    const completedTasks = filteredTasks.filter(t => t.progress_percentage === 100).length;
+    const activeTasks = totalTasks - completedTasks;
 
-      const aProgress = calculateProjectProgress(aPhases, aTasks);
-      const bProgress = calculateProjectProgress(bPhases, bTasks);
+    const totalPhases = allPhases?.filter(phase =>
+      filteredProjects.some(p => p.id === phase.project_id)
+    ).length ?? 0;
 
-      return aProgress - bProgress;
-    });
-  }, [projects, businessPhases, businessTasks]);
-
-  function calculateProjectProgress(phases: any[], tasks: any[]): number {
-    if (phases.length > 0) {
-      const phaseProgresses = phases.map(phase => {
-        const phaseTasks = tasks.filter(t => t.phase_id === phase.id);
-        if (phaseTasks.length === 0) return 0;
-        return phaseTasks.reduce((sum, t) => sum + (t.progress_percentage ?? 0), 0) / phaseTasks.length;
-      });
-      return phaseProgresses.reduce((sum, p) => sum + p, 0) / phases.length;
-    }
-    if (tasks.length > 0) {
-      return tasks.reduce((sum, t) => sum + (t.progress_percentage ?? 0), 0) / tasks.length;
-    }
-    return 0;
-  }
+    return {
+      totalProjects,
+      activeProjects,
+      totalTasks,
+      completedTasks,
+      activeTasks,
+      totalPhases,
+    };
+  }, [filteredProjects, filteredTasks, allPhases]);
 
   if (businessesLoading) {
     return (
@@ -93,116 +95,258 @@ export const BusinessDashboard: FC = () => {
   if (!businesses || businesses.length === 0) {
     return (
       <div className="p-6">
-        <div className="text-gray-400 text-center py-12">
-          No businesses yet. Create your first business to get started.
-        </div>
+        <Card className="bg-gray-800/60 border-gray-700">
+          <CardContent className="py-12">
+            <div className="text-center text-gray-400">
+              <p className="text-lg mb-2">No businesses yet</p>
+              <p className="text-sm">Create your first business to get started</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      {/* Business Selector */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Select Business
-        </label>
-        <select
-          value={selectedBusinessId || ''}
-          onChange={(e) => setSelectedBusinessId(e.target.value || null)}
-          className="w-full md:w-1/2 px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Choose a business...</option>
-          {businesses.map((business) => (
-            <option key={business.id} value={business.id}>
-              {business.name}
-            </option>
-          ))}
-        </select>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-100">Business Projects</h1>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800/50"
+            onClick={() => {
+              // TODO: Implement create project modal
+              console.log('Create project');
+            }}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            New Project
+          </Button>
+          <Button
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-700 text-white border-0"
+            onClick={() => {
+              // TODO: Implement create business modal
+              console.log('Create business');
+            }}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            New Business
+          </Button>
+        </div>
       </div>
 
-      {selectedBusiness && (
-        <>
-          {/* Business Header */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
+      {/* Business Filter - Full Width Grid */}
+      <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${businesses.length + 1}, 1fr)` }}>
+        <Button
+          variant="outline"
+          className={`h-14 text-base font-semibold transition-all border-2 ${
+            selectedBusinessId === null
+              ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-500 shadow-lg shadow-blue-500/30'
+              : 'hover:bg-blue-500/20 border-blue-600/50 text-blue-400'
+          }`}
+          style={{
+            backgroundColor: selectedBusinessId === null ? undefined : 'rgba(37, 99, 235, 0.15)',
+          }}
+          onClick={() => setSelectedBusinessId(null)}
+        >
+          All Businesses
+        </Button>
+        {businesses.map((business) => {
+          const isSelected = selectedBusinessId === business.id;
+          return (
+            <Button
+              key={business.id}
+              variant="outline"
+              className={`h-14 text-base font-semibold transition-all border-2 ${
+                isSelected
+                  ? 'text-white shadow-lg'
+                  : 'hover:opacity-80'
+              }`}
+              style={{
+                backgroundColor: isSelected ? business.color : `${business.color}30`,
+                borderColor: isSelected ? business.color : `${business.color}80`,
+                color: isSelected ? 'white' : business.color,
+                boxShadow: isSelected ? `0 10px 15px -3px ${business.color}30` : undefined,
+              }}
+              onClick={() => setSelectedBusinessId(business.id)}
+            >
+              {business.name}
+            </Button>
+          );
+        })}
+      </div>
+
+      {/* Overview Stats Cards */}
+      <div className="grid grid-cols-4 gap-4">
+        {/* Total Projects */}
+        <Card className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border-blue-700/50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-3 mb-2">
+                <p className="text-sm text-gray-400 mb-1">Total Projects</p>
+                <p className="text-3xl font-bold text-blue-400">{stats.totalProjects}</p>
+                <p className="text-xs text-gray-500 mt-1">{stats.activeProjects} active</p>
+              </div>
+              <Folder className="w-10 h-10 text-blue-400/30" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Total Phases */}
+        <Card className="bg-gradient-to-br from-purple-900/20 to-purple-800/10 border-purple-700/50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 mb-1">Total Phases</p>
+                <p className="text-3xl font-bold text-purple-400">{stats.totalPhases}</p>
+                <p className="text-xs text-gray-500 mt-1">across all projects</p>
+              </div>
+              <Target className="w-10 h-10 text-purple-400/30" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Active Tasks */}
+        <Card className="bg-gradient-to-br from-yellow-900/20 to-yellow-800/10 border-yellow-700/50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 mb-1">Active Tasks</p>
+                <p className="text-3xl font-bold text-yellow-400">{stats.activeTasks}</p>
+                <p className="text-xs text-gray-500 mt-1">in progress</p>
+              </div>
+              <ListTodo className="w-10 h-10 text-yellow-400/30" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Completed Tasks */}
+        <Card className="bg-gradient-to-br from-green-900/20 to-green-800/10 border-green-700/50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 mb-1">Completed</p>
+                <p className="text-3xl font-bold text-green-400">{stats.completedTasks}</p>
+                <p className="text-xs text-gray-500 mt-1">of {stats.totalTasks} tasks</p>
+              </div>
+              <CheckCircle2 className="w-10 h-10 text-green-400/30" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Projects Section */}
+      <div>
+        <h2 className="text-lg font-bold text-gray-100 mb-4">
+          {selectedBusinessId
+            ? `${businesses.find(b => b.id === selectedBusinessId)?.name} Projects`
+            : 'All Projects'}
+        </h2>
+
+        {filteredProjects.length === 0 ? (
+          <Card className="bg-gray-800/60 border-gray-700">
+            <CardContent className="py-12">
+              <div className="text-center text-gray-400">
+                <p className="text-lg mb-2">No projects yet</p>
+                <p className="text-sm">Create your first project to get started</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {filteredProjects.map((project) => {
+              const isExpanded = expandedProjectIds.has(project.id);
+              const business = businesses.find(b => b.id === project.business_id);
+              const projectPhases = allPhases?.filter(p => p.project_id === project.id) || [];
+              const projectTasks = filteredTasks.filter(t => t.project_id === project.id);
+
+              const completedTasks = projectTasks.filter(t => t.progress_percentage === 100).length;
+              const totalTasks = projectTasks.length;
+
+              // Calculate project progress
+              let projectProgress = 0;
+              if (projectPhases.length > 0) {
+                const phaseProgresses = projectPhases.map(phase => {
+                  const phaseTasks = projectTasks.filter(t => t.phase_id === phase.id);
+                  if (phaseTasks.length === 0) return 0;
+                  return phaseTasks.reduce((sum, t) => sum + (t.progress_percentage ?? 0), 0) / phaseTasks.length;
+                });
+                projectProgress = phaseProgresses.reduce((sum, p) => sum + p, 0) / phaseProgresses.length;
+              } else if (totalTasks > 0) {
+                projectProgress = projectTasks.reduce((sum, t) => sum + (t.progress_percentage ?? 0), 0) / totalTasks;
+              }
+
+              return (
+                <Card
+                  key={project.id}
+                  className="bg-gray-800/60 border-gray-700 overflow-hidden"
+                  style={{
+                    borderLeftWidth: '4px',
+                    borderLeftColor: business?.color || '#6B7280'
+                  }}
+                >
                   <div
-                    className="w-4 h-4 rounded"
-                    style={{ backgroundColor: selectedBusiness.color }}
-                  />
-                  <h1 className="text-2xl font-bold text-white">{selectedBusiness.name}</h1>
-                  {isStalled && (
-                    <span className="text-sm text-yellow-500" title="No activity in 14+ days">
-                      ⚠️ Stalled
-                    </span>
+                    className="p-4 cursor-pointer hover:bg-gray-700/20 transition-colors"
+                    onClick={() => toggleProject(project.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1">
+                        <Button variant="ghost" size="sm" className="w-6 h-6 p-0">
+                          {isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-gray-400" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-gray-400" />
+                          )}
+                        </Button>
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-100">{project.name}</h3>
+                          {project.description && (
+                            <p className="text-xs text-gray-400 mt-0.5">{project.description}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <Badge style={{ backgroundColor: business?.color }}>
+                          {business?.name}
+                        </Badge>
+                        <div className="text-center">
+                          <div className="text-xs text-gray-400">Progress</div>
+                          <div className="text-sm font-bold text-gray-100">{projectProgress.toFixed(0)}%</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs text-gray-400">Phases</div>
+                          <div className="text-sm font-bold text-gray-100">{projectPhases.length}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs text-gray-400">Tasks</div>
+                          <div className="text-sm font-bold text-gray-100">{completedTasks}/{totalTasks}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {totalTasks > 0 && (
+                      <div className="mt-3">
+                        <Progress value={projectProgress} className="h-1.5" />
+                      </div>
+                    )}
+                  </div>
+
+                  {isExpanded && (
+                    <div className="border-t border-gray-700/50 p-4">
+                      <ProjectCard project={project} businessId={project.business_id} />
+                    </div>
                   )}
-                </div>
-                {selectedBusiness.description && (
-                  <p className="text-gray-400 ml-7">{selectedBusiness.description}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Business Metrics */}
-            {totalProjects > 0 && (
-              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-300">Overall Progress</span>
-                  <span className="text-lg font-semibold text-white">{overallCompletion.toFixed(1)}%</span>
-                </div>
-                <ProgressBar progress={overallCompletion} size="lg" />
-
-                <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-700">
-                  <div>
-                    <div className="text-xs text-gray-400">Projects</div>
-                    <div className="text-xl font-semibold text-white">{totalProjects}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-400">Active Tasks</div>
-                    <div className="text-xl font-semibold text-yellow-500">{activeTasks}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-400">Completed</div>
-                    <div className="text-xl font-semibold text-green-500">{completedTasks}/{totalTasks}</div>
-                  </div>
-                </div>
-              </div>
-            )}
+                </Card>
+              );
+            })}
           </div>
-
-          {/* Projects Section */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-white">Projects</h2>
-              <button
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
-                onClick={() => {
-                  // TODO: Implement create project modal
-                  console.log('Create project');
-                }}
-              >
-                + New Project
-              </button>
-            </div>
-
-            {projectsLoading ? (
-              <div className="text-gray-400">Loading projects...</div>
-            ) : !projects || projects.length === 0 ? (
-              <div className="text-gray-400 text-center py-12 border border-gray-700 rounded-lg">
-                No projects yet. Create your first project to get started.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {sortedProjects.map((project) => (
-                  <ProjectCard key={project.id} project={project} businessId={selectedBusinessId || ''} />
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 };
