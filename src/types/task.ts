@@ -99,6 +99,12 @@ export interface TaskHub {
   scheduled_start: string | null
   scheduled_end: string | null
 
+  // Daily scheduling
+  scheduled_date: string | null
+  scheduled_time: string | null
+  recurrence_pattern: RecurringType | null
+  recurrence_parent_id: string | null
+
   // Recurring tasks
   recurring_type: RecurringType
   recurring_interval: number
@@ -140,6 +146,12 @@ export interface CreateTaskDTO {
   scheduled_start?: string
   scheduled_end?: string
 
+  // Daily scheduling
+  scheduled_date?: string
+  scheduled_time?: string
+  recurrence_pattern?: RecurringType
+  recurrence_parent_id?: string
+
   // Recurring
   recurring_type?: RecurringType
   recurring_interval?: number
@@ -173,6 +185,12 @@ export interface UpdateTaskDTO {
   hours_worked?: number | null
   scheduled_start?: string | null
   scheduled_end?: string | null
+
+  // Daily scheduling
+  scheduled_date?: string | null
+  scheduled_time?: string | null
+  recurrence_pattern?: RecurringType | null
+  recurrence_parent_id?: string | null
 
   // Recurring
   recurring_type?: RecurringType | null
