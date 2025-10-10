@@ -1,20 +1,34 @@
 import type { FC, FormEvent } from 'react';
 import { useState } from 'react';
 import { useCreateTask } from '../../hooks/useTasks';
-import type { CreateTaskDTO, TaskStatus } from '../../types/task';
+import { useBusiness } from '../../hooks/useBusinesses';
+import type { CreateTaskDTO, TaskStatus, Area, Automation, EffortLevel } from '../../types/task';
 
 interface TaskFormProps {
   businessId: string;
   projectId: string;
   phaseId: string;
+  phaseName?: string; // Add phase name as optional prop
   onSuccess?: () => void;
   onCancel?: () => void;
 }
+
+// Map business slug to Area
+const mapBusinessSlugToArea = (slug: string): Area => {
+  const mapping: Record<string, Area> = {
+    'full-stack': 'Full Stack',
+    'huge-capital': 'Huge Capital',
+    's4': 'S4',
+    '808': '808',
+  };
+  return mapping[slug] || 'Full Stack';
+};
 
 export const TaskForm: FC<TaskFormProps> = ({
   businessId,
   projectId,
   phaseId,
+  phaseName,
   onSuccess,
   onCancel,
 }) => {
@@ -24,6 +38,7 @@ export const TaskForm: FC<TaskFormProps> = ({
   const [status, setStatus] = useState<TaskStatus>('Not started');
 
   const createTask = useCreateTask();
+  const { data: business } = useBusiness(businessId);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -41,6 +56,13 @@ export const TaskForm: FC<TaskFormProps> = ({
       phase_id: phaseId,
       status,
       due_date: dueDate || undefined,
+      // Legacy fields for To-Do List compatibility
+      area: business ? mapBusinessSlugToArea(business.slug) : undefined,
+      task_type: phaseName || 'General', // Set to phase name (task_type will be renamed to phase_name later)
+      automation: 'Manual' as Automation, // Default to Manual
+      effort_level: '8) JusVibin' as EffortLevel, // Default effort level
+      hours_projected: 0, // Default to 0 hours
+      // hours_worked: 0, // Not part of CreateTaskDTO
     };
 
     try {

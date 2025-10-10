@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { FC } from 'react';
-import { Calendar, Clock, X } from 'lucide-react';
+// import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Button } from '@/components/ui/button';
 
 interface DateTimePickerProps {
   scheduledDate?: string | null;
@@ -10,19 +12,27 @@ interface DateTimePickerProps {
 }
 
 /**
- * DateTimePicker - Component for scheduling tasks to specific dates and times
+ * DateTimePicker - Compact calendar popup without modal wrapper
  */
 export const DateTimePicker: FC<DateTimePickerProps> = ({
   scheduledDate,
-  scheduledTime,
   onSchedule,
   onClose,
 }) => {
-  const [date, setDate] = useState(scheduledDate || '');
-  const [time, setTime] = useState(scheduledTime || '');
+  const initialDate = scheduledDate ? new Date(scheduledDate) : undefined;
+  const [selectedDate, _setSelectedDate] = useState<Date | undefined>(initialDate);
 
-  const handleSave = () => {
-    onSchedule(date || null, time || null);
+  const handleSelect = (date: Date | undefined) => {
+    if (!date) return;
+
+    // Format date as YYYY-MM-DD using local timezone (not UTC)
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+
+    console.log('📅 DateTimePicker selected:', { date, formattedDate });
+    onSchedule(formattedDate, null);
     onClose();
   };
 
@@ -32,66 +42,37 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50"
+      onClick={onClose}
+    >
       <div
-        className="bg-gray-800 rounded-lg shadow-xl p-6 w-96 border border-gray-700"
+        className="absolute bg-gray-800 rounded-lg shadow-2xl border border-gray-700 p-3"
         onClick={(e) => e.stopPropagation()}
+        style={{
+          // Position near the click point (adjust as needed)
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+        }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-100">Schedule Task</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-200 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        <Calendar
+          mode="single"
+          selected={selectedDate}
+          onSelect={handleSelect}
+          className="rounded-md"
+        />
 
-        {/* Date Picker */}
-        <div className="space-y-4">
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-              <Calendar className="w-4 h-4" />
-              Date
-            </label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-          </div>
-
-          {/* Time Picker */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-              <Clock className="w-4 h-4" />
-              Time (optional)
-            </label>
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-3 mt-6">
-          <button
+        {/* Clear button at bottom */}
+        <div className="pt-2 border-t border-gray-700 mt-2">
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleClear}
-            className="flex-1 px-4 py-2 bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors"
+            className="w-full text-gray-400 hover:text-gray-200"
           >
-            Clear
-          </button>
-          <button
-            onClick={handleSave}
-            className="flex-1 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors"
-          >
-            Save
-          </button>
+            Clear Date
+          </Button>
         </div>
       </div>
     </div>
