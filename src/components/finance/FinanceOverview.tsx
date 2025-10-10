@@ -27,7 +27,9 @@ const FinanceOverview = () => {
       }
     `
     document.head.appendChild(style)
-    return () => document.head.removeChild(style)
+    return () => {
+      document.head.removeChild(style)
+    }
   }, [])
 
   const { data: accounts, isLoading: accountsLoading } = useAccountsWithBalances(selectedDate)
@@ -60,11 +62,12 @@ const FinanceOverview = () => {
     }).format(amount)
   }
 
-  const getPercentageColor = (percentage: number) => {
-    if (percentage <= 20) return 'text-green-400'
-    if (percentage <= 50) return 'text-orange-400'
-    return 'text-red-400'
-  }
+  // TODO: Apply color-coded percentages later
+  // const getPercentageColor = (percentage: number) => {
+  //   if (percentage <= 20) return 'text-green-400'
+  //   if (percentage <= 50) return 'text-orange-400'
+  //   return 'text-red-400'
+  // }
 
   const handleBalanceChange = (accountId: string, value: string) => {
     // Remove commas and parse
@@ -119,8 +122,10 @@ const FinanceOverview = () => {
   const personalLoansPercentRemaining = personalLoansTotalOriginal > 0 ? (personalLoansTotal / personalLoansTotalOriginal) * 100 : 0
   const autoLoansTotal = autoLoans.reduce((sum, acc) => sum + (balances[acc.id] || 0), 0)
   const autoLoansTotalOriginal = autoLoans.reduce((sum, acc) => sum + (acc.credit_limit || 0), 0)
-  const autoLoansPercentRemaining = autoLoansTotalOriginal > 0 ? (autoLoansTotal / autoLoansTotalOriginal) * 100 : 0
-  const taxesTotal = taxes.reduce((sum, acc) => sum + (balances[acc.id] || 0), 0)
+  // const autoLoansPercentRemaining = autoLoansTotalOriginal > 0 ? (autoLoansTotal / autoLoansTotalOriginal) * 100 : 0
+  // const taxesTotal = taxes.reduce((sum, acc) => sum + (balances[acc.id] || 0), 0)
+  // const taxesTotalOriginal = taxes.reduce((sum, acc) => sum + (acc.credit_limit || 0), 0)
+  // const taxesPercentRemaining = taxesTotalOriginal > 0 ? (taxesTotal / taxesTotalOriginal) * 100 : 0
   const allLoansTotal = personalLoansTotal + autoLoansTotal
   const allLoansTotalOriginal = personalLoansTotalOriginal + autoLoansTotalOriginal
   const allLoansPercentRemaining = allLoansTotalOriginal > 0 ? (allLoansTotal / allLoansTotalOriginal) * 100 : 0

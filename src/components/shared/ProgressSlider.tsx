@@ -43,13 +43,14 @@ export const ProgressSlider: FC<ProgressSliderProps> = ({
     onChange(value);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value, 10);
-    if (!isNaN(value) && value >= 0 && value <= 100) {
-      setLocalProgress(value);
-      onChange(value);
-    }
-  };
+  // handleInputChange removed - not used in current implementation
+  // const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const value = parseInt(e.target.value, 10);
+  //   if (!isNaN(value) && value >= 0 && value <= 100) {
+  //     setLocalProgress(value);
+  //     onChange(value);
+  //   }
+  // };
 
   const handleTimeTrack = (hours: number) => {
     if (onTimeTrack) {
