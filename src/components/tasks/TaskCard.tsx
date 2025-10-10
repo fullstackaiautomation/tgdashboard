@@ -1,17 +1,20 @@
 import type { FC } from 'react';
 import { useState } from 'react';
 import { format, differenceInDays } from 'date-fns';
-import { CheckCircle2, AlertCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, AlertTriangle, Calendar, Clock } from 'lucide-react';
 import { useUpdateTask } from '../../hooks/useTasks';
 import { useUndo } from '../../hooks/useUndo';
 import { useProjects, usePhases } from '../../hooks/useProjects';
 import { ProgressIndicator } from '../shared/ProgressIndicator';
 import { ProgressSlider } from '../shared/ProgressSlider';
-import type { TaskHub, TaskStatus } from '../../types/task';
+import { DateTimePicker } from './DateTimePicker';
+import { TimeTrackingModal } from './TimeTrackingModal';
+import type { TaskHub, TaskStatus, Automation } from '../../types/task';
 
 interface TaskCardProps {
   task: TaskHub;
   className?: string;
+  compact?: boolean;
 }
 
 /**
@@ -83,6 +86,8 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
   const [editedDescription, setEditedDescription] = useState(task.description || '');
   const [showProjectPhaseDropdown, setShowProjectPhaseDropdown] = useState(false);
   const [showProgressSlider, setShowProgressSlider] = useState(false);
+  const [showDateTimePicker, setShowDateTimePicker] = useState(false);
+  const [showTimeTrackingModal, setShowTimeTrackingModal] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
 
   const updateTask = useUpdateTask();
@@ -191,6 +196,9 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
       newStatus = 'Not started';
     } else if (progress === 100) {
       newStatus = 'Done';
+      // Show time tracking modal when task reaches 100%
+      setShowTimeTrackingModal(true);
+      setShowProgressSlider(false);
     } else if (progress > 0 && progress < 100) {
       newStatus = 'In progress';
     }
@@ -202,35 +210,133 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
     });
   };
 
+  const handleTimeTrackingSave = (hours: number) => {
+    handleUpdate({
+      hours_worked: hours,
+    });
+    setShowTimeTrackingModal(false);
+  };
+
+  const handleScheduleChange = (date: string | null, time: string | null) => {
+    handleUpdate({
+      scheduled_date: date,
+      scheduled_time: time,
+    });
+  };
+
   const daysOverdue = overdue ? getDaysOverdue(task) : 0;
 
-  return (
-    <div className={`bg-gray-800 rounded-lg p-4 border ${
-      overdue ? 'border-red-500/50 bg-red-900/10' : 'border-gray-700'
-    } hover:border-gray-600 transition-colors ${className}`}>
-      <div className="flex items-start gap-3">
-        {/* Progress Indicator replaces checkbox */}
-        <div
-          className="mt-1 cursor-pointer relative"
-          onClick={() => setShowProgressSlider(!showProgressSlider)}
-        >
-          <ProgressIndicator progress={progress} size="md" />
+  // Get background color based on business or life area
+  const getCardBackgroundColor = () => {
+    if (task.businesses) {
+      const slug = task.businesses.slug;
+      switch(slug) {
+        case 'full-stack': return 'rgba(16, 185, 129, 0.15)'; // green tint
+        case 'huge-capital': return 'rgba(168, 85, 247, 0.15)'; // purple tint
+        case 's4': return 'rgba(59, 130, 246, 0.15)'; // blue tint
+        case '808': return 'rgba(234, 179, 8, 0.15)'; // yellow tint
+        default: return '';
+      }
+    }
+    if (task.life_areas) {
+      const category = task.life_areas.category.toLowerCase();
+      switch(category) {
+        case 'health': return 'rgba(20, 184, 166, 0.15)'; // teal tint
+        case 'personal': return 'rgba(236, 72, 153, 0.15)'; // pink tint
+        case 'golf': return 'rgba(249, 115, 22, 0.15)'; // orange tint
+        default: return '';
+      }
+    }
+    return '';
+  };
 
-          {/* Progress Slider Popup */}
-          {showProgressSlider && (
-            <div className="absolute top-full left-0 mt-2 z-20">
-              <ProgressSlider
-                progress={progress}
-                onChange={handleProgressChange}
-                onClose={() => setShowProgressSlider(false)}
-              />
-            </div>
-          )}
+  const cardBgColor = getCardBackgroundColor();
+
+  return (
+    <div
+      className={`rounded-lg p-6 border ${
+        overdue ? 'border-red-500/50' : 'border-gray-700'
+      } hover:border-gray-600 transition-colors ${className}`}
+      style={{ backgroundColor: cardBgColor || '#1f2937' }}
+    >
+      <div className="flex items-start gap-6">
+        {/* Left Section: Calendar + Progress Indicator */}
+        <div className="flex flex-col items-center gap-3">
+          {/* Calendar/Due Date Display - Square Box */}
+          <div
+            className="flex flex-col items-center justify-center w-24 px-3 py-2 rounded-lg border-2 cursor-pointer transition-all hover:border-orange-500"
+            onClick={() => setShowDateTimePicker(true)}
+            style={{
+              borderColor: overdue ? '#ef4444' :
+                          format(new Date(task.due_date || new Date()), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? '#eab308' :
+                          format(new Date(task.due_date || new Date()), 'yyyy-MM-dd') === format(new Date(new Date().setDate(new Date().getDate() + 1)), 'yyyy-MM-dd') ? '#f97316' :
+                          '#4b5563',
+              backgroundColor: overdue ? 'rgba(239, 68, 68, 0.1)' :
+                              format(new Date(task.due_date || new Date()), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? 'rgba(234, 179, 8, 0.1)' :
+                              format(new Date(task.due_date || new Date()), 'yyyy-MM-dd') === format(new Date(new Date().setDate(new Date().getDate() + 1)), 'yyyy-MM-dd') ? 'rgba(249, 115, 22, 0.1)' :
+                              'rgba(75, 85, 99, 0.1)'
+            }}
+          >
+            {task.due_date ? (
+              <>
+                {/* Top Label - DUE/OVERDUE */}
+                <div className={`text-xs font-bold uppercase tracking-wide mb-1 ${
+                  overdue ? 'text-red-400' :
+                  format(new Date(task.due_date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? 'text-yellow-400' :
+                  'text-gray-400'
+                }`}>
+                  {overdue ? 'OVERDUE' :
+                   format(new Date(task.due_date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? 'DUE' :
+                   format(new Date(task.due_date), 'yyyy-MM-dd') === format(new Date(new Date().setDate(new Date().getDate() + 1)), 'yyyy-MM-dd') ? 'DUE' :
+                   'DUE'}
+                </div>
+
+                {/* Main Date Display - Month & Day or "Today" */}
+                {format(new Date(task.due_date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? (
+                  <div className="text-xl font-bold text-yellow-400">
+                    Today
+                  </div>
+                ) : (
+                  <div className={`text-lg font-bold ${
+                    overdue ? 'text-red-400' : 'text-gray-100'
+                  }`}>
+                    {format(new Date(task.due_date), 'MMM d').toUpperCase()}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center">
+                <Calendar className="w-8 h-8 text-gray-500 mb-1" />
+                <div className="text-xs text-gray-500">No Date</div>
+              </div>
+            )}
+          </div>
+
+          {/* Progress Indicator below calendar */}
+          <div
+            className="cursor-pointer relative"
+            onClick={() => setShowProgressSlider(!showProgressSlider)}
+          >
+            <ProgressIndicator progress={progress} size="lg" />
+
+            {/* Progress Slider Popup */}
+            {showProgressSlider && (
+              <div className="absolute top-full left-0 mt-2 z-20">
+                <ProgressSlider
+                  progress={progress}
+                  onChange={handleProgressChange}
+                  onClose={() => setShowProgressSlider(false)}
+                  onTimeTrack={(hours) => handleUpdate({ hours_worked: hours })}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
+        {/* Middle Section: Title + Badges */}
         <div className="flex-1 min-w-0">
-          {/* Task Title & Status */}
-          <div className="flex items-start justify-between gap-3 mb-2">
+          {/* Task Title */}
+          <div className="mb-3">
             {isEditingTitle ? (
               <input
                 type="text"
@@ -239,188 +345,122 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
                 onBlur={handleTitleSave}
                 onKeyDown={handleTitleKeyDown}
                 autoFocus
-                className="flex-1 text-lg font-medium bg-gray-700 text-gray-100 px-2 py-1 rounded border border-gray-600 focus:border-orange-500 focus:outline-none"
+                className="w-full text-xl font-semibold bg-gray-700 text-gray-100 px-2 py-1 rounded border border-gray-600 focus:border-orange-500 focus:outline-none"
               />
             ) : (
               <h3
                 onClick={() => setIsEditingTitle(true)}
-                className={`text-lg font-medium cursor-pointer hover:text-orange-400 transition-colors ${
+                className={`text-xl font-semibold cursor-pointer hover:text-orange-400 transition-colors ${
                   progress === 100 ? 'line-through text-gray-500 opacity-75' : 'text-gray-100'
                 }`}
               >
                 {task.task_name}
               </h3>
             )}
-
-            {/* Status Dropdown & Indicators */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Sync Status Indicator */}
-              {syncStatus === 'syncing' && (
-                <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-              )}
-              {syncStatus === 'success' && (
-                <CheckCircle2 className="w-4 h-4 text-green-400" />
-              )}
-              {syncStatus === 'error' && (
-                <div title="Sync failed - changes may not be saved">
-                  <AlertCircle className="w-4 h-4 text-red-400" />
-                </div>
-              )}
-
-              {/* Undo Button */}
-              {canUndo && (
-                <button
-                  onClick={executeUndo}
-                  className="px-2 py-1 text-xs font-medium bg-yellow-900/30 text-yellow-400 rounded border border-yellow-500/50 hover:bg-yellow-900/50 transition-colors"
-                >
-                  Undo
-                </button>
-              )}
-
-              <select
-                value={task.status}
-                onChange={(e) => handleStatusChange(e.target.value as TaskStatus)}
-                className="px-2 py-1 text-xs font-medium bg-gray-700 text-gray-300 rounded border border-gray-600 hover:border-gray-500 focus:border-orange-500 focus:outline-none cursor-pointer"
-              >
-                <option value="Not started">Not Started</option>
-                <option value="In progress">In Progress</option>
-                <option value="Done">Done</option>
-              </select>
-
-              {/* Overdue Badge */}
-              {overdue && (
-                <span className="px-2 py-1 text-xs font-medium bg-red-900/30 text-red-400 rounded border border-red-500/50 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" />
-                  Overdue {daysOverdue > 0 && `(${daysOverdue}d)`}
-                </span>
-              )}
-            </div>
           </div>
 
-          {/* Description */}
-          <div className="mb-3">
-            {isEditingDescription ? (
-              <textarea
-                value={editedDescription}
-                onChange={(e) => setEditedDescription(e.target.value)}
-                onBlur={handleDescriptionSave}
-                onKeyDown={handleDescriptionKeyDown}
-                autoFocus
-                rows={3}
-                placeholder="Add description..."
-                className="w-full text-sm bg-gray-700 text-gray-300 px-2 py-1 rounded border border-gray-600 focus:border-orange-500 focus:outline-none resize-none"
-              />
-            ) : (
-              <p
-                onClick={() => setIsEditingDescription(true)}
-                className={`text-sm cursor-pointer hover:text-gray-300 transition-colors ${
-                  task.description ? 'text-gray-400' : 'text-gray-500 italic'
-                }`}
-              >
-                {task.description || 'Click to add description...'}
-              </p>
-            )}
-          </div>
-
-          {/* Metadata Row */}
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Business/Area Badge */}
-            <span className={`px-2 py-1 text-xs font-medium text-white rounded ${colorClass}`}>
+          {/* Badges Row: Area, Phase/Task Type, Money Maker */}
+          <div className="flex items-center gap-2 mb-4">
+            {/* Badge 1: Business/Area */}
+            <span className={`px-3 py-1.5 text-sm font-medium text-white rounded ${colorClass}`}>
               {sourceName}
             </span>
 
-            {/* Project > Phase Hierarchy with Edit */}
-            {task.business_id && (
-              <div className="relative">
-                <div
-                  onClick={() => setShowProjectPhaseDropdown(!showProjectPhaseDropdown)}
-                  className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer hover:text-gray-300 transition-colors"
-                >
-                  {task.projects ? (
-                    <>
-                      <span className="font-medium">{task.projects.name}</span>
-                      {task.phases && (
-                        <>
-                          <span>›</span>
-                          <span>{task.phases.name}</span>
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <span className="italic text-gray-500">Click to assign project</span>
-                  )}
-                </div>
+            {/* Badge 2: Phase or Task Type */}
+            {task.phases ? (
+              <span className="px-3 py-1.5 text-sm font-medium bg-blue-900/30 text-blue-400 rounded border border-blue-500/50">
+                {task.phases.name}
+              </span>
+            ) : task.task_type ? (
+              <span className="px-3 py-1.5 text-sm font-medium bg-gray-700 text-gray-300 rounded">
+                {task.task_type}
+              </span>
+            ) : null}
 
-                {/* Project/Phase Dropdown */}
-                {showProjectPhaseDropdown && (
-                  <div className="absolute top-full left-0 mt-1 z-10 bg-gray-700 border border-gray-600 rounded-lg shadow-lg p-2 min-w-[200px]">
-                    <div className="mb-2">
-                      <label className="text-xs text-gray-400 block mb-1">Project</label>
-                      <select
-                        value={task.project_id || ''}
-                        onChange={(e) => {
-                          const projectId = e.target.value || null;
-                          handleProjectPhaseChange(projectId, null);
-                        }}
-                        className="w-full text-xs px-2 py-1 bg-gray-800 text-gray-300 rounded border border-gray-600 focus:border-orange-500 focus:outline-none"
-                      >
-                        <option value="">No Project</option>
-                        {projects?.map((project) => (
-                          <option key={project.id} value={project.id}>
-                            {project.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {task.project_id && phases && phases.length > 0 && (
-                      <div>
-                        <label className="text-xs text-gray-400 block mb-1">Phase</label>
-                        <select
-                          value={task.phase_id || ''}
-                          onChange={(e) => {
-                            const phaseId = e.target.value || null;
-                            handleProjectPhaseChange(task.project_id, phaseId);
-                          }}
-                          className="w-full text-xs px-2 py-1 bg-gray-800 text-gray-300 rounded border border-gray-600 focus:border-orange-500 focus:outline-none"
-                        >
-                          <option value="">No Phase</option>
-                          {phases.map((phase) => (
-                            <option key={phase.id} value={phase.id}>
-                              {phase.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Due Date Picker */}
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={task.due_date ? format(new Date(task.due_date), 'yyyy-MM-dd') : ''}
-                onChange={handleDueDateChange}
-                className={`text-xs px-2 py-1 rounded bg-gray-700 border border-gray-600 hover:border-gray-500 focus:border-orange-500 focus:outline-none cursor-pointer ${
-                  overdue ? 'text-red-400 font-medium' : 'text-gray-400'
-                }`}
-              />
-            </div>
-
-            {/* Priority */}
-            {task.priority && task.priority !== 'Medium' && (
-              <span className={`px-2 py-1 text-xs font-medium rounded ${
-                task.priority === 'High' ? 'bg-red-900/30 text-red-400' : 'bg-gray-700 text-gray-300'
+            {/* Badge 3: Money Maker / Effort Level */}
+            {task.effort_level && (
+              <span className={`px-3 py-1.5 text-sm font-medium rounded border ${
+                task.effort_level.includes('MoneyMaker') || task.effort_level.includes('Money')
+                  ? 'bg-green-900/30 text-green-400 border-green-500/50'
+                  : 'bg-gray-700 text-gray-300 border-gray-600'
               }`}>
-                {task.priority}
+                {task.effort_level}
               </span>
             )}
           </div>
+
+          {/* Automation/Delegation Row */}
+          <div className="flex items-center gap-3 mb-3">
+            <label className="text-sm text-gray-400">Automation:</label>
+            <select
+              value={task.automation || ''}
+              onChange={(e) => handleUpdate({ automation: e.target.value as Automation })}
+              className="px-3 py-1 text-sm bg-gray-700 text-gray-300 rounded border border-gray-600 hover:border-gray-500 focus:border-orange-500 focus:outline-none cursor-pointer"
+            >
+              <option value="">None</option>
+              <option value="Automate">Automate</option>
+              <option value="Delegate">Delegate</option>
+              <option value="Manual">Manual</option>
+            </select>
+
+            {/* Hours Projected */}
+            <label className="text-sm text-gray-400 ml-4">Hours Projected:</label>
+            <input
+              type="number"
+              value={task.hours_projected || ''}
+              onChange={(e) => handleUpdate({ hours_projected: e.target.value ? parseFloat(e.target.value) : null })}
+              placeholder="0"
+              step="0.25"
+              className="w-20 px-2 py-1 text-sm bg-gray-700 text-gray-300 rounded border border-gray-600 hover:border-gray-500 focus:border-orange-500 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Right Section: Description */}
+        <div className="w-80 flex-shrink-0">
+          <label className="text-xs text-gray-400 block mb-1">Description</label>
+          {isEditingDescription ? (
+            <textarea
+              value={editedDescription}
+              onChange={(e) => setEditedDescription(e.target.value)}
+              onBlur={handleDescriptionSave}
+              onKeyDown={handleDescriptionKeyDown}
+              autoFocus
+              rows={6}
+              placeholder="Add description..."
+              className="w-full text-sm bg-gray-700 text-gray-300 px-3 py-2 rounded border border-gray-600 focus:border-orange-500 focus:outline-none resize-none"
+            />
+          ) : (
+            <div
+              onClick={() => setIsEditingDescription(true)}
+              className={`w-full min-h-[144px] text-sm cursor-pointer hover:bg-gray-700/50 transition-colors px-3 py-2 rounded border border-gray-600 ${
+                task.description ? 'text-gray-300' : 'text-gray-500 italic'
+              }`}
+            >
+              {task.description || 'Click to add description...'}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Date/Time Picker Modal */}
+      {showDateTimePicker && (
+        <DateTimePicker
+          scheduledDate={task.scheduled_date}
+          scheduledTime={task.scheduled_time}
+          onSchedule={handleScheduleChange}
+          onClose={() => setShowDateTimePicker(false)}
+        />
+      )}
+
+      {/* Time Tracking Modal */}
+      {showTimeTrackingModal && (
+        <TimeTrackingModal
+          taskName={task.task_name}
+          onSave={handleTimeTrackingSave}
+          onClose={() => setShowTimeTrackingModal(false)}
+        />
+      )}
     </div>
   );
 };
