@@ -12,12 +12,14 @@ import { useTasks } from '../../hooks/useTasks';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { supabase } from '../../lib/supabase';
 import { ProjectCard } from './ProjectCard';
+import { NewProjectModal } from './NewProjectModal';
 
 export const BusinessDashboard: FC = () => {
   const { data: businesses, isLoading: businessesLoading } = useBusinesses();
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
   const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(new Set());
   const [userId, setUserId] = useState<string | null>(null);
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
 
   // Get current user ID for real-time sync
   useEffect(() => {
@@ -111,16 +113,13 @@ export const BusinessDashboard: FC = () => {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-100">Business Projects</h1>
+        <h1 className="text-2xl font-bold text-gray-100">Projects</h1>
         <div className="flex gap-2">
           <Button
             size="sm"
             variant="outline"
             className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800/50"
-            onClick={() => {
-              // TODO: Implement create project modal
-              console.log('Create project');
-            }}
+            onClick={() => setShowNewProjectModal(true)}
           >
             <Plus className="w-4 h-4 mr-1" />
             New Project
@@ -134,7 +133,7 @@ export const BusinessDashboard: FC = () => {
             }}
           >
             <Plus className="w-4 h-4 mr-1" />
-            New Business
+            New Area
           </Button>
         </div>
       </div>
@@ -153,7 +152,7 @@ export const BusinessDashboard: FC = () => {
           }}
           onClick={() => setSelectedBusinessId(null)}
         >
-          All Businesses
+          All Areas
         </Button>
         {businesses.map((business) => {
           const isSelected = selectedBusinessId === business.id;
@@ -347,6 +346,13 @@ export const BusinessDashboard: FC = () => {
           </div>
         )}
       </div>
+
+      {/* New Project Modal */}
+      <NewProjectModal
+        isOpen={showNewProjectModal}
+        onClose={() => setShowNewProjectModal(false)}
+        defaultBusinessId={selectedBusinessId || undefined}
+      />
     </div>
   );
 };

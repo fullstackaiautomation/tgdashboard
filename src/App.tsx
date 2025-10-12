@@ -1042,7 +1042,7 @@ function App() {
                 <rect x="2" y="2" width="12" height="12" rx="2" />
                 <path d="M2 6h12M6 2v12" />
               </svg>
-              Business
+              Projects
             </button>
           </div>
 

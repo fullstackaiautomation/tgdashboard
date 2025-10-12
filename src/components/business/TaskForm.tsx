@@ -20,8 +20,11 @@ const mapBusinessSlugToArea = (slug: string): Area => {
     'huge-capital': 'Huge Capital',
     's4': 'S4',
     '808': '808',
+    'personal': 'Personal',
+    'health': 'Health',
+    'golf': 'Golf',
   };
-  return mapping[slug] || 'Full Stack';
+  return mapping[slug] || 'Personal'; // Default to Personal if not found
 };
 
 export const TaskForm: FC<TaskFormProps> = ({

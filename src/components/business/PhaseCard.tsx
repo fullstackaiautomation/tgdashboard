@@ -1,9 +1,10 @@
 import type { FC } from 'react';
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Plus, CheckCircle2, Circle, Clock } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, CheckCircle2, Circle, Clock, MoveHorizontal } from 'lucide-react';
 import type { Phase } from '../../types/project';
-import { useTasks } from '../../hooks/useTasks';
+import { useTasks, useUpdateTask } from '../../hooks/useTasks';
 import { usePhaseProgress } from '../../hooks/usePhaseProgress';
+import { useProjects, usePhases } from '../../hooks/useProjects';
 import { TaskForm } from './TaskForm';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,14 @@ interface PhaseCardProps {
 export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showTaskForm, setShowTaskForm] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedPhaseId, setSelectedPhaseId] = useState<string>('');
+
   const { data: allTasks } = useTasks();
+  const { data: allProjects } = useProjects(businessId);
+  const { data: projectPhases } = usePhases(selectedProjectId || projectId);
+  const updateTask = useUpdateTask();
 
   // Filter tasks for this phase
   const phaseTasks = allTasks?.filter(
@@ -27,6 +35,24 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
   ) || [];
 
   const { progress, completedCount, totalCount } = usePhaseProgress(phaseTasks);
+
+  const handleMoveTask = async (taskId: string, newProjectId: string, newPhaseId: string) => {
+    try {
+      await updateTask.mutateAsync({
+        id: taskId,
+        updates: {
+          project_id: newProjectId,
+          phase_id: newPhaseId,
+          updated_at: new Date().toISOString()
+        }
+      });
+      setEditingTaskId(null);
+      setSelectedProjectId('');
+      setSelectedPhaseId('');
+    } catch (error) {
+      console.error('Failed to move task:', error);
+    }
+  };
 
   const statusConfig = {
     active: { label: 'Active', color: 'bg-emerald-500', textColor: 'text-emerald-400' },
@@ -140,10 +166,11 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {phaseTasks.map((task) => {
                 const isCompleted = task.progress_percentage === 100;
                 const inProgress = (task.progress_percentage ?? 0) > 0 && (task.progress_percentage ?? 0) < 100;
+                const isEditing = editingTaskId === task.id;
 
                 return (
                   <Card
@@ -153,27 +180,114 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
                     }`}
                   >
                     <CardContent className="p-3">
-                      <div className="flex items-start gap-2">
-                        {isCompleted ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-                        ) : inProgress ? (
-                          <Clock className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
-                        ) : (
-                          <Circle className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium leading-tight ${
-                            isCompleted ? 'line-through text-gray-400' : 'text-gray-100'
-                          }`}>
-                            {task.task_name}
-                          </p>
-                          {(task.progress_percentage ?? 0) > 0 && (
-                            <div className="mt-2">
-                              <Progress value={task.progress_percentage ?? 0} className="h-1" />
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-start gap-2 flex-1">
+                          {isCompleted ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                          ) : inProgress ? (
+                            <Clock className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                          ) : (
+                            <Circle className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium leading-tight ${
+                              isCompleted ? 'line-through text-gray-400' : 'text-gray-100'
+                            }`}>
+                              {task.task_name}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (isEditing) {
+                              setEditingTaskId(null);
+                              setSelectedProjectId('');
+                              setSelectedPhaseId('');
+                            } else {
+                              setEditingTaskId(task.id);
+                              setSelectedProjectId(task.project_id || '');
+                              setSelectedPhaseId(task.phase_id || '');
+                            }
+                          }}
+                          className="w-6 h-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <MoveHorizontal className="w-3 h-3" />
+                        </Button>
+                      </div>
+
+                      {/* Project/Phase Dropdowns */}
+                      {isEditing && (
+                        <div className="space-y-2 mt-3 pt-3 border-t border-gray-700">
+                          <div>
+                            <label className="text-xs text-gray-400 block mb-1">Move to Project:</label>
+                            <select
+                              value={selectedProjectId}
+                              onChange={(e) => {
+                                setSelectedProjectId(e.target.value);
+                                setSelectedPhaseId(''); // Reset phase when project changes
+                              }}
+                              className="w-full px-2 py-1 text-xs bg-gray-900 border border-gray-700 rounded text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            >
+                              {allProjects?.map((proj) => (
+                                <option key={proj.id} value={proj.id}>
+                                  {proj.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {selectedProjectId && (
+                            <div>
+                              <label className="text-xs text-gray-400 block mb-1">Move to Phase:</label>
+                              <select
+                                value={selectedPhaseId}
+                                onChange={(e) => setSelectedPhaseId(e.target.value)}
+                                className="w-full px-2 py-1 text-xs bg-gray-900 border border-gray-700 rounded text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              >
+                                <option value="">Select phase...</option>
+                                {projectPhases?.map((ph) => (
+                                  <option key={ph.id} value={ph.id}>
+                                    {ph.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          {selectedProjectId && selectedPhaseId && (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingTaskId(null);
+                                  setSelectedProjectId('');
+                                  setSelectedPhaseId('');
+                                }}
+                                className="flex-1 h-7 text-xs border-gray-600 text-gray-300 hover:bg-gray-800"
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleMoveTask(task.id, selectedProjectId, selectedPhaseId)}
+                                className="flex-1 h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                                disabled={selectedProjectId === task.project_id && selectedPhaseId === task.phase_id}
+                              >
+                                Move Task
+                              </Button>
                             </div>
                           )}
                         </div>
-                      </div>
+                      )}
+
+                      {(task.progress_percentage ?? 0) > 0 && !isEditing && (
+                        <div className="mt-2">
+                          <Progress value={task.progress_percentage ?? 0} className="h-1" />
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );
