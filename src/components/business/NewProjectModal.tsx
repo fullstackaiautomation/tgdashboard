@@ -39,7 +39,7 @@ export const NewProjectModal: FC<NewProjectModalProps> = ({
     try {
       await createProject.mutateAsync({
         name: name.trim(),
-        description: description.trim() || null,
+        description: description.trim() || undefined,
         business_id: selectedBusinessId,
         status: 'active'
       });

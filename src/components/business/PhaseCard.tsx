@@ -42,8 +42,7 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
         id: taskId,
         updates: {
           project_id: newProjectId,
-          phase_id: newPhaseId,
-          updated_at: new Date().toISOString()
+          phase_id: newPhaseId
         }
       });
       setEditingTaskId(null);
