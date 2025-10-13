@@ -25,6 +25,9 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId }) => {
   // Filter tasks for this project
   const projectTasks = allTasks?.filter((task) => task.project_id === project.id) || [];
 
+  // Filter tasks without a phase (No Phase Identified)
+  const unassignedTasks = projectTasks.filter((task) => !task.phase_id);
+
   // Calculate project progress
   const { progress: _progress, totalPhases: _totalPhases, isStalled: _isStalled } = useProjectProgress(
     phases || [],
@@ -75,6 +78,26 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId }) => {
                   businessId={businessId || project.business_id}
                 />
               ))}
+
+              {/* No Phase Identified - Virtual phase for unassigned tasks */}
+              {unassignedTasks.length > 0 && (
+                <PhaseCard
+                  key="no-phase"
+                  phase={{
+                    id: 'no-phase',
+                    project_id: project.id,
+                    name: 'No Phase Identified',
+                    description: null,
+                    status: 'active',
+                    sequence_order: 9999,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    user_id: '',
+                  }}
+                  projectId={project.id}
+                  businessId={businessId || project.business_id}
+                />
+              )}
             </div>
           )}
         </CardContent>

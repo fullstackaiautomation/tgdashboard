@@ -32,9 +32,13 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
   const updateTask = useUpdateTask();
 
   // Filter tasks for this phase
-  const phaseTasks = allTasks?.filter(
-    (task) => task.phase_id === phase.id && task.project_id === projectId
-  ) || [];
+  // For "no-phase" virtual phase, filter tasks with null phase_id
+  const phaseTasks = allTasks?.filter((task) => {
+    if (phase.id === 'no-phase') {
+      return task.project_id === projectId && !task.phase_id;
+    }
+    return task.phase_id === phase.id && task.project_id === projectId;
+  }) || [];
 
   const { progress, completedCount, totalCount } = usePhaseProgress(phaseTasks);
 
@@ -149,7 +153,7 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
                 <TaskForm
                   businessId={businessId}
                   projectId={projectId}
-                  phaseId={phase.id}
+                  phaseId={phase.id === 'no-phase' ? undefined : phase.id}
                   phaseName={phase.name}
                   onSuccess={() => setShowTaskForm(false)}
                   onCancel={() => setShowTaskForm(false)}
