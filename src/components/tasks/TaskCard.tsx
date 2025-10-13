@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUpdateTask, useDeleteTask } from '../../hooks/useTasks';
 import { useUndo } from '../../hooks/useUndo';
-import { useProjects } from '../../hooks/useProjects';
+import { useProjects, usePhases } from '../../hooks/useProjects';
 import { ProgressSlider } from '../shared/ProgressSlider';
 import { DateTimePicker } from './DateTimePicker';
 import { TimeTrackingModal } from './TimeTrackingModal';
@@ -102,6 +102,9 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
 
   // Fetch projects for the task's business
   const { data: projects } = useProjects(task.business_id || undefined);
+
+  // Fetch phases for the selected project
+  const { data: phases } = usePhases(task.project_id || undefined);
 
   const businessColor = getBusinessColor(task);
   const sourceName = getSourceName(task);
@@ -371,6 +374,31 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
                       {project.name}
                     </SelectItem>
                   )) || <SelectItem value="no-projects" disabled>No projects available</SelectItem>}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Phase Selector - appears when project is selected */}
+            {task.project_id && (
+              <Select
+                value={task.phase_id || 'no-phase'}
+                onValueChange={(phaseId) => handleUpdate({ phase_id: phaseId === 'no-phase' ? null : phaseId })}
+              >
+                <SelectTrigger
+                  className="h-6 text-xs px-2 py-0 border-0 gap-1 bg-gray-700 text-gray-200"
+                  style={{
+                    minWidth: '120px'
+                  }}
+                >
+                  <SelectValue placeholder="Select phase" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no-phase">No Phase Identified</SelectItem>
+                  {phases?.map((phase) => (
+                    <SelectItem key={phase.id} value={phase.id}>
+                      {phase.name}
+                    </SelectItem>
+                  )) || null}
                 </SelectContent>
               </Select>
             )}
