@@ -242,6 +242,15 @@ export default function NotesBoard() {
       const url = prompt('Enter URL:')
       if (url) {
         document.execCommand('createLink', false, url)
+        // Set the newly created link to open in new tab
+        const selection = window.getSelection()
+        if (selection && selection.anchorNode) {
+          const linkElement = selection.anchorNode.parentElement as HTMLAnchorElement
+          if (linkElement && linkElement.tagName === 'A') {
+            linkElement.setAttribute('target', '_blank')
+            linkElement.setAttribute('rel', 'noopener noreferrer')
+          }
+        }
       }
     }
 
