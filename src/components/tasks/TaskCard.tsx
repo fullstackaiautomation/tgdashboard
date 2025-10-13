@@ -320,7 +320,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
           </Button>
 
           {/* Title (Editable) */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 max-w-[400px]">
             {isEditingTitle ? (
               <Input
                 type="text"
@@ -344,36 +344,38 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
           </div>
 
           {/* Compact Badges */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-nowrap">
             {/* Business/Area/Project Badge */}
             {task.projects ? (
               <Badge
-                className="text-white border-0 text-xs px-2 py-0.5 font-medium"
+                className="text-white border-0 text-xs px-3 py-1 font-medium whitespace-nowrap"
                 style={{ backgroundColor: businessColor }}
               >
                 {sourceName}
               </Badge>
             ) : (
               <Select
-                value={task.project_id || ''}
-                onValueChange={(projectId) => handleUpdate({ project_id: projectId })}
+                value={task.project_id || 'no-project'}
+                onValueChange={(projectId) => handleUpdate({ project_id: projectId === 'no-project' ? null : projectId })}
               >
                 <SelectTrigger
-                  className="h-6 text-xs px-2 py-0 border-0 gap-1"
+                  className="h-7 text-xs px-3 py-0 border-0 gap-1 whitespace-nowrap"
                   style={{
                     backgroundColor: businessColor,
                     color: 'white',
-                    minWidth: '100px'
+                    minWidth: '140px',
+                    width: '140px'
                   }}
                 >
                   <SelectValue placeholder="+ Project" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="no-project">Unorganized</SelectItem>
                   {projects?.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}
                     </SelectItem>
-                  )) || <SelectItem value="no-projects" disabled>No projects available</SelectItem>}
+                  )) || null}
                 </SelectContent>
               </Select>
             )}
@@ -385,9 +387,11 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
                 onValueChange={(phaseId) => handleUpdate({ phase_id: phaseId === 'no-phase' ? null : phaseId })}
               >
                 <SelectTrigger
-                  className="h-6 text-xs px-2 py-0 border-0 gap-1 bg-gray-700 text-gray-200"
+                  className="h-7 text-xs px-3 py-0 border-0 gap-1 text-white whitespace-nowrap"
                   style={{
-                    minWidth: '120px'
+                    backgroundColor: 'rgba(75, 85, 99, 0.8)',
+                    minWidth: '180px',
+                    width: '180px'
                   }}
                 >
                   <SelectValue placeholder="No Phase Identified" />
