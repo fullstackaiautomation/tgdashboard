@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { Area } from '../../types/task';
 import { useDeepWorkSessions } from '../../hooks/useDeepWorkSessions';
+import { AddDeepWorkSessionModal } from './AddDeepWorkSessionModal';
 
 interface DeepWorkSessionsProps {
   sessions?: never; // Deprecated prop - now using hook
@@ -49,6 +50,7 @@ export const DeepWorkSessions: FC<DeepWorkSessionsProps> = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('All Time');
   const [selectedArea, setSelectedArea] = useState<Area | 'All Areas'>('All Areas');
   const [selectedEffort, setSelectedEffort] = useState<string>('All Levels');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Fetch all sessions from Supabase
   const { data: allSessions = [], isLoading, error } = useDeepWorkSessions();
@@ -303,7 +305,10 @@ export const DeepWorkSessions: FC<DeepWorkSessionsProps> = () => {
       <Card className="bg-gray-800 border-gray-700 p-6">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold text-white">Deep Work Session Log</h3>
-          <Button className="bg-orange-600 hover:bg-orange-700">
+          <Button
+            onClick={() => setIsAddModalOpen(true)}
+            className="bg-orange-600 hover:bg-orange-700"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Add Session
           </Button>
@@ -350,6 +355,12 @@ export const DeepWorkSessions: FC<DeepWorkSessionsProps> = () => {
           )}
         </div>
       </Card>
+
+      {/* Add Session Modal */}
+      <AddDeepWorkSessionModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+      />
     </div>
   );
 };
