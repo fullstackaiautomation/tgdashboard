@@ -188,7 +188,7 @@ export const TasksHub: FC = () => {
   }
 
   return (
-    <div className="py-6 px-8 max-w-[1400px] mx-auto">
+    <div className="py-6 px-4 max-w-[1400px] mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-gray-100">Tasks</h1>
         <button
@@ -209,7 +209,7 @@ export const TasksHub: FC = () => {
       />
 
       {/* Two-column layout: Main content + Right sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr,560px] gap-6 mt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr,400px] gap-4 mt-6">
         {/* Left column: Task cards */}
         <div>
           {filteredTasks.length === 0 ? (
@@ -236,7 +236,7 @@ export const TasksHub: FC = () => {
             onSaveSchedule={handleSaveSchedule}
             onTaskDrop={handleTaskDrop}
             onTaskRemove={handleTaskRemove}
-            className="h-[1200px]"
+            className="h-[calc(100vh-200px)] max-h-[900px]"
           />
         </div>
       </div>
