@@ -1,12 +1,12 @@
 import type { FC } from 'react';
 import { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Plus, CheckCircle2, Folder, ListTodo, Target } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, CheckCircle2, Folder, ListTodo, Target, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useBusinesses } from '../../hooks/useBusinesses';
-import { useProjects, usePhases } from '../../hooks/useProjects';
+import { useProjects, usePhases, useDeleteProject } from '../../hooks/useProjects';
 import { useTasks } from '../../hooks/useTasks';
 // import { useBusinessProgress } from '../../hooks/useBusinessProgress';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
@@ -20,6 +20,8 @@ export const BusinessDashboard: FC = () => {
   const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(new Set());
   const [userId, setUserId] = useState<string | null>(null);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const deleteProject = useDeleteProject();
 
   // Get current user ID for real-time sync
   useEffect(() => {
@@ -45,6 +47,32 @@ export const BusinessDashboard: FC = () => {
       newExpanded.add(projectId);
     }
     setExpandedProjectIds(newExpanded);
+  };
+
+  // Handle project deletion with confirmation
+  const handleDeleteProject = (projectId: string) => {
+    if (deleteConfirmId === projectId) {
+      // Second click - delete the project
+      deleteProject.mutate(projectId, {
+        onSuccess: () => {
+          setDeleteConfirmId(null);
+          // Remove from expanded projects if it was expanded
+          const newExpanded = new Set(expandedProjectIds);
+          newExpanded.delete(projectId);
+          setExpandedProjectIds(newExpanded);
+        },
+        onError: (error) => {
+          console.error('Failed to delete project:', error);
+          alert('Failed to delete project. Please try again.');
+          setDeleteConfirmId(null);
+        }
+      });
+    } else {
+      // First click - set confirmation
+      setDeleteConfirmId(projectId);
+      // Reset confirmation after 3 seconds
+      setTimeout(() => setDeleteConfirmId(null), 3000);
+    }
   };
 
   // Filter projects and tasks based on selected business
@@ -154,7 +182,19 @@ export const BusinessDashboard: FC = () => {
         >
           All Areas
         </Button>
-        {businesses.map((business) => {
+        {/* Sort businesses in specific order: Full Stack, Huge Capital, S4, 808, Personal, Health, Golf, Service SaaS */}
+        {businesses
+          .sort((a, b) => {
+            const order = ['Full Stack', 'Huge Capital', 'S4', '808', 'Personal', 'Health', 'Golf', 'Service SaaS'];
+            const indexA = order.indexOf(a.name);
+            const indexB = order.indexOf(b.name);
+            // If not in order list, put at end
+            if (indexA === -1 && indexB === -1) return 0;
+            if (indexA === -1) return 1;
+            if (indexB === -1) return -1;
+            return indexA - indexB;
+          })
+          .map((business) => {
           const isSelected = selectedBusinessId === business.id;
           return (
             <Button
@@ -289,11 +329,13 @@ export const BusinessDashboard: FC = () => {
                   }}
                 >
                   <div
-                    className="p-4 cursor-pointer hover:bg-gray-700/20 transition-colors"
-                    onClick={() => toggleProject(project.id)}
+                    className="p-4 hover:bg-gray-700/20 transition-colors"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-1">
+                      <div
+                        className="flex items-center gap-3 flex-1 cursor-pointer"
+                        onClick={() => toggleProject(project.id)}
+                      >
                         <Button variant="ghost" size="sm" className="w-6 h-6 p-0">
                           {isExpanded ? (
                             <ChevronDown className="w-4 h-4 text-gray-400" />
@@ -325,6 +367,22 @@ export const BusinessDashboard: FC = () => {
                           <div className="text-xs text-gray-400">Tasks</div>
                           <div className="text-sm font-bold text-gray-100">{completedTasks}/{totalTasks}</div>
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteProject(project.id);
+                          }}
+                          className={`h-8 w-8 p-0 transition-colors ${
+                            deleteConfirmId === project.id
+                              ? 'bg-red-600 hover:bg-red-700 text-white'
+                              : 'text-gray-400 hover:text-red-400 hover:bg-red-900/20'
+                          }`}
+                          title={deleteConfirmId === project.id ? 'Click again to confirm deletion' : 'Delete project'}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
 
