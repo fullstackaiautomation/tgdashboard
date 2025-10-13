@@ -1,11 +1,12 @@
 import type { FC } from 'react';
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Plus, CheckCircle2, Circle, Clock, MoveHorizontal } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, CheckCircle2, Circle, Clock, MoveHorizontal, Edit } from 'lucide-react';
 import type { Phase } from '../../types/project';
 import { useTasks, useUpdateTask } from '../../hooks/useTasks';
 import { usePhaseProgress } from '../../hooks/usePhaseProgress';
 import { useProjects, usePhases } from '../../hooks/useProjects';
 import { TaskForm } from './TaskForm';
+import { EditTaskModal } from './EditTaskModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +24,7 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [selectedPhaseId, setSelectedPhaseId] = useState<string>('');
+  const [editModalTaskId, setEditModalTaskId] = useState<string | null>(null);
 
   const { data: allTasks } = useTasks();
   const { data: allProjects } = useProjects(businessId);
@@ -180,7 +182,10 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
                   >
                     <CardContent className="p-3">
                       <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-start gap-2 flex-1">
+                        <div
+                          className="flex items-start gap-2 flex-1 cursor-pointer"
+                          onClick={() => setEditModalTaskId(task.id)}
+                        >
                           {isCompleted ? (
                             <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
                           ) : inProgress ? (
@@ -189,31 +194,43 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
                             <Circle className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium leading-tight ${
+                            <p className={`text-sm font-medium leading-tight hover:text-blue-400 transition-colors ${
                               isCompleted ? 'line-through text-gray-400' : 'text-gray-100'
                             }`}>
                               {task.task_name}
                             </p>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            if (isEditing) {
-                              setEditingTaskId(null);
-                              setSelectedProjectId('');
-                              setSelectedPhaseId('');
-                            } else {
-                              setEditingTaskId(task.id);
-                              setSelectedProjectId(task.project_id || '');
-                              setSelectedPhaseId(task.phase_id || '');
-                            }
-                          }}
-                          className="w-6 h-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <MoveHorizontal className="w-3 h-3" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditModalTaskId(task.id)}
+                            className="w-6 h-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Edit task"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (isEditing) {
+                                setEditingTaskId(null);
+                                setSelectedProjectId('');
+                                setSelectedPhaseId('');
+                              } else {
+                                setEditingTaskId(task.id);
+                                setSelectedProjectId(task.project_id || '');
+                                setSelectedPhaseId(task.phase_id || '');
+                              }
+                            }}
+                            className="w-6 h-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Move task"
+                          >
+                            <MoveHorizontal className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </div>
 
                       {/* Project/Phase Dropdowns */}
@@ -279,6 +296,16 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
             </div>
           )}
         </div>
+      )}
+
+      {/* Edit Task Modal */}
+      {editModalTaskId && (
+        <EditTaskModal
+          task={phaseTasks.find((t) => t.id === editModalTaskId)!}
+          isOpen={!!editModalTaskId}
+          onClose={() => setEditModalTaskId(null)}
+          businessId={businessId}
+        />
       )}
     </Card>
   );
