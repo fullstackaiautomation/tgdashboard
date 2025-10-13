@@ -381,7 +381,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
           </div>
 
           {/* Compact Badges */}
-          <div className="flex items-center gap-2 shrink-0 flex-nowrap">
+          <div className="flex items-center gap-2 shrink-0 flex-nowrap ml-auto">
             {/* Business/Area/Project Badge */}
             {task.projects ? (
               <Badge
@@ -426,7 +426,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
                 <SelectTrigger
                   className="h-7 text-xs px-3 py-0 border-0 gap-1 text-white whitespace-nowrap"
                   style={{
-                    backgroundColor: 'rgba(75, 85, 99, 0.8)',
+                    backgroundColor: businessColor,
                     minWidth: '180px',
                     width: '180px'
                   }}
