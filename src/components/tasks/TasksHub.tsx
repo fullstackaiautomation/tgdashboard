@@ -189,55 +189,57 @@ export const TasksHub: FC = () => {
 
   return (
     <div className="py-6 px-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-100">Tasks</h1>
-        <button
-          onClick={() => setIsAddTaskModalOpen(true)}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-        >
-          <span className="text-xl leading-none">+</span>
-          Add Task
-        </button>
-      </div>
-
-      <TaskFilters
-        selectedBusiness={businessFilter}
-        selectedStatus={statusFilter}
-        onBusinessChange={setBusinessFilter}
-        onStatusChange={setStatusFilter}
-        tasks={tasks || []}
-      />
-
-      {/* Two-column layout: Main content + Right sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr,560px] gap-6 mt-6">
-        {/* Left column: Task cards */}
-        <div>
-          {filteredTasks.length === 0 ? (
-            <div className="bg-gray-800 rounded-lg p-8 text-center">
-              <p className="text-gray-400">
-                {tasks && tasks.length > 0
-                  ? 'No tasks match the selected filters.'
-                  : 'No tasks found. Create your first task to get started!'}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredTasks.map((task) => (
-                <DraggableTaskCard key={task.id} task={task} />
-              ))}
-            </div>
-          )}
+      <div className="max-w-[1800px] mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-gray-100">Tasks</h1>
+          <button
+            onClick={() => setIsAddTaskModalOpen(true)}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+          >
+            <span className="text-xl leading-none">+</span>
+            Add Task
+          </button>
         </div>
 
-        {/* Right sidebar: Schedule */}
-        <div className="space-y-6">
-          <DailySchedulePanel
-            scheduledTasks={scheduledTasks}
-            onSaveSchedule={handleSaveSchedule}
-            onTaskDrop={handleTaskDrop}
-            onTaskRemove={handleTaskRemove}
-            className="h-[1200px]"
-          />
+        <TaskFilters
+          selectedBusiness={businessFilter}
+          selectedStatus={statusFilter}
+          onBusinessChange={setBusinessFilter}
+          onStatusChange={setStatusFilter}
+          tasks={tasks || []}
+        />
+
+        {/* Two-column layout: Main content + Right sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr,560px] gap-6 mt-6">
+          {/* Left column: Task cards */}
+          <div>
+            {filteredTasks.length === 0 ? (
+              <div className="bg-gray-800 rounded-lg p-8 text-center">
+                <p className="text-gray-400">
+                  {tasks && tasks.length > 0
+                    ? 'No tasks match the selected filters.'
+                    : 'No tasks found. Create your first task to get started!'}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredTasks.map((task) => (
+                  <DraggableTaskCard key={task.id} task={task} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right sidebar: Schedule */}
+          <div className="space-y-6">
+            <DailySchedulePanel
+              scheduledTasks={scheduledTasks}
+              onSaveSchedule={handleSaveSchedule}
+              onTaskDrop={handleTaskDrop}
+              onTaskRemove={handleTaskRemove}
+              className="h-[1200px]"
+            />
+          </div>
         </div>
       </div>
 
