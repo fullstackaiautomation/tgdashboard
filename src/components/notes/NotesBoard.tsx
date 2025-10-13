@@ -442,7 +442,19 @@ export default function NotesBoard() {
                         suppressContentEditableWarning
                         onInput={(e) => handleContentEditableInput(note.id, e)}
                         onKeyDown={(e) => handleContentEditableKeyDown(note.id, e)}
-                        onClick={() => setEditingNote(note.id)}
+                        onClick={(e) => {
+                          // Check if clicking on a link
+                          const target = e.target as HTMLElement
+                          if (target.tagName === 'A') {
+                            e.preventDefault()
+                            const href = (target as HTMLAnchorElement).href
+                            if (href) {
+                              window.open(href, '_blank', 'noopener,noreferrer')
+                            }
+                          } else {
+                            setEditingNote(note.id)
+                          }
+                        }}
                         onBlur={(e) => {
                           // Only blur if clicking outside the card
                           setTimeout(() => {
