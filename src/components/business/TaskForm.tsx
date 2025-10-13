@@ -7,7 +7,7 @@ import type { CreateTaskDTO, TaskStatus, Area, Automation, EffortLevel } from '.
 interface TaskFormProps {
   businessId: string;
   projectId: string;
-  phaseId: string;
+  phaseId?: string; // Optional - undefined for "No Phase Identified"
   phaseName?: string; // Add phase name as optional prop
   onSuccess?: () => void;
   onCancel?: () => void;
@@ -56,7 +56,7 @@ export const TaskForm: FC<TaskFormProps> = ({
       description: description.trim() || undefined,
       business_id: businessId,
       project_id: projectId,
-      phase_id: phaseId,
+      phase_id: phaseId || null, // null for "No Phase Identified"
       status,
       due_date: dueDate || undefined,
       // Legacy fields for To-Do List compatibility
