@@ -30,10 +30,13 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [status, setStatus] = useState<TaskStatus>('Not started');
   const [priority, setPriority] = useState<Priority>('Medium');
-  const [area, setArea] = useState<Area | ''>('');
   const [effortLevel, setEffortLevel] = useState<EffortLevel>('8) JusVibin');
   const [automation, setAutomation] = useState<Automation>('Manual');
   const [hoursProjected, setHoursProjected] = useState('');
+
+  // Recurring task fields
+  const [recurringType, setRecurringType] = useState<'none' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly'>('none');
+  const [isRecurring, setIsRecurring] = useState(false);
 
   // Business/Project/Phase linking
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>('');
@@ -65,25 +68,72 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
       return;
     }
 
-    const newTask: CreateTaskDTO = {
-      task_name: taskName.trim(),
-      description: description.trim() || undefined,
-      status,
-      priority,
-      due_date: dueDate || undefined,
-      effort_level: effortLevel,
-      automation,
-      hours_projected: hoursProjected ? parseFloat(hoursProjected) : 0,
-      // Link to business/project/phase if selected
-      business_id: selectedBusinessId || undefined,
-      project_id: selectedProjectId || undefined,
-      phase_id: selectedPhaseId || undefined,
-      // Legacy area field
-      area: area || undefined,
-    };
-
     try {
-      await createTask.mutateAsync(newTask);
+      if (isRecurring && recurringType !== 'none') {
+        // Create recurring task with date in the name
+        const baseName = taskName.trim();
+        const today = new Date();
+
+        // Format: MM/DD/YY
+        const formatDate = (date: Date) => {
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const year = String(date.getFullYear()).slice(-2);
+          return `${month}/${day}/${year}`;
+        };
+
+        const taskNameWithDate = `${baseName} ${formatDate(today)}`;
+
+        // Determine recurring_type and recurring_interval for the database
+        let dbRecurringType: RecurringType = 'none';
+        let recurringInterval = 1;
+
+        if (recurringType === 'weekdays') {
+          dbRecurringType = 'daily_weekdays';
+        } else if (recurringType === 'weekly') {
+          dbRecurringType = 'weekly';
+        } else if (recurringType === 'biweekly') {
+          dbRecurringType = 'weekly';
+          recurringInterval = 2;
+        } else if (recurringType === 'monthly') {
+          dbRecurringType = 'monthly';
+        }
+
+        const newTask: CreateTaskDTO = {
+          task_name: taskNameWithDate,
+          description: description.trim() || undefined,
+          status,
+          priority,
+          due_date: dueDate || undefined,
+          effort_level: effortLevel,
+          automation,
+          hours_projected: hoursProjected ? parseFloat(hoursProjected) : 0,
+          business_id: selectedBusinessId || undefined,
+          project_id: selectedProjectId || undefined,
+          phase_id: selectedPhaseId || undefined,
+          recurring_type: dbRecurringType,
+          recurring_interval: recurringInterval,
+        };
+
+        await createTask.mutateAsync(newTask);
+      } else {
+        // Create regular (non-recurring) task
+        const newTask: CreateTaskDTO = {
+          task_name: taskName.trim(),
+          description: description.trim() || undefined,
+          status,
+          priority,
+          due_date: dueDate || undefined,
+          effort_level: effortLevel,
+          automation,
+          hours_projected: hoursProjected ? parseFloat(hoursProjected) : 0,
+          business_id: selectedBusinessId || undefined,
+          project_id: selectedProjectId || undefined,
+          phase_id: selectedPhaseId || undefined,
+        };
+
+        await createTask.mutateAsync(newTask);
+      }
 
       // Reset form
       setTaskName('');
@@ -91,13 +141,14 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
       setDueDate('');
       setStatus('Not started');
       setPriority('Medium');
-      setArea('');
       setEffortLevel('8) JusVibin');
       setAutomation('Manual');
       setHoursProjected('');
       setSelectedBusinessId('');
       setSelectedProjectId('');
       setSelectedPhaseId('');
+      setIsRecurring(false);
+      setRecurringType('none');
 
       onSuccess?.();
       onClose();
@@ -283,27 +334,6 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
             <h3 className="text-sm font-medium text-gray-300 mb-3">Additional Details</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="area" className="block text-sm font-medium text-gray-400 mb-1">
-                  Area (Legacy)
-                </label>
-                <select
-                  id="area"
-                  value={area}
-                  onChange={(e) => setArea(e.target.value as Area | '')}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">None</option>
-                  <option value="Full Stack">Full Stack</option>
-                  <option value="S4">S4</option>
-                  <option value="808">808</option>
-                  <option value="Huge Capital">Huge Capital</option>
-                  <option value="Personal">Personal</option>
-                  <option value="Golf">Golf</option>
-                  <option value="Health">Health</option>
-                </select>
-              </div>
-
-              <div>
                 <label htmlFor="effort_level" className="block text-sm font-medium text-gray-400 mb-1">
                   Effort Level
                 </label>
@@ -356,6 +386,79 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
                 />
               </div>
             </div>
+          </div>
+
+          {/* Recurring Task Section */}
+          <div className="border-t border-gray-700 pt-4">
+            <div className="flex items-center gap-3 mb-3">
+              <input
+                type="checkbox"
+                id="is_recurring"
+                checked={isRecurring}
+                onChange={(e) => setIsRecurring(e.target.checked)}
+                className="w-4 h-4 bg-gray-800 border-gray-600 rounded text-blue-600 focus:ring-2 focus:ring-blue-500"
+              />
+              <label htmlFor="is_recurring" className="text-sm font-medium text-gray-300">
+                Make this a recurring task
+              </label>
+            </div>
+
+            {isRecurring && (
+              <div className="grid grid-cols-4 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRecurringType('weekdays')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    recurringType === 'weekdays'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700'
+                  }`}
+                >
+                  Weekdays (M-F)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecurringType('weekly')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    recurringType === 'weekly'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700'
+                  }`}
+                >
+                  Weekly
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecurringType('biweekly')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    recurringType === 'biweekly'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700'
+                  }`}
+                >
+                  Bi-Weekly
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecurringType('monthly')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    recurringType === 'monthly'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700'
+                  }`}
+                >
+                  Monthly
+                </button>
+              </div>
+            )}
+
+            {isRecurring && recurringType !== 'none' && (
+              <div className="mt-3 p-3 bg-blue-900/20 border border-blue-700/50 rounded-lg">
+                <p className="text-sm text-blue-300">
+                  <strong>Note:</strong> Task will be created with today's date in the name. Example: "{taskName || 'Task Name'} {new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).replace(/\//g, '/')}"
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Form Actions */}
