@@ -226,7 +226,9 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
                               onChange={(e) => {
                                 const newProjectId = e.target.value;
                                 setSelectedProjectId(newProjectId);
-                                setSelectedPhaseId(''); // Reset phase when project changes
+                                setSelectedPhaseId('no-phase'); // Set to "No Phase Identified" when project changes
+                                // Auto-save immediately with "No Phase Identified" (null phase)
+                                handleMoveTask(task.id, newProjectId, 'no-phase');
                               }}
                               className="w-full px-2 py-1 text-xs bg-gray-900 border border-gray-700 rounded text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                             >
