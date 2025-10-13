@@ -10,7 +10,8 @@ import type {
   Priority,
   Area,
   Automation,
-  EffortLevel
+  EffortLevel,
+  RecurringType
 } from '../../types/task';
 
 interface AddTaskModalProps {
