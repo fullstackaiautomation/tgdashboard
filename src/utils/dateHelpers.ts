@@ -108,3 +108,27 @@ export const isTomorrow = (dateString: string | null | undefined): boolean => {
 
   return checkDate.getTime() === tomorrow.getTime();
 };
+
+/**
+ * Parse a date string for Calendar component display (at midnight)
+ * This is specifically for react-day-picker Calendar which needs dates at midnight
+ * for correct visual highlighting
+ * @param dateString - Date string in YYYY-MM-DD format
+ * @returns Date object at midnight local time or null
+ */
+export const parseLocalDateForDisplay = (dateString: string | null | undefined): Date | null => {
+  if (!dateString) return null;
+
+  // If it's an ISO string with time, extract date portion
+  if (dateString.includes('T')) {
+    const isoDate = new Date(dateString);
+    return new Date(isoDate.getFullYear(), isoDate.getMonth(), isoDate.getDate(), 0, 0, 0, 0);
+  }
+
+  // For YYYY-MM-DD format, parse components and create at MIDNIGHT
+  const [year, month, day] = dateString.split('-').map(Number);
+  if (!year || !month || !day) return null;
+
+  // Create at midnight (00:00) for calendar display to avoid visual timezone shifts
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+};

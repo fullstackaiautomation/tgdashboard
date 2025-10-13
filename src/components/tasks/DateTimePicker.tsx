@@ -3,7 +3,7 @@ import type { FC } from 'react';
 // import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
-import { parseLocalDate, formatDateString } from '@/utils/dateHelpers';
+import { parseLocalDateForDisplay, formatDateString } from '@/utils/dateHelpers';
 
 interface DateTimePickerProps {
   scheduledDate?: string | null;
@@ -20,24 +20,25 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
   onSchedule,
   onClose,
 }) => {
-  // Parse the date string in local timezone instead of UTC
-  const parsedDate = parseLocalDate(scheduledDate);
+  // Parse date at MIDNIGHT for Calendar component display
+  // This ensures react-day-picker correctly highlights the selected date
+  const parsedDate = parseLocalDateForDisplay(scheduledDate);
 
-  // Ensure the date is at midnight local time for consistent display
-  let initialDate: Date | undefined;
-  if (parsedDate) {
-    initialDate = new Date(parsedDate);
-    initialDate.setHours(12, 0, 0, 0); // Set to noon to avoid DST issues
-  }
+  // Initialize with date at midnight for Calendar visual consistency
+  const initialDate: Date | undefined = parsedDate || undefined;
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate);
 
   const handleSelect = (date: Date | undefined) => {
     if (!date) return;
 
-    // Set to noon local time to avoid timezone shifts
-    const localDate = new Date(date);
-    localDate.setHours(12, 0, 0, 0);
+    // Normalize to midnight local time for consistency
+    const localDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      0, 0, 0, 0
+    );
 
     // Format date as YYYY-MM-DD using local timezone
     const formattedDate = formatDateString(localDate);
@@ -46,6 +47,11 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
       originalDate: date,
       localDate,
       formattedDate,
+      dateComponents: {
+        year: localDate.getFullYear(),
+        month: localDate.getMonth() + 1,
+        day: localDate.getDate()
+      },
       isoString: localDate.toISOString(),
       localString: localDate.toLocaleDateString()
     });
