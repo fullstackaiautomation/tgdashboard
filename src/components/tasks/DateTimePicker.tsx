@@ -3,6 +3,7 @@ import type { FC } from 'react';
 // import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
+import { parseLocalDate, formatDateString } from '@/utils/dateHelpers';
 
 interface DateTimePickerProps {
   scheduledDate?: string | null;
@@ -19,17 +20,16 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
   onSchedule,
   onClose,
 }) => {
-  const initialDate = scheduledDate ? new Date(scheduledDate) : undefined;
+  // Parse the date string in local timezone instead of UTC
+  const parsedDate = parseLocalDate(scheduledDate);
+  const initialDate = parsedDate || undefined;
   const [selectedDate, _setSelectedDate] = useState<Date | undefined>(initialDate);
 
   const handleSelect = (date: Date | undefined) => {
     if (!date) return;
 
     // Format date as YYYY-MM-DD using local timezone (not UTC)
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const formattedDate = `${year}-${month}-${day}`;
+    const formattedDate = formatDateString(date);
 
     console.log('📅 DateTimePicker selected:', { date, formattedDate });
     onSchedule(formattedDate, null);
