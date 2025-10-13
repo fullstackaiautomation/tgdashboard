@@ -30,7 +30,7 @@ const AREAS: Area[] = ['Personal', 'Full Stack', 'Huge Capital', '808', 'S4', 'G
 
 export const AddDeepWorkSessionModal: FC<AddDeepWorkSessionModalProps> = ({ isOpen, onClose }) => {
   const [area, setArea] = useState<Area>('Personal');
-  const [taskId, setTaskId] = useState<string>('');
+  const [taskId, setTaskId] = useState<string>('no-task');
   const [taskType, setTaskType] = useState<string>('');
   const [startDate, setStartDate] = useState<string>(
     new Date().toISOString().slice(0, 16) // YYYY-MM-DDTHH:mm format
@@ -59,7 +59,7 @@ export const AddDeepWorkSessionModal: FC<AddDeepWorkSessionModalProps> = ({ isOp
       // First create the session with start_time
       const newSession = await createSession.mutateAsync({
         area,
-        task_id: taskId || null,
+        task_id: taskId === 'no-task' ? null : taskId,
         task_type: taskType || null,
         start_time: startTime,
       });
@@ -75,7 +75,7 @@ export const AddDeepWorkSessionModal: FC<AddDeepWorkSessionModalProps> = ({ isOp
 
       // Reset form
       setArea('Personal');
-      setTaskId('');
+      setTaskId('no-task');
       setTaskType('');
       setStartDate(new Date().toISOString().slice(0, 16));
       setEndDate(new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16));
@@ -148,7 +148,7 @@ export const AddDeepWorkSessionModal: FC<AddDeepWorkSessionModalProps> = ({ isOp
                 <SelectValue placeholder="Select task (optional)" />
               </SelectTrigger>
               <SelectContent className="bg-gray-900 border-gray-700 max-h-60">
-                <SelectItem value="" className="text-white hover:bg-gray-800">
+                <SelectItem value="no-task" className="text-white hover:bg-gray-800">
                   No Task
                 </SelectItem>
                 {areaTasks.map((task) => (
