@@ -156,178 +156,59 @@ export default function NotesBoard() {
     }
   }
 
-  // Render formatted text with proper HTML rendering
-  const renderFormattedText = (text: string) => {
-    // Process text to convert markdown-style formatting to HTML
-    let html = text
-      // Convert **bold** to <strong>
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      // Keep <u>underline</u> as is
-      // Convert markdown links [text](url) to HTML links
-      .replace(
-        /\[(.*?)\]\((.*?)\)/g,
-        '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline">$1</a>'
-      )
-      // Convert plain URLs to clickable links with domain as text
-      .replace(
-        /(?<!\(|href="|>)(https?:\/\/([^\s<)]+))(?![^<]*<\/a>)/g,
-        (match, url, domain) => {
-          // Extract just the domain for display
-          const displayText = domain.split('/')[0];
-          return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline" title="${url}">${displayText}</a>`;
-        }
-      )
-      // Convert line breaks to <br>
-      .replace(/\n/g, '<br/>')
 
-    return html
+  // Handle formatting in contentEditable div
+  const handleContentEditableInput = (noteId: string, e: React.FormEvent<HTMLDivElement>) => {
+    const div = e.currentTarget
+    const html = div.innerHTML
+    updateNoteLocal(noteId, { content: html })
   }
 
-  // Handle Enter key for list continuation
-  const handleKeyDown = (noteId: string, e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  // Handle keyboard events in contentEditable
+  const handleContentEditableKeyDown = (noteId: string, e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter') {
-      const textarea = textareaRefs.current[noteId]
-      if (!textarea) return
+      // Check if we're in a list
+      const selection = window.getSelection()
+      if (!selection || !selection.anchorNode) return
 
-      const start = textarea.selectionStart
-      const note = notes.find(n => n.id === noteId)
-      if (!note) return
+      // Get the current element
+      let currentElement = selection.anchorNode.parentElement
+      if (!currentElement) return
 
-      const text = note.content
-      // Find the current line
-      const lineStart = text.lastIndexOf('\n', start - 1) + 1
-      const lineText = text.substring(lineStart, start)
-
-      // Check if current line starts with bullet point
-      if (lineText.match(/^•\s/)) {
-        e.preventDefault()
-        const newText = text.substring(0, start) + '\n• ' + text.substring(start)
-        updateNoteLocal(noteId, { content: newText })
-
-        // Set cursor position after the bullet
-        setTimeout(() => {
-          if (textarea) {
-            textarea.focus()
-            textarea.setSelectionRange(start + 3, start + 3)
-          }
-        }, 0)
-        return
-      }
-
-      // Check if current line starts with number
-      const numberMatch = lineText.match(/^(\d+)\.\s/)
-      if (numberMatch) {
-        e.preventDefault()
-        const currentNumber = parseInt(numberMatch[1])
-        const nextNumber = currentNumber + 1
-        const newText = text.substring(0, start) + `\n${nextNumber}. ` + text.substring(start)
-        updateNoteLocal(noteId, { content: newText })
-
-        // Set cursor position after the number
-        setTimeout(() => {
-          if (textarea) {
-            textarea.focus()
-            const offset = nextNumber.toString().length + 3 // number + ". "
-            textarea.setSelectionRange(start + offset, start + offset)
-          }
-        }, 0)
+      // Check if we're in a list item
+      if (currentElement.tagName === 'LI' || currentElement.closest('li')) {
+        // Let the browser handle list continuation naturally
         return
       }
     }
   }
 
-  // Text formatting functions
+  // Text formatting functions for contentEditable
   const applyFormatting = (noteId: string, formatType: 'bold' | 'underline' | 'bullet' | 'numbered' | 'link') => {
-    const textarea = textareaRefs.current[noteId]
-    if (!textarea) return
+    // Focus the contentEditable div
+    const editableDiv = document.querySelector(`[data-note-id="${noteId}"]`) as HTMLDivElement
+    if (!editableDiv) return
 
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const note = notes.find(n => n.id === noteId)
-    if (!note) return
-
-    const text = note.content
-    const selectedText = text.substring(start, end)
-    let newText = text
-    let newCursorPos = end
+    editableDiv.focus()
 
     if (formatType === 'bold') {
-      // Wrap selection with **bold**
-      if (selectedText) {
-        newText = text.substring(0, start) + `**${selectedText}**` + text.substring(end)
-        newCursorPos = end + 4
-      } else {
-        newText = text.substring(0, start) + '****' + text.substring(end)
-        newCursorPos = start + 2
-      }
+      document.execCommand('bold', false)
     } else if (formatType === 'underline') {
-      // Wrap selection with <u>underline</u>
-      if (selectedText) {
-        newText = text.substring(0, start) + `<u>${selectedText}</u>` + text.substring(end)
-        newCursorPos = end + 7
-      } else {
-        newText = text.substring(0, start) + '<u></u>' + text.substring(end)
-        newCursorPos = start + 3
-      }
+      document.execCommand('underline', false)
     } else if (formatType === 'bullet') {
-      // Add bullet point at start of line
-      const lineStart = text.lastIndexOf('\n', start - 1) + 1
-      const lineEnd = text.indexOf('\n', start)
-      const actualLineEnd = lineEnd === -1 ? text.length : lineEnd
-      const lineText = text.substring(lineStart, actualLineEnd)
-
-      if (lineText.startsWith('• ')) {
-        // Remove bullet
-        newText = text.substring(0, lineStart) + lineText.substring(2) + text.substring(actualLineEnd)
-        newCursorPos = start - 2
-      } else {
-        // Add bullet
-        newText = text.substring(0, lineStart) + '• ' + lineText + text.substring(actualLineEnd)
-        newCursorPos = start + 2
-      }
+      document.execCommand('insertUnorderedList', false)
     } else if (formatType === 'numbered') {
-      // Add numbered list at start of line
-      const lineStart = text.lastIndexOf('\n', start - 1) + 1
-      const lineEnd = text.indexOf('\n', start)
-      const actualLineEnd = lineEnd === -1 ? text.length : lineEnd
-      const lineText = text.substring(lineStart, actualLineEnd)
-
-      if (/^\d+\.\s/.test(lineText)) {
-        // Remove numbering
-        newText = text.substring(0, lineStart) + lineText.replace(/^\d+\.\s/, '') + text.substring(actualLineEnd)
-        newCursorPos = start - 3
-      } else {
-        // Add numbering
-        newText = text.substring(0, lineStart) + '1. ' + lineText + text.substring(actualLineEnd)
-        newCursorPos = start + 3
-      }
+      document.execCommand('insertOrderedList', false)
     } else if (formatType === 'link') {
-      // Prompt for URL and create link
       const url = prompt('Enter URL:')
       if (url) {
-        if (selectedText) {
-          // Wrap selected text as link
-          newText = text.substring(0, start) + `[${selectedText}](${url})` + text.substring(end)
-          newCursorPos = end + url.length + 4
-        } else {
-          // Insert link placeholder
-          newText = text.substring(0, start) + `[link](${url})` + text.substring(end)
-          newCursorPos = start + url.length + 8
-        }
-      } else {
-        return // User cancelled
+        document.execCommand('createLink', false, url)
       }
     }
 
-    updateNoteLocal(noteId, { content: newText })
-
-    // Restore cursor position
-    setTimeout(() => {
-      if (textarea) {
-        textarea.focus()
-        textarea.setSelectionRange(newCursorPos, newCursorPos)
-      }
-    }, 0)
+    // Update content after formatting
+    const html = editableDiv.innerHTML
+    updateNoteLocal(noteId, { content: html })
   }
 
   const filteredNotes = notes.filter(note =>
@@ -498,33 +379,65 @@ export default function NotesBoard() {
                         </div>
                       )}
 
-                      {/* Note Content */}
-                      {editingNote === note.id ? (
-                        <Textarea
-                          ref={(el) => { if (el) textareaRefs.current[note.id] = el; }}
-                          value={note.content}
-                          onChange={(e) => updateNoteLocal(note.id, { content: e.target.value })}
-                          onKeyDown={(e) => handleKeyDown(note.id, e)}
-                          onFocus={() => setEditingNote(note.id)}
-                          onBlur={(e) => {
-                            // Only blur if clicking outside the card
-                            const currentTarget = e.currentTarget;
-                            setTimeout(() => {
-                              if (!currentTarget.contains(document.activeElement)) {
-                                setEditingNote(null);
-                              }
-                            }, 0);
-                          }}
-                          placeholder="Write your note here..."
-                          className="min-h-[400px] max-h-[600px] resize-none border-none shadow-none p-0 focus-visible:ring-0 bg-transparent text-gray-300 placeholder:text-gray-600 text-base leading-relaxed font-sans"
-                        />
-                      ) : (
-                        <div
-                          onClick={() => setEditingNote(note.id)}
-                          className="min-h-[400px] max-h-[600px] overflow-auto cursor-text p-0 text-gray-300 text-base leading-relaxed font-sans prose prose-invert max-w-none"
-                          dangerouslySetInnerHTML={{ __html: renderFormattedText(note.content || '<span class="text-gray-600">Click to write...</span>') }}
-                        />
-                      )}
+                      {/* Note Content - WYSIWYG Editor */}
+                      <div
+                        data-note-id={note.id}
+                        contentEditable={editingNote === note.id}
+                        suppressContentEditableWarning
+                        onInput={(e) => handleContentEditableInput(note.id, e)}
+                        onKeyDown={(e) => handleContentEditableKeyDown(note.id, e)}
+                        onClick={() => setEditingNote(note.id)}
+                        onBlur={(e) => {
+                          // Only blur if clicking outside the card
+                          setTimeout(() => {
+                            if (!e.currentTarget.contains(document.activeElement)) {
+                              setEditingNote(null);
+                            }
+                          }, 0);
+                        }}
+                        dangerouslySetInnerHTML={{
+                          __html: note.content || '<span style="color: #6b7280;">Click to write...</span>'
+                        }}
+                        className="min-h-[400px] max-h-[600px] overflow-auto cursor-text p-0 text-gray-300 text-base leading-relaxed font-sans focus:outline-none"
+                        style={{
+                          wordBreak: 'break-word'
+                        }}
+                      />
+                      {/* Add custom CSS for contentEditable formatting */}
+                      <style>{`
+                        [data-note-id] b, [data-note-id] strong {
+                          font-weight: 700;
+                          color: #f3f4f6;
+                        }
+                        [data-note-id] u {
+                          text-decoration: underline;
+                        }
+                        [data-note-id] a {
+                          color: #60a5fa;
+                          text-decoration: underline;
+                          cursor: pointer;
+                        }
+                        [data-note-id] a:hover {
+                          color: #93c5fd;
+                        }
+                        [data-note-id] ul, [data-note-id] ol {
+                          margin: 0.5rem 0;
+                          padding-left: 1.5rem;
+                        }
+                        [data-note-id] ul li {
+                          list-style-type: disc;
+                          margin: 0.25rem 0;
+                        }
+                        [data-note-id] ol li {
+                          list-style-type: decimal;
+                          margin: 0.25rem 0;
+                        }
+                        [data-note-id]:empty:before {
+                          content: attr(data-placeholder);
+                          color: #6b7280;
+                          cursor: text;
+                        }
+                      `}</style>
 
                       {/* Footer Actions */}
                       <div
