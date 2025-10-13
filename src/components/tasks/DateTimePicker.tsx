@@ -21,7 +21,8 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
   onClose,
 }) => {
   // Use the consistent date parsing helper for display
-  const initialDate = parseLocalDateForDisplay(scheduledDate);
+  // Convert null to undefined for useState compatibility
+  const initialDate = parseLocalDateForDisplay(scheduledDate) || undefined;
 
   if (initialDate) {
     console.log('🔍 DateTimePicker init:', {
