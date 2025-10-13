@@ -60,26 +60,30 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId }) => {
 
           {isLoading ? (
             <div className="text-gray-400 text-sm">Loading phases...</div>
-          ) : !phases || phases.length === 0 ? (
-            <Card className="bg-gray-800/40 border-gray-700/50 border-dashed">
-              <CardContent className="py-8">
-                <div className="text-center text-gray-400">
-                  <p className="text-sm">No phases yet. Add a phase to organize tasks.</p>
-                </div>
-              </CardContent>
-            </Card>
           ) : (
             <div className="space-y-4">
-              {phases.map((phase) => (
-                <PhaseCard
-                  key={phase.id}
-                  phase={phase}
-                  projectId={project.id}
-                  businessId={businessId || project.business_id}
-                />
-              ))}
+              {/* Render existing phases */}
+              {phases && phases.length > 0 ? (
+                phases.map((phase) => (
+                  <PhaseCard
+                    key={phase.id}
+                    phase={phase}
+                    projectId={project.id}
+                    businessId={businessId || project.business_id}
+                  />
+                ))
+              ) : (
+                <Card className="bg-gray-800/40 border-gray-700/50 border-dashed">
+                  <CardContent className="py-8">
+                    <div className="text-center text-gray-400">
+                      <p className="text-sm">No phases yet. Add a phase to organize tasks.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* No Phase Identified - Virtual phase for unassigned tasks */}
+              {/* Always show this section when there are unassigned tasks, regardless of whether there are phases */}
               {unassignedTasks.length > 0 && (
                 <PhaseCard
                   key="no-phase"
