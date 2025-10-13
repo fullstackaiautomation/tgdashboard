@@ -6,6 +6,7 @@ import { usePhases } from '../../hooks/useProjects';
 import { useTasks } from '../../hooks/useTasks';
 import { useProjectProgress } from '../../hooks/useProjectProgress';
 import { PhaseCard } from './PhaseCard';
+import { AddPhaseModal } from './AddPhaseModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 // import { Progress } from '@/components/ui/progress';
@@ -17,6 +18,7 @@ interface ProjectCardProps {
 
 export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId }) => {
   const [isExpanded, _setIsExpanded] = useState(true);
+  const [isAddPhaseModalOpen, setIsAddPhaseModalOpen] = useState(false);
   const { data: phases, isLoading } = usePhases(project.id);
   const { data: allTasks } = useTasks();
 
@@ -45,8 +47,7 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId }) => {
               className="h-7 text-xs border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800/50"
               onClick={(e) => {
                 e.stopPropagation();
-                // TODO: Implement create phase modal
-                console.log('Create phase for project:', project.id);
+                setIsAddPhaseModalOpen(true);
               }}
             >
               <Plus className="w-3 h-3 mr-1" />
@@ -78,6 +79,14 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId }) => {
           )}
         </CardContent>
       )}
+
+      {/* Add Phase Modal */}
+      <AddPhaseModal
+        isOpen={isAddPhaseModalOpen}
+        onClose={() => setIsAddPhaseModalOpen(false)}
+        projectId={project.id}
+        projectName={project.name}
+      />
     </Card>
   );
 };

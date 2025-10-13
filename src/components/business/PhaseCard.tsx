@@ -36,13 +36,13 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
 
   const { progress, completedCount, totalCount } = usePhaseProgress(phaseTasks);
 
-  const handleMoveTask = async (taskId: string, newProjectId: string, newPhaseId: string) => {
+  const handleMoveTask = async (taskId: string, newProjectId: string, newPhaseId: string | null) => {
     try {
       await updateTask.mutateAsync({
         id: taskId,
         updates: {
           project_id: newProjectId,
-          phase_id: newPhaseId
+          phase_id: newPhaseId === 'no-phase' ? null : newPhaseId
         }
       });
       setEditingTaskId(null);
@@ -224,7 +224,8 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
                             <select
                               value={selectedProjectId}
                               onChange={(e) => {
-                                setSelectedProjectId(e.target.value);
+                                const newProjectId = e.target.value;
+                                setSelectedProjectId(newProjectId);
                                 setSelectedPhaseId(''); // Reset phase when project changes
                               }}
                               className="w-full px-2 py-1 text-xs bg-gray-900 border border-gray-700 rounded text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -242,41 +243,23 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
                               <label className="text-xs text-gray-400 block mb-1">Move to Phase:</label>
                               <select
                                 value={selectedPhaseId}
-                                onChange={(e) => setSelectedPhaseId(e.target.value)}
+                                onChange={(e) => {
+                                  const newPhaseId = e.target.value;
+                                  setSelectedPhaseId(newPhaseId);
+                                  // Auto-save when phase is selected (including "No Phase Identified")
+                                  if (newPhaseId) {
+                                    handleMoveTask(task.id, selectedProjectId, newPhaseId);
+                                  }
+                                }}
                                 className="w-full px-2 py-1 text-xs bg-gray-900 border border-gray-700 rounded text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                               >
-                                <option value="">Select phase...</option>
+                                <option value="no-phase">No Phase Identified</option>
                                 {projectPhases?.map((ph) => (
                                   <option key={ph.id} value={ph.id}>
                                     {ph.name}
                                   </option>
                                 ))}
                               </select>
-                            </div>
-                          )}
-
-                          {selectedProjectId && selectedPhaseId && (
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setEditingTaskId(null);
-                                  setSelectedProjectId('');
-                                  setSelectedPhaseId('');
-                                }}
-                                className="flex-1 h-7 text-xs border-gray-600 text-gray-300 hover:bg-gray-800"
-                              >
-                                Cancel
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => handleMoveTask(task.id, selectedProjectId, selectedPhaseId)}
-                                className="flex-1 h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
-                                disabled={selectedProjectId === task.project_id && selectedPhaseId === task.phase_id}
-                              >
-                                Move Task
-                              </Button>
                             </div>
                           )}
                         </div>

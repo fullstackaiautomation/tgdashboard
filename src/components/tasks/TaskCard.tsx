@@ -390,7 +390,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
                     minWidth: '120px'
                   }}
                 >
-                  <SelectValue placeholder="Select phase" />
+                  <SelectValue placeholder="No Phase Identified" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="no-phase">No Phase Identified</SelectItem>
