@@ -1,16 +1,14 @@
 import type { FC } from 'react';
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Plus, CheckCircle2, Circle, Clock, MoveHorizontal, Edit } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Trash2, Calendar } from 'lucide-react';
 import type { Phase } from '../../types/project';
-import { useTasks, useUpdateTask } from '../../hooks/useTasks';
+import { useTasks, useUpdateTask, useDeleteTask } from '../../hooks/useTasks';
+import { useUpdatePhase } from '../../hooks/useProjects';
 import { usePhaseProgress } from '../../hooks/usePhaseProgress';
-import { useProjects, usePhases } from '../../hooks/useProjects';
 import { TaskForm } from './TaskForm';
 import { EditTaskModal } from './EditTaskModal';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 
 interface PhaseCardProps {
   phase: Phase;
@@ -21,15 +19,17 @@ interface PhaseCardProps {
 export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showTaskForm, setShowTaskForm] = useState(false);
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [selectedPhaseId, setSelectedPhaseId] = useState<string>('');
   const [editModalTaskId, setEditModalTaskId] = useState<string | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingField, setEditingField] = useState<{ taskId: string; field: 'task_name' | 'description' } | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [isEditingPhaseName, setIsEditingPhaseName] = useState(false);
+  const [editPhaseName, setEditPhaseName] = useState('');
 
   const { data: allTasks } = useTasks();
-  const { data: allProjects } = useProjects(businessId);
-  const { data: projectPhases } = usePhases(selectedProjectId || projectId);
   const updateTask = useUpdateTask();
+  const deleteTask = useDeleteTask();
+  const updatePhase = useUpdatePhase();
 
   // Filter tasks for this phase
   // For "no-phase" virtual phase, filter tasks with null phase_id
@@ -42,263 +42,347 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
 
   const { progress, completedCount, totalCount } = usePhaseProgress(phaseTasks);
 
-  const handleMoveTask = async (taskId: string, newProjectId: string, newPhaseId: string | null) => {
+  const handleToggleComplete = async (taskId: string, currentProgress: number) => {
     try {
       await updateTask.mutateAsync({
         id: taskId,
         updates: {
-          project_id: newProjectId,
-          phase_id: newPhaseId === 'no-phase' ? null : newPhaseId
+          progress_percentage: currentProgress === 100 ? 0 : 100,
+          status: currentProgress === 100 ? 'Not started' : 'Done'
         }
       });
-      setEditingTaskId(null);
-      setSelectedProjectId('');
-      setSelectedPhaseId('');
     } catch (error) {
-      console.error('Failed to move task:', error);
+      console.error('Failed to update task:', error);
     }
   };
 
-  const statusConfig = {
-    active: { label: 'Active', color: 'bg-emerald-500', textColor: 'text-emerald-400' },
-    paused: { label: 'Paused', color: 'bg-amber-500', textColor: 'text-amber-400' },
-    completed: { label: 'Done', color: 'bg-blue-500', textColor: 'text-blue-400' },
-    archived: { label: 'Archived', color: 'bg-gray-500', textColor: 'text-gray-400' },
+  const handleUpdateDueDate = async (taskId: string, dueDate: string) => {
+    try {
+      await updateTask.mutateAsync({
+        id: taskId,
+        updates: { due_date: dueDate || null }
+      });
+    } catch (error) {
+      console.error('Failed to update due date:', error);
+    }
   };
 
-  const status = statusConfig[phase.status as keyof typeof statusConfig] || statusConfig.active;
+  const handleUpdateStatus = async (taskId: string, status: string) => {
+    try {
+      const progress = status === 'Done' ? 100 : status === 'In progress' ? 50 : 0;
+      await updateTask.mutateAsync({
+        id: taskId,
+        updates: {
+          status: status as any,
+          progress_percentage: progress
+        }
+      });
+    } catch (error) {
+      console.error('Failed to update status:', error);
+    }
+  };
+
+  const handleInlineEdit = async (taskId: string, field: 'task_name' | 'description', value: string) => {
+    try {
+      await updateTask.mutateAsync({
+        id: taskId,
+        updates: { [field]: value }
+      });
+      setEditingField(null);
+      setEditValue('');
+    } catch (error) {
+      console.error('Failed to update task:', error);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      try {
+        await deleteTask.mutateAsync(taskId);
+      } catch (error) {
+        console.error('Failed to delete task:', error);
+      }
+    }
+  };
+
+  const formatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}/${date.getFullYear()}`;
+  };
+
+  const handleUpdatePhaseName = async (newName: string) => {
+    // Don't update the "No Phase Identified" virtual phase
+    if (phase.id === 'no-phase') {
+      setIsEditingPhaseName(false);
+      return;
+    }
+
+    try {
+      await updatePhase.mutateAsync({
+        id: phase.id,
+        updates: { name: newName }
+      });
+      setIsEditingPhaseName(false);
+      setEditPhaseName('');
+    } catch (error) {
+      console.error('Failed to update phase name:', error);
+      setIsEditingPhaseName(false);
+    }
+  };
 
   return (
-    <Card className="bg-gradient-to-r from-gray-800/60 to-gray-800/40 border-gray-700/60 overflow-hidden">
+    <div className="border-t border-gray-700/50">
       {/* Phase Header */}
       <div
-        className="p-4 cursor-pointer hover:bg-gray-700/30 transition-colors"
+        className="px-4 py-3 cursor-pointer hover:bg-gray-800/30 transition-colors flex items-center justify-between"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-1">
-            <Button variant="ghost" size="sm" className="w-6 h-6 p-0">
-              {isExpanded ? (
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              )}
-            </Button>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-100">{phase.name}</span>
-              <Badge variant="outline" className={`${status.color} border-0 text-white text-xs px-2 py-0`}>
-                {status.label}
-              </Badge>
-              <Badge variant="outline" className="bg-gray-700/50 border-gray-600 text-gray-300 text-xs px-2 py-0">
-                #{phase.sequence_order}
-              </Badge>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            {totalCount > 0 ? (
-              <>
-                <div className="text-right">
-                  <div className="text-xs text-gray-400">Progress</div>
-                  <div className="text-sm font-bold text-gray-100">{progress.toFixed(0)}%</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-400">Tasks</div>
-                  <div className="text-sm font-bold text-gray-100">{completedCount}/{totalCount}</div>
-                </div>
-              </>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" className="w-5 h-5 p-0">
+            {isExpanded ? (
+              <ChevronDown className="w-4 h-4 text-gray-400" />
             ) : (
-              <span className="text-xs text-gray-400">No tasks</span>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            )}
+          </Button>
+          <div className="flex items-center gap-3">
+            {isEditingPhaseName && phase.id !== 'no-phase' ? (
+              <input
+                type="text"
+                value={editPhaseName}
+                onChange={(e) => setEditPhaseName(e.target.value)}
+                onBlur={() => handleUpdatePhaseName(editPhaseName)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleUpdatePhaseName(editPhaseName);
+                  } else if (e.key === 'Escape') {
+                    setIsEditingPhaseName(false);
+                    setEditPhaseName('');
+                  }
+                }}
+                className="text-base font-semibold bg-gray-800 text-gray-100 px-2 py-0.5 rounded border border-blue-500 focus:outline-none"
+                autoFocus
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <span
+                className={`text-base font-semibold text-gray-100 ${
+                  phase.id !== 'no-phase' ? 'cursor-pointer hover:text-blue-400' : ''
+                }`}
+                onClick={(e) => {
+                  if (phase.id !== 'no-phase') {
+                    e.stopPropagation();
+                    setIsEditingPhaseName(true);
+                    setEditPhaseName(phase.name);
+                  }
+                }}
+              >
+                {phase.id === 'no-phase' ? phase.name : `Phase ${phase.sequence_order}: ${phase.name}`}
+              </span>
+            )}
+            {progress === 100 && (
+              <Badge className="bg-green-600 text-white text-xs px-2 py-0.5">
+                Completed
+              </Badge>
             )}
           </div>
         </div>
-        {phase.description && (
-          <p className="text-gray-400 text-sm mt-2 ml-9">{phase.description}</p>
-        )}
-        {totalCount > 0 && (
-          <div className="mt-3 ml-9">
-            <Progress value={progress} className="h-1.5" />
+        <div className="flex items-center gap-6">
+          <div className="text-right">
+            <span className="text-sm text-gray-400">Progress: </span>
+            <span className="text-sm font-bold text-gray-100">{progress.toFixed(0)}%</span>
           </div>
-        )}
+          {totalCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-gray-400 hover:text-gray-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Delete phase functionality would go here
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Tasks Section */}
       {isExpanded && (
-        <div className="border-t border-gray-700/50 bg-gray-900/30 p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h5 className="text-sm font-semibold text-gray-300">Tasks</h5>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800/50"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowTaskForm(!showTaskForm);
-              }}
-            >
-              {showTaskForm ? (
-                <>Cancel</>
-              ) : (
-                <>
-                  <Plus className="w-3 h-3 mr-1" />
-                  Add Task
-                </>
-              )}
-            </Button>
-          </div>
-
-          {/* Task Creation Form */}
-          {showTaskForm && (
-            <Card className="mb-4 bg-gray-800/50 border-gray-700">
-              <CardContent className="p-4">
-                <TaskForm
-                  businessId={businessId}
-                  projectId={projectId}
-                  phaseId={phase.id === 'no-phase' ? undefined : phase.id}
-                  phaseName={phase.name}
-                  onSuccess={() => setShowTaskForm(false)}
-                  onCancel={() => setShowTaskForm(false)}
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {phaseTasks.length === 0 ? (
-            <Card className="bg-gray-800/30 border-gray-700/50 border-dashed">
-              <CardContent className="py-6">
-                <div className="text-center text-gray-400 text-sm">
-                  No tasks yet. Add a task to get started.
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
+        <div className="bg-gray-900/20 px-4 pb-4">
+          {/* Table Header */}
+          <table className="w-full">
+            <thead>
+              <tr className="text-xs text-gray-400 border-b border-gray-700/50">
+                <th className="text-left font-normal py-2 pl-2 w-12">Done</th>
+                <th className="text-left font-normal py-2 w-32">Due Date</th>
+                <th className="text-left font-normal py-2 w-32">Status</th>
+                <th className="text-left font-normal py-2">Task Name</th>
+                <th className="text-left font-normal py-2">Description</th>
+                <th className="text-right font-normal py-2 pr-2 w-10"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Task Rows */}
               {phaseTasks.map((task) => {
                 const isCompleted = task.progress_percentage === 100;
-                const inProgress = (task.progress_percentage ?? 0) > 0 && (task.progress_percentage ?? 0) < 100;
-                const isEditing = editingTaskId === task.id;
 
                 return (
-                  <Card
-                    key={task.id}
-                    className={`bg-gray-800/60 border-gray-700 hover:border-gray-600 transition-all hover:shadow-lg group ${
-                      isCompleted ? 'opacity-70' : ''
-                    }`}
-                  >
-                    <CardContent className="p-3">
-                      <div className="flex items-start justify-between mb-2">
-                        <div
-                          className="flex items-start gap-2 flex-1 cursor-pointer"
-                          onClick={() => setEditModalTaskId(task.id)}
-                        >
-                          {isCompleted ? (
-                            <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-                          ) : inProgress ? (
-                            <Clock className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
-                          ) : (
-                            <Circle className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium leading-tight hover:text-blue-400 transition-colors ${
-                              isCompleted ? 'line-through text-gray-400' : 'text-gray-100'
-                            }`}>
-                              {task.task_name}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditModalTaskId(task.id)}
-                            className="w-6 h-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Edit task"
-                          >
-                            <Edit className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              if (isEditing) {
-                                setEditingTaskId(null);
-                                setSelectedProjectId('');
-                                setSelectedPhaseId('');
-                              } else {
-                                setEditingTaskId(task.id);
-                                setSelectedProjectId(task.project_id || '');
-                                setSelectedPhaseId(task.phase_id || '');
-                              }
-                            }}
-                            className="w-6 h-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Move task"
-                          >
-                            <MoveHorizontal className="w-3 h-3" />
-                          </Button>
-                        </div>
+                  <tr key={task.id} className="border-b border-gray-700/30 hover:bg-gray-800/20">
+                    {/* Done Checkbox */}
+                    <td className="py-3 pl-2">
+                      <input
+                        type="checkbox"
+                        checked={isCompleted}
+                        onChange={() => handleToggleComplete(task.id, task.progress_percentage ?? 0)}
+                        className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
+
+                    {/* Due Date */}
+                    <td className="py-3">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-gray-500" />
+                        <input
+                          type="date"
+                          value={task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : ''}
+                          onChange={(e) => handleUpdateDueDate(task.id, e.target.value)}
+                          className="bg-transparent text-sm text-gray-300 border-none focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1"
+                        />
                       </div>
+                    </td>
 
-                      {/* Project/Phase Dropdowns */}
-                      {isEditing && (
-                        <div className="space-y-2 mt-3 pt-3 border-t border-gray-700">
-                          <div>
-                            <label className="text-xs text-gray-400 block mb-1">Move to Project:</label>
-                            <select
-                              value={selectedProjectId}
-                              onChange={(e) => {
-                                const newProjectId = e.target.value;
-                                setSelectedProjectId(newProjectId);
-                                setSelectedPhaseId('no-phase'); // Set to "No Phase Identified" when project changes
-                                // Auto-save immediately with "No Phase Identified" (null phase)
-                                handleMoveTask(task.id, newProjectId, 'no-phase');
-                              }}
-                              className="w-full px-2 py-1 text-xs bg-gray-900 border border-gray-700 rounded text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            >
-                              {allProjects?.map((proj) => (
-                                <option key={proj.id} value={proj.id}>
-                                  {proj.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                    {/* Status */}
+                    <td className="py-3">
+                      <select
+                        value={task.status}
+                        onChange={(e) => handleUpdateStatus(task.id, e.target.value)}
+                        className={`text-sm px-2 py-1 rounded border ${
+                          task.status === 'Done'
+                            ? 'bg-green-600/20 border-green-600 text-green-400'
+                            : task.status === 'In progress'
+                            ? 'bg-yellow-600/20 border-yellow-600 text-yellow-400'
+                            : 'bg-gray-700/50 border-gray-600 text-gray-400'
+                        } focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                      >
+                        <option value="Not started">Not started</option>
+                        <option value="In progress">In progress</option>
+                        <option value="Done">Completed</option>
+                      </select>
+                    </td>
 
-                          {selectedProjectId && (
-                            <div>
-                              <label className="text-xs text-gray-400 block mb-1">Move to Phase:</label>
-                              <select
-                                value={selectedPhaseId}
-                                onChange={(e) => {
-                                  const newPhaseId = e.target.value;
-                                  setSelectedPhaseId(newPhaseId);
-                                  // Auto-save when phase is selected (including "No Phase Identified")
-                                  if (newPhaseId) {
-                                    handleMoveTask(task.id, selectedProjectId, newPhaseId);
-                                  }
-                                }}
-                                className="w-full px-2 py-1 text-xs bg-gray-900 border border-gray-700 rounded text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              >
-                                <option value="no-phase">No Phase Identified</option>
-                                {projectPhases?.map((ph) => (
-                                  <option key={ph.id} value={ph.id}>
-                                    {ph.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          )}
-                        </div>
+                    {/* Task Name */}
+                    <td className="py-3">
+                      {editingField?.taskId === task.id && editingField.field === 'task_name' ? (
+                        <input
+                          type="text"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => handleInlineEdit(task.id, 'task_name', editValue)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleInlineEdit(task.id, 'task_name', editValue);
+                            } else if (e.key === 'Escape') {
+                              setEditingField(null);
+                              setEditValue('');
+                            }
+                          }}
+                          className="w-full bg-gray-800 text-gray-100 px-2 py-1 rounded border border-blue-500 focus:outline-none"
+                          autoFocus
+                        />
+                      ) : (
+                        <span
+                          onClick={() => {
+                            setEditingField({ taskId: task.id, field: 'task_name' });
+                            setEditValue(task.task_name);
+                          }}
+                          className={`cursor-pointer hover:text-blue-400 ${
+                            isCompleted ? 'line-through text-gray-500' : 'text-gray-100'
+                          }`}
+                        >
+                          {task.task_name}
+                        </span>
                       )}
+                    </td>
 
-                      {(task.progress_percentage ?? 0) > 0 && !isEditing && (
-                        <div className="mt-2">
-                          <Progress value={task.progress_percentage ?? 0} className="h-1" />
-                        </div>
+                    {/* Description */}
+                    <td className="py-3">
+                      {editingField?.taskId === task.id && editingField.field === 'description' ? (
+                        <input
+                          type="text"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => handleInlineEdit(task.id, 'description', editValue)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleInlineEdit(task.id, 'description', editValue);
+                            } else if (e.key === 'Escape') {
+                              setEditingField(null);
+                              setEditValue('');
+                            }
+                          }}
+                          className="w-full bg-gray-800 text-gray-400 px-2 py-1 rounded border border-blue-500 focus:outline-none"
+                          autoFocus
+                        />
+                      ) : (
+                        <span
+                          onClick={() => {
+                            setEditingField({ taskId: task.id, field: 'description' });
+                            setEditValue(task.description || '');
+                          }}
+                          className="text-gray-400 text-sm cursor-pointer hover:text-gray-300"
+                        >
+                          {task.description || 'Description...'}
+                        </span>
                       )}
-                    </CardContent>
-                  </Card>
+                    </td>
+
+                    {/* Delete Button */}
+                    <td className="py-3 pr-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteTask(task.id)}
+                        className="w-6 h-6 p-0 text-gray-500 hover:text-red-400"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </td>
+                  </tr>
                 );
               })}
-            </div>
-          )}
+
+              {/* Add Task Row */}
+              {showTaskForm ? (
+                <tr>
+                  <td colSpan={6} className="py-4">
+                    <TaskForm
+                      businessId={businessId}
+                      projectId={projectId}
+                      phaseId={phase.id === 'no-phase' ? undefined : phase.id}
+                      phaseName={phase.name}
+                      onSuccess={() => setShowTaskForm(false)}
+                      onCancel={() => setShowTaskForm(false)}
+                    />
+                  </td>
+                </tr>
+              ) : (
+                <tr>
+                  <td colSpan={6} className="py-3">
+                    <button
+                      onClick={() => setShowTaskForm(true)}
+                      className="w-full py-2 border-2 border-dashed border-gray-700 rounded hover:border-gray-600 hover:bg-gray-800/30 transition-colors flex items-center justify-center gap-2 text-gray-400 hover:text-gray-300"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Task
+                    </button>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -311,6 +395,6 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
           businessId={businessId}
         />
       )}
-    </Card>
+    </div>
   );
 };

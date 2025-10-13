@@ -4,6 +4,7 @@ export interface Project {
   business_id: string;
   name: string;
   description: string | null;
+  notes: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -31,6 +32,7 @@ export interface CreateProjectDTO {
 export interface UpdateProjectDTO {
   name?: string;
   description?: string;
+  notes?: string;
   status?: string;
 }
 

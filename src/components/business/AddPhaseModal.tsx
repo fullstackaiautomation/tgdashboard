@@ -1,7 +1,7 @@
 import type { FC } from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { useCreatePhase } from '../../hooks/useProjects';
+import { useCreatePhase, usePhases } from '../../hooks/useProjects';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,6 +26,17 @@ export const AddPhaseModal: FC<AddPhaseModalProps> = ({
   const [sequenceOrder, setSequenceOrder] = useState<number>(1);
 
   const createPhase = useCreatePhase();
+  const { data: existingPhases } = usePhases(projectId);
+
+  // Calculate the next sequence number when modal opens
+  useEffect(() => {
+    if (isOpen && existingPhases) {
+      const maxSequence = existingPhases.length > 0
+        ? Math.max(...existingPhases.map(p => p.sequence_order))
+        : 0;
+      setSequenceOrder(maxSequence + 1);
+    }
+  }, [isOpen, existingPhases]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -40,6 +40,8 @@ const filterTasks = (
       dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
 
       if (statusFilter === 'due-today') {
+        // Exclude completed tasks from "Due Today"
+        if (task.status === 'Done') return false;
         const dueDate = task.due_date ? new Date(task.due_date) : null;
         if (!dueDate || dueDate < today || dueDate >= tomorrow) return false;
       }
@@ -50,6 +52,8 @@ const filterTasks = (
       }
 
       if (statusFilter === 'due-tomorrow') {
+        // Exclude completed tasks from "Due Tomorrow"
+        if (task.status === 'Done') return false;
         const dueDate = task.due_date ? new Date(task.due_date) : null;
         if (!dueDate || dueDate < tomorrow || dueDate >= dayAfterTomorrow) return false;
       }
@@ -63,7 +67,11 @@ const filterTasks = (
 
       if (statusFilter === 'completed' && task.status !== 'Done') return false;
 
-      if (statusFilter === 'recurring' && !task.is_recurring_template) return false;
+      if (statusFilter === 'recurring') {
+        // Show only parent recurring tasks (templates), not instances
+        const isRecurringParent = task.recurring_type && task.recurring_type !== 'none' && !task.recurrence_parent_id;
+        if (!isRecurringParent) return false;
+      }
     }
 
     return true;
