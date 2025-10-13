@@ -56,7 +56,7 @@ export const TaskForm: FC<TaskFormProps> = ({
       description: description.trim() || undefined,
       business_id: businessId,
       project_id: projectId,
-      phase_id: phaseId || null, // null for "No Phase Identified"
+      ...(phaseId && { phase_id: phaseId }), // Only include if defined
       status,
       due_date: dueDate || undefined,
       // Legacy fields for To-Do List compatibility
