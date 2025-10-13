@@ -34,6 +34,9 @@ const getBusinessColor = (task: TaskHub): string => {
     if (slug === 'huge-capital') return 'var(--color-business-hugecapital)';
     if (slug === 's4') return 'var(--color-business-s4)';
     if (slug === '808') return 'var(--color-business-808)';
+    if (slug === 'personal') return 'var(--color-area-personal)';
+    if (slug === 'health') return 'var(--color-area-health)';
+    if (slug === 'golf') return 'var(--color-area-golf)';
   }
 
   if (task.life_areas) {
@@ -246,6 +249,9 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
         case 'huge-capital': return 'rgb(85, 45, 120)'; // darker purple
         case 's4': return 'rgb(35, 70, 130)'; // darker blue
         case '808': return 'rgb(120, 95, 35)'; // darker yellow/gold
+        case 'health': return 'rgb(25, 90, 85)'; // darker teal
+        case 'personal': return 'rgb(120, 45, 85)'; // darker pink
+        case 'golf': return 'rgb(130, 65, 25)'; // darker orange
         default: return 'rgb(31, 41, 55)';
       }
     }
@@ -284,6 +290,9 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
         case 'huge-capital': return 'rgb(130, 85, 165)'; // lighter purple
         case 's4': return 'rgb(75, 115, 170)'; // lighter blue
         case '808': return 'rgb(165, 135, 70)'; // lighter yellow/gold
+        case 'health': return 'rgb(60, 130, 120)'; // lighter teal
+        case 'personal': return 'rgb(165, 85, 125)'; // lighter pink
+        case 'golf': return 'rgb(175, 105, 60)'; // lighter orange
         default: return 'rgb(31, 41, 55)';
       }
     }
