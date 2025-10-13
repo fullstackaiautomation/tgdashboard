@@ -27,6 +27,7 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
   const [taskName, setTaskName] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [status, setStatus] = useState<TaskStatus>('Not started');
   const [priority, setPriority] = useState<Priority>('Medium');
   const [area, setArea] = useState<Area | ''>('');
@@ -192,10 +193,23 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
               <label htmlFor="due_date" className="block text-sm font-medium text-gray-300 mb-1">
                 Due Date
               </label>
-              <DateTimePicker
-                scheduledDate={dueDate}
-                onSchedule={(date) => setDueDate(date)}
-              />
+              <button
+                type="button"
+                onClick={() => setShowDatePicker(true)}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-left"
+              >
+                {dueDate || 'Select date...'}
+              </button>
+              {showDatePicker && (
+                <DateTimePicker
+                  scheduledDate={dueDate}
+                  onSchedule={(date, _time) => {
+                    setDueDate(date || '');
+                    setShowDatePicker(false);
+                  }}
+                  onClose={() => setShowDatePicker(false)}
+                />
+              )}
             </div>
           </div>
 
