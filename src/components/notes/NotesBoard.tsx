@@ -183,6 +183,59 @@ export default function NotesBoard() {
     return html
   }
 
+  // Handle Enter key for list continuation
+  const handleKeyDown = (noteId: string, e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter') {
+      const textarea = textareaRefs.current[noteId]
+      if (!textarea) return
+
+      const start = textarea.selectionStart
+      const note = notes.find(n => n.id === noteId)
+      if (!note) return
+
+      const text = note.content
+      // Find the current line
+      const lineStart = text.lastIndexOf('\n', start - 1) + 1
+      const lineText = text.substring(lineStart, start)
+
+      // Check if current line starts with bullet point
+      if (lineText.match(/^•\s/)) {
+        e.preventDefault()
+        const newText = text.substring(0, start) + '\n• ' + text.substring(start)
+        updateNoteLocal(noteId, { content: newText })
+
+        // Set cursor position after the bullet
+        setTimeout(() => {
+          if (textarea) {
+            textarea.focus()
+            textarea.setSelectionRange(start + 3, start + 3)
+          }
+        }, 0)
+        return
+      }
+
+      // Check if current line starts with number
+      const numberMatch = lineText.match(/^(\d+)\.\s/)
+      if (numberMatch) {
+        e.preventDefault()
+        const currentNumber = parseInt(numberMatch[1])
+        const nextNumber = currentNumber + 1
+        const newText = text.substring(0, start) + `\n${nextNumber}. ` + text.substring(start)
+        updateNoteLocal(noteId, { content: newText })
+
+        // Set cursor position after the number
+        setTimeout(() => {
+          if (textarea) {
+            textarea.focus()
+            const offset = nextNumber.toString().length + 3 // number + ". "
+            textarea.setSelectionRange(start + offset, start + offset)
+          }
+        }, 0)
+        return
+      }
+    }
+  }
+
   // Text formatting functions
   const applyFormatting = (noteId: string, formatType: 'bold' | 'underline' | 'bullet' | 'numbered' | 'link') => {
     const textarea = textareaRefs.current[noteId]
@@ -451,6 +504,7 @@ export default function NotesBoard() {
                           ref={(el) => { if (el) textareaRefs.current[note.id] = el; }}
                           value={note.content}
                           onChange={(e) => updateNoteLocal(note.id, { content: e.target.value })}
+                          onKeyDown={(e) => handleKeyDown(note.id, e)}
                           onFocus={() => setEditingNote(note.id)}
                           onBlur={(e) => {
                             // Only blur if clicking outside the card
