@@ -38,8 +38,9 @@ export default function NotesBoard() {
   // Debounce timers for auto-save
   const saveTimersRef = useRef<{ [key: string]: NodeJS.Timeout }>({})
 
-  // Refs for textareas to handle selection
-  const textareaRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({})
+  // Refs for contentEditable divs
+  const contentRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
+  const contentInitialized = useRef<{ [key: string]: boolean }>({})
 
   useEffect(() => {
     fetchNotes()
@@ -49,6 +50,19 @@ export default function NotesBoard() {
       Object.values(saveTimersRef.current).forEach(timer => clearTimeout(timer))
     }
   }, [])
+
+  // Sync content to contentEditable div only when note changes externally
+  useEffect(() => {
+    notes.forEach(note => {
+      const div = contentRefs.current[note.id]
+      if (div && editingNote !== note.id) {
+        // Only update if the content has changed and we're not editing
+        if (div.innerHTML !== note.content) {
+          div.innerHTML = note.content || '<span style="color: #6b7280;">Click to write...</span>'
+        }
+      }
+    })
+  }, [notes, editingNote])
 
   const fetchNotes = async () => {
     try {
@@ -161,7 +175,32 @@ export default function NotesBoard() {
   const handleContentEditableInput = (noteId: string, e: React.FormEvent<HTMLDivElement>) => {
     const div = e.currentTarget
     const html = div.innerHTML
-    updateNoteLocal(noteId, { content: html })
+
+    // Update the notes state directly without re-rendering the contentEditable
+    setNotes(prevNotes =>
+      prevNotes.map(note =>
+        note.id === noteId ? { ...note, content: html } : note
+      )
+    )
+
+    // Clear existing timer for this note
+    if (saveTimersRef.current[noteId]) {
+      clearTimeout(saveTimersRef.current[noteId])
+    }
+
+    // Set new timer to save after 500ms of no typing
+    saveTimersRef.current[noteId] = setTimeout(async () => {
+      try {
+        const { error } = await supabase
+          .from('notes')
+          .update({ content: html, updated_at: new Date().toISOString() })
+          .eq('id', noteId)
+
+        if (error) throw error
+      } catch (error) {
+        console.error('Error saving note:', error)
+      }
+    }, 500)
   }
 
   // Handle keyboard events in contentEditable
@@ -381,6 +420,14 @@ export default function NotesBoard() {
 
                       {/* Note Content - WYSIWYG Editor */}
                       <div
+                        ref={(el) => {
+                          contentRefs.current[note.id] = el
+                          // Set initial content only once
+                          if (el && !contentInitialized.current[note.id]) {
+                            el.innerHTML = note.content || '<span style="color: #6b7280;">Click to write...</span>'
+                            contentInitialized.current[note.id] = true
+                          }
+                        }}
                         data-note-id={note.id}
                         contentEditable={editingNote === note.id}
                         suppressContentEditableWarning
@@ -394,9 +441,6 @@ export default function NotesBoard() {
                               setEditingNote(null);
                             }
                           }, 0);
-                        }}
-                        dangerouslySetInnerHTML={{
-                          __html: note.content || '<span style="color: #6b7280;">Click to write...</span>'
                         }}
                         className="min-h-[400px] max-h-[600px] overflow-auto cursor-text p-0 text-gray-300 text-base leading-relaxed font-sans focus:outline-none"
                         style={{
