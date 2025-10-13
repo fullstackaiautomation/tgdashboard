@@ -30,8 +30,8 @@ export const EditTaskModal: FC<EditTaskModalProps> = ({ task, isOpen, onClose, b
   const [hoursWorked, setHoursWorked] = useState<number | null>(task.hours_worked);
   const [hoursProjected, setHoursProjected] = useState<number | null>(task.hours_projected);
   const [progress, setProgress] = useState(task.progress_percentage ?? 0);
-  const [selectedProjectId, setSelectedProjectId] = useState(task.project_id || '');
-  const [selectedPhaseId, setSelectedPhaseId] = useState(task.phase_id || '');
+  const [selectedProjectId, setSelectedProjectId] = useState(task.project_id || 'no-project');
+  const [selectedPhaseId, setSelectedPhaseId] = useState(task.phase_id || 'no-phase');
   const [dueDate, setDueDate] = useState<string | null>(task.due_date);
   const [showProgressSlider, setShowProgressSlider] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -50,8 +50,8 @@ export const EditTaskModal: FC<EditTaskModalProps> = ({ task, isOpen, onClose, b
     setHoursWorked(task.hours_worked);
     setHoursProjected(task.hours_projected);
     setProgress(task.progress_percentage ?? 0);
-    setSelectedProjectId(task.project_id || '');
-    setSelectedPhaseId(task.phase_id || '');
+    setSelectedProjectId(task.project_id || 'no-project');
+    setSelectedPhaseId(task.phase_id || 'no-phase');
     setDueDate(task.due_date);
   }, [task]);
 
@@ -78,8 +78,8 @@ export const EditTaskModal: FC<EditTaskModalProps> = ({ task, isOpen, onClose, b
           hours_projected: hoursProjected,
           progress_percentage: progress,
           status: newStatus,
-          project_id: selectedProjectId || null,
-          phase_id: selectedPhaseId === 'no-phase' ? null : selectedPhaseId || null,
+          project_id: selectedProjectId === 'no-project' ? null : selectedProjectId,
+          phase_id: selectedPhaseId === 'no-phase' ? null : selectedPhaseId,
           due_date: dueDate,
           completed_at: progress === 100 && task.progress_percentage !== 100 ? new Date().toISOString() : undefined,
         },
@@ -156,7 +156,7 @@ export const EditTaskModal: FC<EditTaskModalProps> = ({ task, isOpen, onClose, b
                   <SelectValue placeholder="No Project Identified" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Project Identified</SelectItem>
+                  <SelectItem value="no-project">No Project Identified</SelectItem>
                   {allProjects?.map((proj) => (
                     <SelectItem key={proj.id} value={proj.id}>
                       {proj.name}
@@ -172,7 +172,7 @@ export const EditTaskModal: FC<EditTaskModalProps> = ({ task, isOpen, onClose, b
               <Select
                 value={selectedPhaseId || 'no-phase'}
                 onValueChange={setSelectedPhaseId}
-                disabled={!selectedProjectId}
+                disabled={!selectedProjectId || selectedProjectId === 'no-project'}
               >
                 <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
                   <SelectValue placeholder="No Phase Identified" />
