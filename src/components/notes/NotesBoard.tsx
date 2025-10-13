@@ -168,10 +168,14 @@ export default function NotesBoard() {
         /\[(.*?)\]\((.*?)\)/g,
         '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline">$1</a>'
       )
-      // Convert plain URLs to clickable links (but not if already in a markdown link)
+      // Convert plain URLs to clickable links with domain as text
       .replace(
-        /(?<!\()(https?:\/\/[^\s<)]+)(?!\))/g,
-        '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline">$1</a>'
+        /(?<!\(|href="|>)(https?:\/\/([^\s<)]+))(?![^<]*<\/a>)/g,
+        (match, url, domain) => {
+          // Extract just the domain for display
+          const displayText = domain.split('/')[0];
+          return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline" title="${url}">${displayText}</a>`;
+        }
       )
       // Convert line breaks to <br>
       .replace(/\n/g, '<br/>')
@@ -387,7 +391,10 @@ export default function NotesBoard() {
                     <CardContent className="space-y-4 px-6 pb-6">
                       {/* Formatting Toolbar */}
                       {editingNote === note.id && (
-                        <div className="flex items-center gap-1 pb-2 border-b border-gray-800/50 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div
+                          className="flex items-center gap-1 pb-2 border-b border-gray-800/50 animate-in fade-in slide-in-from-top-2 duration-200"
+                          onMouseDown={(e) => e.preventDefault()} // Prevent textarea from losing focus
+                        >
                           <Button
                             variant="ghost"
                             size="sm"
@@ -445,7 +452,15 @@ export default function NotesBoard() {
                           value={note.content}
                           onChange={(e) => updateNoteLocal(note.id, { content: e.target.value })}
                           onFocus={() => setEditingNote(note.id)}
-                          onBlur={() => setEditingNote(null)}
+                          onBlur={(e) => {
+                            // Only blur if clicking outside the card
+                            const currentTarget = e.currentTarget;
+                            setTimeout(() => {
+                              if (!currentTarget.contains(document.activeElement)) {
+                                setEditingNote(null);
+                              }
+                            }, 0);
+                          }}
                           placeholder="Write your note here..."
                           className="min-h-[400px] max-h-[600px] resize-none border-none shadow-none p-0 focus-visible:ring-0 bg-transparent text-gray-300 placeholder:text-gray-600 text-base leading-relaxed font-sans"
                         />
