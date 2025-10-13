@@ -49,9 +49,17 @@ export const useCreateProject = () => {
 
   return useMutation({
     mutationFn: async (newProject: CreateProjectDTO) => {
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('projects')
-        .insert([{ ...newProject, status: newProject.status || 'active' }])
+        .insert([{
+          ...newProject,
+          user_id: user.id,
+          status: newProject.status || 'active'
+        }])
         .select()
         .single();
 
@@ -153,10 +161,15 @@ export const useCreatePhase = () => {
 
   return useMutation({
     mutationFn: async (newPhase: CreatePhaseDTO) => {
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('phases')
         .insert([{
           ...newPhase,
+          user_id: user.id,
           status: newPhase.status || 'active',
           sequence_order: newPhase.sequence_order || 0
         }])

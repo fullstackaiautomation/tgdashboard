@@ -194,7 +194,19 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
   };
 
   const handleScheduleChange = (date: string | null, _time: string | null) => {
-    handleUpdate({ due_date: date });
+    // The DateTimePicker already provides properly formatted date string (YYYY-MM-DD)
+    // We need to convert it to ISO format for storage
+    if (!date) {
+      handleUpdate({ due_date: undefined });
+      return;
+    }
+
+    // Parse the YYYY-MM-DD string and create date at noon local time
+    const [year, month, day] = date.split('-').map(Number);
+    const localDate = new Date(year, month - 1, day, 12, 0, 0, 0);
+
+    // Convert to ISO string for storage
+    handleUpdate({ due_date: localDate.toISOString() });
   };
 
   const handleDeleteClick = () => {

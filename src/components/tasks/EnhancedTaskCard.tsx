@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { useUpdateTask, useDeleteTask } from '../../hooks/useTasks';
 import { useProjects, usePhases } from '../../hooks/useProjects';
 import { useUndo } from '../../hooks/useUndo';
+import { parseLocalDate, formatDateString } from '../../utils/dateHelpers';
 import type { TaskHub, TaskStatus, UpdateTaskDTO } from '../../types/task';
 
 interface EnhancedTaskCardProps {
@@ -119,7 +120,21 @@ export const EnhancedTaskCard: FC<EnhancedTaskCardProps> = ({ task, className = 
   };
 
   const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = e.target.value ? new Date(e.target.value).toISOString() : undefined;
+    // Parse the date value from input (YYYY-MM-DD format)
+    if (!e.target.value) {
+      handleUpdate({ due_date: undefined }, { due_date: task.due_date || undefined });
+      return;
+    }
+
+    // Parse the date string explicitly to avoid timezone issues
+    const [year, month, day] = e.target.value.split('-').map(Number);
+
+    // Create date at noon local time to avoid DST issues
+    const localDate = new Date(year, month - 1, day, 12, 0, 0, 0);
+
+    // Convert to ISO string for storage
+    const newDate = localDate.toISOString();
+
     handleUpdate({ due_date: newDate }, { due_date: task.due_date || undefined });
   };
 
@@ -323,7 +338,7 @@ export const EnhancedTaskCard: FC<EnhancedTaskCardProps> = ({ task, className = 
             <div className="flex items-center gap-2">
               <input
                 type="date"
-                value={task.due_date ? format(new Date(task.due_date), 'yyyy-MM-dd') : ''}
+                value={task.due_date ? formatDateString(parseLocalDate(task.due_date) || new Date()) : ''}
                 onChange={handleDueDateChange}
                 className={`text-xs px-2 py-1 rounded bg-gray-700 border border-gray-600 hover:border-gray-500 focus:border-orange-500 focus:outline-none cursor-pointer ${
                   overdue ? 'text-red-400 font-medium' : 'text-gray-400'
