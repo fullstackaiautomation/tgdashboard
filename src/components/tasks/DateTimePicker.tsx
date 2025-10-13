@@ -3,7 +3,7 @@ import type { FC } from 'react';
 // import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
-import { parseLocalDateForDisplay, formatDateString } from '@/utils/dateHelpers';
+import { formatDateString } from '@/utils/dateHelpers';
 
 interface DateTimePickerProps {
   scheduledDate?: string | null;
@@ -20,12 +20,26 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
   onSchedule,
   onClose,
 }) => {
-  // Parse date at MIDNIGHT for Calendar component display
-  // This ensures react-day-picker correctly highlights the selected date
-  const parsedDate = parseLocalDateForDisplay(scheduledDate);
+  // CRITICAL FIX: Create Date explicitly from components to avoid timezone issues
+  let initialDate: Date | undefined = undefined;
 
-  // Initialize with date at midnight for Calendar visual consistency
-  const initialDate: Date | undefined = parsedDate || undefined;
+  if (scheduledDate) {
+    // Parse YYYY-MM-DD string into components
+    const [year, month, day] = scheduledDate.split('-').map(Number);
+
+    if (year && month && day) {
+      // Create date in LOCAL timezone at start of day
+      // This is the ONLY reliable way to ensure Calendar displays correctly
+      initialDate = new Date(year, month - 1, day);
+
+      console.log('🔍 DateTimePicker init:', {
+        input: scheduledDate,
+        parsed: { year, month, day },
+        created: initialDate,
+        check: initialDate.toLocaleDateString()
+      });
+    }
+  }
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate);
 
