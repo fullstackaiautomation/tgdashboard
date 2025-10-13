@@ -241,7 +241,8 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
     if (task.businesses) {
       const slug = task.businesses.slug;
       switch(slug) {
-        case 'full-stack': return 'rgb(25, 95, 75)'; // darker green
+        case 'full-stack':
+        case 'fullstack': return 'rgb(25, 95, 75)'; // darker green
         case 'huge-capital': return 'rgb(85, 45, 120)'; // darker purple
         case 's4': return 'rgb(35, 70, 130)'; // darker blue
         case '808': return 'rgb(120, 95, 35)'; // darker yellow/gold
@@ -257,6 +258,19 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
         default: return 'rgb(31, 41, 55)';
       }
     }
+    // Fallback to legacy area field
+    if (task.area) {
+      switch(task.area) {
+        case 'Full Stack': return 'rgb(25, 95, 75)'; // darker green
+        case 'Huge Capital': return 'rgb(85, 45, 120)'; // darker purple
+        case 'S4': return 'rgb(35, 70, 130)'; // darker blue
+        case '808': return 'rgb(120, 95, 35)'; // darker yellow/gold
+        case 'Health': return 'rgb(25, 90, 85)'; // darker teal
+        case 'Personal': return 'rgb(120, 45, 85)'; // darker pink
+        case 'Golf': return 'rgb(130, 65, 25)'; // darker orange
+        default: return 'rgb(31, 41, 55)';
+      }
+    }
     return 'rgb(31, 41, 55)';
   };
 
@@ -265,7 +279,8 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
     if (task.businesses) {
       const slug = task.businesses.slug;
       switch(slug) {
-        case 'full-stack': return 'rgb(60, 130, 105)'; // lighter green
+        case 'full-stack':
+        case 'fullstack': return 'rgb(60, 130, 105)'; // lighter green
         case 'huge-capital': return 'rgb(130, 85, 165)'; // lighter purple
         case 's4': return 'rgb(75, 115, 170)'; // lighter blue
         case '808': return 'rgb(165, 135, 70)'; // lighter yellow/gold
@@ -278,6 +293,19 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
         case 'health': return 'rgb(60, 130, 120)'; // lighter teal
         case 'personal': return 'rgb(165, 85, 125)'; // lighter pink
         case 'golf': return 'rgb(175, 105, 60)'; // lighter orange
+        default: return 'rgb(31, 41, 55)';
+      }
+    }
+    // Fallback to legacy area field
+    if (task.area) {
+      switch(task.area) {
+        case 'Full Stack': return 'rgb(60, 130, 105)'; // lighter green
+        case 'Huge Capital': return 'rgb(130, 85, 165)'; // lighter purple
+        case 'S4': return 'rgb(75, 115, 170)'; // lighter blue
+        case '808': return 'rgb(165, 135, 70)'; // lighter yellow/gold
+        case 'Health': return 'rgb(60, 130, 120)'; // lighter teal
+        case 'Personal': return 'rgb(165, 85, 125)'; // lighter pink
+        case 'Golf': return 'rgb(175, 105, 60)'; // lighter orange
         default: return 'rgb(31, 41, 55)';
       }
     }
