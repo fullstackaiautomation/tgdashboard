@@ -5,7 +5,7 @@ import { Input } from '../ui/input'
 import { Textarea } from '../ui/textarea'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
-import { Search, Plus, Trash2, Palette, Bold, Underline, List, ListOrdered } from 'lucide-react'
+import { Search, Plus, Trash2, Palette, Bold, Underline, List, ListOrdered, Link as LinkIcon } from 'lucide-react'
 
 interface Note {
   id: string
@@ -156,8 +156,31 @@ export default function NotesBoard() {
     }
   }
 
+  // Render formatted text with proper HTML rendering
+  const renderFormattedText = (text: string) => {
+    // Process text to convert markdown-style formatting to HTML
+    let html = text
+      // Convert **bold** to <strong>
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      // Keep <u>underline</u> as is
+      // Convert markdown links [text](url) to HTML links
+      .replace(
+        /\[(.*?)\]\((.*?)\)/g,
+        '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline">$1</a>'
+      )
+      // Convert plain URLs to clickable links (but not if already in a markdown link)
+      .replace(
+        /(?<!\()(https?:\/\/[^\s<)]+)(?!\))/g,
+        '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline">$1</a>'
+      )
+      // Convert line breaks to <br>
+      .replace(/\n/g, '<br/>')
+
+    return html
+  }
+
   // Text formatting functions
-  const applyFormatting = (noteId: string, formatType: 'bold' | 'underline' | 'bullet' | 'numbered') => {
+  const applyFormatting = (noteId: string, formatType: 'bold' | 'underline' | 'bullet' | 'numbered' | 'link') => {
     const textarea = textareaRefs.current[noteId]
     if (!textarea) return
 
@@ -220,6 +243,22 @@ export default function NotesBoard() {
         // Add numbering
         newText = text.substring(0, lineStart) + '1. ' + lineText + text.substring(actualLineEnd)
         newCursorPos = start + 3
+      }
+    } else if (formatType === 'link') {
+      // Prompt for URL and create link
+      const url = prompt('Enter URL:')
+      if (url) {
+        if (selectedText) {
+          // Wrap selected text as link
+          newText = text.substring(0, start) + `[${selectedText}](${url})` + text.substring(end)
+          newCursorPos = end + url.length + 4
+        } else {
+          // Insert link placeholder
+          newText = text.substring(0, start) + `[link](${url})` + text.substring(end)
+          newCursorPos = start + url.length + 8
+        }
+      } else {
+        return // User cancelled
       }
     }
 
@@ -321,14 +360,12 @@ export default function NotesBoard() {
                 return (
                   <Card
                     key={note.id}
-                    className="group relative overflow-hidden transition-all duration-200 hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-1 border-l-[6px] bg-gray-900/80 border-gray-800 backdrop-blur-sm"
-                    style={{ borderLeftColor: colorObj.solid }}
+                    className="group relative overflow-hidden transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 border-gray-800 backdrop-blur-sm"
+                    style={{
+                      backgroundColor: colorObj.value,
+                      boxShadow: `0 0 20px ${colorObj.solid}20`
+                    }}
                   >
-                    {/* Color accent glow */}
-                    <div
-                      className="absolute inset-0 opacity-0 group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none"
-                      style={{ backgroundColor: colorObj.solid }}
-                    />
 
                     <CardHeader className="pb-4 space-y-0 pt-6 px-6">
                       <div className="flex items-start justify-between gap-3">
@@ -388,19 +425,37 @@ export default function NotesBoard() {
                           >
                             <ListOrdered className="h-4 w-4" />
                           </Button>
+                          <div className="w-px h-6 bg-gray-800 mx-1" />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => applyFormatting(note.id, 'link')}
+                            className="h-8 w-8 p-0 hover:bg-gray-800 text-gray-400 hover:text-white"
+                            title="Add link"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                          </Button>
                         </div>
                       )}
 
                       {/* Note Content */}
-                      <Textarea
-                        ref={(el) => { if (el) textareaRefs.current[note.id] = el; }}
-                        value={note.content}
-                        onChange={(e) => updateNoteLocal(note.id, { content: e.target.value })}
-                        onFocus={() => setEditingNote(note.id)}
-                        onBlur={() => setEditingNote(null)}
-                        placeholder="Write your note here..."
-                        className="min-h-[400px] max-h-[600px] resize-none border-none shadow-none p-0 focus-visible:ring-0 bg-transparent text-gray-300 placeholder:text-gray-600 text-base leading-relaxed font-sans"
-                      />
+                      {editingNote === note.id ? (
+                        <Textarea
+                          ref={(el) => { if (el) textareaRefs.current[note.id] = el; }}
+                          value={note.content}
+                          onChange={(e) => updateNoteLocal(note.id, { content: e.target.value })}
+                          onFocus={() => setEditingNote(note.id)}
+                          onBlur={() => setEditingNote(null)}
+                          placeholder="Write your note here..."
+                          className="min-h-[400px] max-h-[600px] resize-none border-none shadow-none p-0 focus-visible:ring-0 bg-transparent text-gray-300 placeholder:text-gray-600 text-base leading-relaxed font-sans"
+                        />
+                      ) : (
+                        <div
+                          onClick={() => setEditingNote(note.id)}
+                          className="min-h-[400px] max-h-[600px] overflow-auto cursor-text p-0 text-gray-300 text-base leading-relaxed font-sans prose prose-invert max-w-none"
+                          dangerouslySetInnerHTML={{ __html: renderFormattedText(note.content || '<span class="text-gray-600">Click to write...</span>') }}
+                        />
+                      )}
 
                       {/* Footer Actions */}
                       <div
