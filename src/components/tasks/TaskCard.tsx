@@ -16,7 +16,7 @@ import { ProgressSlider } from '../shared/ProgressSlider';
 import { DateTimePicker } from './DateTimePicker';
 import { TimeTrackingModal } from './TimeTrackingModal';
 import type { TaskHub, TaskStatus, Automation, EffortLevel } from '../../types/task';
-import { parseLocalDate } from '@/utils/dateHelpers';
+import { parseLocalDate, isToday as checkIsToday, isOverdue as checkIsOverdue } from '@/utils/dateHelpers';
 
 interface TaskCardProps {
   task: TaskHub;
@@ -69,24 +69,12 @@ const getSourceName = (task: TaskHub): string => {
 
 const isOverdue = (task: TaskHub): boolean => {
   if (!task.due_date || task.progress_percentage === 100) return false;
-  const dueDate = parseLocalDate(task.due_date);
-  if (!dueDate) return false;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  dueDate.setHours(0, 0, 0, 0);
-  return dueDate < today;
+  return checkIsOverdue(task.due_date);
 };
 
 const isDueToday = (task: TaskHub): boolean => {
   if (!task.due_date) return false;
-  const dueDate = parseLocalDate(task.due_date);
-  if (!dueDate) return false;
-
-  const today = new Date();
-  return dueDate.getFullYear() === today.getFullYear() &&
-         dueDate.getMonth() === today.getMonth() &&
-         dueDate.getDate() === today.getDate();
+  return checkIsToday(task.due_date);
 };
 
 /**

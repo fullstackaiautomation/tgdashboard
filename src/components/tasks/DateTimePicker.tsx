@@ -22,16 +22,35 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
 }) => {
   // Parse the date string in local timezone instead of UTC
   const parsedDate = parseLocalDate(scheduledDate);
-  const initialDate = parsedDate || undefined;
-  const [selectedDate, _setSelectedDate] = useState<Date | undefined>(initialDate);
+
+  // Ensure the date is at midnight local time for consistent display
+  let initialDate: Date | undefined;
+  if (parsedDate) {
+    initialDate = new Date(parsedDate);
+    initialDate.setHours(12, 0, 0, 0); // Set to noon to avoid DST issues
+  }
+
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate);
 
   const handleSelect = (date: Date | undefined) => {
     if (!date) return;
 
-    // Format date as YYYY-MM-DD using local timezone (not UTC)
-    const formattedDate = formatDateString(date);
+    // Set to noon local time to avoid timezone shifts
+    const localDate = new Date(date);
+    localDate.setHours(12, 0, 0, 0);
 
-    console.log('📅 DateTimePicker selected:', { date, formattedDate });
+    // Format date as YYYY-MM-DD using local timezone
+    const formattedDate = formatDateString(localDate);
+
+    console.log('📅 DateTimePicker selected:', {
+      originalDate: date,
+      localDate,
+      formattedDate,
+      isoString: localDate.toISOString(),
+      localString: localDate.toLocaleDateString()
+    });
+
+    setSelectedDate(localDate);
     onSchedule(formattedDate, null);
     onClose();
   };

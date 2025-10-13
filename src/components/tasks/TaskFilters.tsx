@@ -2,6 +2,7 @@ import type { FC } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { TaskHub } from '@/types/task';
+import { parseLocalDate, getTodayMidnight, isToday, isOverdue as checkOverdue, isTomorrow } from '@/utils/dateHelpers';
 
 interface TaskFiltersProps {
   selectedBusiness: string | null;
@@ -69,32 +70,21 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
 
       // Apply active status filter (if any)
       if (selectedStatus) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const dayAfterTomorrow = new Date(today);
-        dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
-
         switch(selectedStatus) {
           case 'due-today': {
-            const dueDate = task.due_date ? new Date(task.due_date) : null;
-            if (!dueDate || dueDate < today || dueDate >= tomorrow) return false;
+            if (!isToday(task.due_date) || task.status === 'Done') return false;
             break;
           }
           case 'completed-today': {
-            const completedDate = task.completed_at ? new Date(task.completed_at) : null;
-            if (!completedDate || completedDate < today || completedDate >= tomorrow) return false;
+            if (!isToday(task.completed_at)) return false;
             break;
           }
           case 'due-tomorrow': {
-            const dueDate = task.due_date ? new Date(task.due_date) : null;
-            if (!dueDate || dueDate < tomorrow || dueDate >= dayAfterTomorrow) return false;
+            if (!isTomorrow(task.due_date) || task.status === 'Done') return false;
             break;
           }
           case 'overdue': {
-            const isOverdue = task.due_date && new Date(task.due_date) < today && task.status !== 'Done';
-            if (!isOverdue) return false;
+            if (!checkOverdue(task.due_date) || task.status === 'Done') return false;
             break;
           }
           case 'active':
@@ -114,11 +104,6 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
   };
 
   const getStatusCount = (statusId: string) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
     return tasks.filter(task => {
       // Apply active business/area filter (if any)
       if (selectedBusiness) {
@@ -131,31 +116,19 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
         }
       }
 
-      // Apply status filter
+      // Apply status filter using date helpers
       switch(statusId) {
         case 'due-today': {
-          if (!task.due_date) return false;
-          const dueDate = new Date(task.due_date);
-          dueDate.setHours(0, 0, 0, 0);
-          return dueDate.getTime() === today.getTime() && task.status !== 'Done';
+          return isToday(task.due_date) && task.status !== 'Done';
         }
         case 'completed-today': {
-          if (!task.completed_at) return false;
-          const completedDate = new Date(task.completed_at);
-          completedDate.setHours(0, 0, 0, 0);
-          return completedDate.getTime() === today.getTime();
+          return isToday(task.completed_at);
         }
         case 'due-tomorrow': {
-          if (!task.due_date) return false;
-          const dueDate = new Date(task.due_date);
-          dueDate.setHours(0, 0, 0, 0);
-          return dueDate.getTime() === tomorrow.getTime() && task.status !== 'Done';
+          return isTomorrow(task.due_date) && task.status !== 'Done';
         }
         case 'overdue': {
-          if (!task.due_date || task.status === 'Done') return false;
-          const dueDate = new Date(task.due_date);
-          dueDate.setHours(0, 0, 0, 0);
-          return dueDate.getTime() < today.getTime();
+          return checkOverdue(task.due_date) && task.status !== 'Done';
         }
         case 'active':
           return task.status !== 'Done' && !task.completed_at;

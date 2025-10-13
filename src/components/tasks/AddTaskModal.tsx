@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useCreateTask } from '../../hooks/useTasks';
 import { useBusinesses } from '../../hooks/useBusinesses';
 import { useProjects, usePhases } from '../../hooks/useProjects';
+import { DateTimePicker } from './DateTimePicker';
 import type {
   CreateTaskDTO,
   TaskStatus,
@@ -191,12 +192,9 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
               <label htmlFor="due_date" className="block text-sm font-medium text-gray-300 mb-1">
                 Due Date
               </label>
-              <input
-                type="date"
-                id="due_date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <DateTimePicker
+                scheduledDate={dueDate}
+                onSchedule={(date) => setDueDate(date)}
               />
             </div>
           </div>

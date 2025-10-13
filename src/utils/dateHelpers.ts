@@ -1,22 +1,38 @@
 /**
- * Parse a date string (YYYY-MM-DD) in local timezone instead of UTC
- * This prevents timezone shifts when displaying/selecting dates
+ * Date helper utilities for consistent timezone handling across the application
+ *
+ * IMPORTANT: All date operations use local timezone to prevent UTC conversion issues
+ * For date comparisons, dates are normalized to midnight local time
+ * For date storage, dates are set to noon to avoid DST boundary issues
+ */
+
+/**
+ * Parse a date string in local timezone - FIXED VERSION
+ * Handles both YYYY-MM-DD and ISO date strings
+ * @param dateString - Date string in YYYY-MM-DD or ISO format
+ * @returns Date object in local timezone or null
  */
 export const parseLocalDate = (dateString: string | null | undefined): Date | null => {
   if (!dateString) return null;
 
-  // If it's already a full ISO string with time, just parse it
+  // If it's already an ISO string with time, parse it directly
   if (dateString.includes('T')) {
     return new Date(dateString);
   }
 
-  // For YYYY-MM-DD format, append local midnight time to prevent UTC conversion
-  // This ensures the date stays in local timezone
-  return new Date(dateString + 'T00:00:00');
+  // For YYYY-MM-DD format, parse components to avoid UTC interpretation
+  const [year, month, day] = dateString.split('-').map(Number);
+  if (!year || !month || !day) return null;
+
+  // Create date in local timezone at noon to avoid DST issues
+  const date = new Date(year, month - 1, day, 12, 0, 0, 0);
+  return date;
 };
 
 /**
- * Format a date to YYYY-MM-DD string in local timezone
+ * Format a Date object to YYYY-MM-DD string in local timezone
+ * @param date - Date object to format
+ * @returns YYYY-MM-DD formatted string
  */
 export const formatDateString = (date: Date): string => {
   const year = date.getFullYear();
@@ -26,30 +42,69 @@ export const formatDateString = (date: Date): string => {
 };
 
 /**
+ * Get today's date at midnight in local timezone
+ * @returns Date object set to today at midnight local time
+ */
+export const getTodayMidnight = (): Date => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+};
+
+/**
+ * Get today's date at noon in local timezone (for storage)
+ * @returns Date object set to today at noon local time
+ */
+export const getTodayNoon = (): Date => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
+};
+
+/**
  * Check if a date string represents today in local timezone
+ * @param dateString - Date string to check
+ * @returns true if the date is today
  */
 export const isToday = (dateString: string | null | undefined): boolean => {
   if (!dateString) return false;
   const date = parseLocalDate(dateString);
   if (!date) return false;
 
-  const today = new Date();
-  return date.getFullYear() === today.getFullYear() &&
-         date.getMonth() === today.getMonth() &&
-         date.getDate() === today.getDate();
+  const today = getTodayMidnight();
+  const checkDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+
+  return checkDate.getTime() === today.getTime();
 };
 
 /**
  * Check if a date string is overdue (before today) in local timezone
+ * @param dateString - Date string to check
+ * @returns true if the date is before today
  */
 export const isOverdue = (dateString: string | null | undefined): boolean => {
   if (!dateString) return false;
   const date = parseLocalDate(dateString);
   if (!date) return false;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  date.setHours(0, 0, 0, 0);
+  const today = getTodayMidnight();
+  const checkDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
 
-  return date < today;
+  return checkDate.getTime() < today.getTime();
+};
+
+/**
+ * Check if a date is tomorrow
+ * @param dateString - Date string to check
+ * @returns true if the date is tomorrow
+ */
+export const isTomorrow = (dateString: string | null | undefined): boolean => {
+  if (!dateString) return false;
+  const date = parseLocalDate(dateString);
+  if (!date) return false;
+
+  const tomorrow = getTodayMidnight();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const checkDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+
+  return checkDate.getTime() === tomorrow.getTime();
 };
