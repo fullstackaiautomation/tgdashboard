@@ -1,12 +1,30 @@
-import { Bell, Search } from 'lucide-react'
+import { useState } from 'react'
+import { Bell, Search, Download } from 'lucide-react'
+import { exportAndDownload } from '../utils/dataExport'
 
 const Header = () => {
+  const [isExporting, setIsExporting] = useState(false)
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   })
+
+  const handleExport = async () => {
+    if (isExporting) return
+
+    setIsExporting(true)
+    try {
+      await exportAndDownload()
+      alert('✅ Data exported successfully!')
+    } catch (error) {
+      console.error('Export failed:', error)
+      alert('❌ Export failed. Please try again.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   return (
     <header className="bg-white border-b border-gray-200 px-8 py-4">
@@ -26,6 +44,17 @@ const Header = () => {
               className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
             />
           </div>
+
+          {/* Export Data */}
+          <button
+            onClick={handleExport}
+            disabled={isExporting}
+            className="flex items-center gap-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            title="Export all data as JSON backup"
+          >
+            <Download className="w-4 h-4" />
+            {isExporting ? 'Exporting...' : 'Export Data'}
+          </button>
 
           {/* Notifications */}
           <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
