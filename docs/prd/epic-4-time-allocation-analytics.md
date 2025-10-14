@@ -1,47 +1,50 @@
 # Epic 4: Time Allocation & Analytics
 
-**Epic Goal:** Enhance Deep Work log integration to provide comprehensive time allocation analytics across all businesses and life areas, enabling data-driven decisions about where time is being invested and identifying when health goals are being neglected. Build visual analytics showing time distribution, business-level ROI tracking, and alerts when allocation falls below target thresholds. This transforms the Deep Work timer from simple time tracking into strategic intelligence that prevents burnout and ensures balanced attention across the multi-business portfolio.
+**Epic Goal:** Enhance Deep Work log integration to provide comprehensive time allocation analytics across all 7 life areas (Full Stack, S4, 808, Personal, Huge Capital, Golf, Health), enabling data-driven decisions about where time is being invested and identifying when health goals are being neglected. Build visual analytics showing time distribution, area-level tracking, and alerts when allocation falls below target thresholds. This transforms the Deep Work timer from simple time tracking into strategic intelligence that prevents burnout and ensures balanced attention across work and life areas.
+
+**Architecture Note:** This epic creates a NEW "Time Analytics" page (`/analytics` route) to visualize time allocation. Existing Tasks Hub and Business Projects pages are NOT modified.
 
 ### Story 4.1: Deep Work Log Time Allocation Calculation
 
-As a multi-business operator,
-I want the Deep Work log to automatically calculate time invested per business and life area,
+As someone managing multiple life areas,
+I want the Deep Work log to automatically calculate time invested per area,
 so that I can see where my hours are actually going without manual time tracking.
 
 #### Acceptance Criteria
 
-1. Each Deep Work session is tagged with: Business/Life Area, Project (if applicable), Task, and Labels (e.g., "Internal Build", "$$$ Printer $$$")
-2. Time allocation calculation aggregates Deep Work sessions by business area: Total hours per business per day/week/month
+1. Each Deep Work session is tagged with: Area (one of 7: Full Stack, S4, 808, Personal, Huge Capital, Golf, Health), Project (if applicable), Task, and Labels (e.g., "Internal Build", "$$$ Printer $$$")
+2. Time allocation calculation aggregates Deep Work sessions by area: Total hours per area per day/week/month
 3. Time allocation displayed in multiple views:
    - Daily: "Today you spent 3h on Full Stack, 2h on Huge Capital, 1h on Health"
-   - Weekly: Bar chart showing hours per business across the week
+   - Weekly: Bar chart showing hours per area across the week
    - Monthly: Trend line showing time distribution over 30 days
-4. Life areas (Health, Content, Golf, Personal) are tracked alongside businesses with equal visibility
-5. "Unallocated time" category captures hours not tagged to specific business/area (should be minimized)
-6. Time allocation data is filterable: view by date range, by business, by project, by label
+4. All 7 areas are tracked with equal visibility (no business vs. life separation)
+5. "Unallocated time" category captures hours not tagged to specific area (should be minimized)
+6. Time allocation data is filterable: view by date range, by area, by project, by label
 7. Calculations update in real-time as new Deep Work sessions are logged
 8. Export functionality allows downloading time allocation report as CSV for client invoicing or personal analysis
 
-### Story 4.2: Business-Level Time Investment Dashboard
+### Story 4.2: Area-Level Time Investment Analytics (New Page)
 
-As a consultant balancing 3 clients plus 2 personal ventures,
-I want each Business page to show total time invested and ROI metrics,
-so that I can ensure I'm allocating appropriate attention to each revenue stream.
+As someone balancing 7 life areas,
+I want a dedicated analytics page showing time invested per area,
+so that I can ensure balanced attention across work and life without modifying existing pages.
 
 #### Acceptance Criteria
 
-1. Each Business page displays "Time Invested" card at top showing:
+1. NEW page at `/analytics` route displays area-level time investment dashboard
+2. Each of 7 areas (Full Stack, S4, 808, Personal, Huge Capital, Golf, Health) shows "Time Invested" card with:
    - Total hours (all-time)
    - Hours this week
    - Hours this month
    - Average hours per week over last 4 weeks
-2. Business page shows time allocation breakdown by project within that business (pie chart or bar chart)
-3. Time allocation vs. revenue tracking: "Huge Capital: 45h this month, $5K revenue = $111/hour effective rate"
-4. Alert indicator if business has received zero hours for 7+ consecutive days: "⚠️ No time allocated this week"
-5. Business comparison view shows all 5 businesses side-by-side with time investment bars for relative comparison
-6. "Time Budget" feature allows setting target hours per business per week, with visual indicator showing actual vs. target
-7. Historical time trends: line graph showing hours invested in each business over last 3 months
-8. Labels within business (e.g., "New Build", "Bug Fix", "Client Meeting") show time breakdown for internal analysis
+3. Area-level time allocation breakdown by projects within that area (pie chart or bar chart)
+4. Alert indicator if area has received zero hours for 7+ consecutive days: "⚠️ No time allocated this week"
+5. Area comparison view shows all 7 areas side-by-side with time investment bars for relative comparison
+6. "Time Budget" feature allows setting target hours per area per week, with visual indicator showing actual vs. target
+7. Historical time trends: line graph showing hours invested in each area over last 3 months
+8. Labels within area (e.g., "Internal Build", "Bug Fix", "Client Meeting") show time breakdown for internal analysis
+9. This is a NEW page - existing Business Projects page is NOT modified
 
 ### Story 4.3: Health Goal Time Allocation Monitoring
 
