@@ -66,7 +66,10 @@ export interface CreateDeepWorkSessionInput {
 export interface UpdateDeepWorkSessionInput {
   area?: string | null;
   task_type?: string | null;
+  task_id?: string | null;
+  start_time?: string;
   end_time?: string | null;
+  duration_minutes?: number | null;
   notes?: string | null;
   was_interrupted?: boolean;
   interruption_reason?: string | null;
@@ -75,7 +78,6 @@ export interface UpdateDeepWorkSessionInput {
   status?: SessionStatus;
   paused_duration?: number;
   labels?: string[];
-  // NOTE: duration_minutes is GENERATED, cannot be updated directly
 }
 
 // Analytics types

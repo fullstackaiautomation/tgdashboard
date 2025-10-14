@@ -51,12 +51,11 @@ export function exportTimeAllocationCSV(
         ? (session.duration_minutes / 60).toFixed(2)
         : '0.00';
 
-      const areaName =
-        session.businesses?.name || session.life_areas?.name || 'Unallocated';
-      const projectName = session.projects?.name || '-';
-      const phaseName = session.phases?.name || '-';
+      const areaName = session.area || 'Unallocated';
+      const projectName = '-'; // Not used in simple approach
+      const phaseName = '-'; // Not used in simple approach
       const taskName = session.tasks?.task_name || '-';
-      const labels = session.labels.join(', ') || '-';
+      const labels = (session.labels || []).join(', ') || '-';
 
       const row = [
         format(startTime, 'yyyy-MM-dd'),
@@ -213,15 +212,11 @@ function downloadCSV(content: string, filename: string) {
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
 
-  if (navigator.msSaveBlob) {
-    // IE 10+
-    navigator.msSaveBlob(blob, filename);
-  } else {
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+  // Modern browsers
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }

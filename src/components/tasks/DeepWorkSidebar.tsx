@@ -155,13 +155,8 @@ export const DeepWorkSidebar: FC<DeepWorkSidebarProps> = ({ tasks }) => {
         finalPausedSeconds += Math.floor((pauseEnd.getTime() - pauseStart.getTime()) / 1000);
       }
 
-      const activeWorkSeconds = seconds - finalPausedSeconds;
-      const durationMinutes = Math.floor(activeWorkSeconds / 60);
-
-      await completeSession.mutateAsync({
-        id: activeSessionId,
-        durationMinutes: durationMinutes,
-      });
+      // Complete the session (end_time is set automatically)
+      await completeSession.mutateAsync(activeSessionId);
 
       // Reset state
       setIsRunning(false);

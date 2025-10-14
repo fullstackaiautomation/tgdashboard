@@ -3,7 +3,7 @@
  * Story 4.1: Multi-select label input with autocomplete
  */
 
-import { FC, useState, useRef, useEffect } from 'react';
+import { type FC, useState, useRef, useEffect } from 'react';
 import { X, Tag, Plus } from 'lucide-react';
 
 interface LabelSelectorProps {

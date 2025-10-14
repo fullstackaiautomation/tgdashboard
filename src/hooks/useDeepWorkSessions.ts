@@ -12,6 +12,9 @@ import type {
   DeepWorkFilters,
 } from '@/types/deepWork';
 
+// Export DeepWorkLog as alias for DeepWorkSession (for backward compatibility)
+export type DeepWorkLog = DeepWorkSession;
+
 /**
  * Hook for fetching deep work sessions with optional filters
  */
