@@ -1,22 +1,24 @@
 # Epic 5: Review Dashboard & Aggregated Views
 
-**Epic Goal:** Create a unified Review page that aggregates read-only activity across all 7 main areas (DAILY, BIZNESS, CONTENT, HEALTH, FINANCES, LIFE, GOLF), providing the "what's up" snapshot for 1-2 click visibility into the entire life ecosystem. This becomes the default morning landing page—replacing the need to check email/Slack first—by showing everything important at a glance: tasks due today, project progress, health status, financial metrics, and areas needing attention. The Review dashboard is the culmination of all previous epics, synthesizing task sync, progress visualization, and time allocation into a single command center view.
+**Epic Goal:** Create a unified Review page that aggregates read-only activity across all main modules (Daily, Business Projects, Tasks Hub, Content Library, Finances) plus Health area focus, providing the "what's up" snapshot for 1-2 click visibility into the entire life ecosystem. This becomes the default morning landing page—replacing the need to check email/Slack first—by showing everything important at a glance: tasks due today, project progress, health status, financial metrics, and areas needing attention. The Review dashboard is the culmination of all previous epics, synthesizing task sync, progress visualization, and time allocation into a single command center view.
+
+**Architecture Note:** This epic creates a NEW Review page (`/review` route) that displays module-based cards. Existing module pages (Daily, Business Projects, Tasks Hub, Content Library, Finances) are NOT modified.
 
 ### Story 5.1: Review Dashboard Page Structure & Navigation
 
-As a multi-business operator starting my day,
-I want a Review dashboard that shows all 7 main areas in a single view,
+As someone starting my day,
+I want a Review dashboard that shows all main modules in a single view,
 so that I can see my entire life ecosystem status in 1-2 clicks without navigating to individual pages.
 
 #### Acceptance Criteria
 
-1. Review page displays 7 main area cards in organized grid layout: DAILY, BIZNESS, CONTENT, HEALTH, FINANCES, LIFE, GOLF
-2. Each area card shows: area name, color-coded icon, high-level status summary, and last updated timestamp
+1. Review page displays 6 main module cards in organized grid layout: Daily, Business Projects, Tasks Hub, Content Library, Finances, Health Focus
+2. Each module card shows: module name, color-coded icon, high-level status summary, and last updated timestamp
 3. Review page is accessible from main navigation with prominent placement (e.g., first menu item or dedicated "Review" button)
 4. Review dashboard is READ-ONLY: no editing capabilities, only viewing aggregated data with links to detail pages
-5. Page loads in <2 seconds despite aggregating data from all 7 areas using optimized queries and caching
-6. One-click navigation from any area card to its detailed page (e.g., click HEALTH card → navigate to Health page)
-7. Visual hierarchy: areas with urgent items (overdue tasks, warnings, alerts) are highlighted with red/yellow borders
+5. Page loads in <2 seconds despite aggregating data from all modules using optimized queries and caching
+6. One-click navigation from any module card to its detailed page (e.g., click Business Projects card → navigate to Business Projects page)
+7. Visual hierarchy: modules with urgent items (overdue tasks, warnings, alerts) are highlighted with red/yellow borders
 8. Review page adapts to mobile/tablet screens with responsive card layout (stacks vertically on narrow screens)
 
 ### Story 5.2: Daily Area Summary Card
@@ -39,60 +41,52 @@ so that I can immediately see what needs to be accomplished today without openin
 6. Quick action: "Plan Today" button navigates directly to Daily To-Do List page
 7. Daily card shows most recent Deep Work session: "Last session: 2h on Huge Capital (30 min ago)"
 
-### Story 5.3: Business Area Summary Card
+### Story 5.3: Business Projects Card
 
-As a consultant managing 5 businesses,
-I want the Business area card to show aggregate status across all 5 businesses,
-so that I can identify which businesses need attention without checking each individually.
+As someone managing multiple business projects,
+I want the Business Projects card to show aggregate status across all projects,
+so that I can identify which projects need attention without checking each individually.
 
 #### Acceptance Criteria
 
-1. Business card displays aggregate across all 5 businesses:
+1. Business Projects card displays aggregate across all projects from Business Projects module:
    - Total active projects count
-   - Overall completion % (average across all business projects)
-   - Total active tasks across all businesses
-   - Total hours invested this week across all businesses
-2. Business card expands to show 5 individual business mini-cards with color coding:
-   - Full Stack AI (green): "2 projects, 65% complete, 12h this week"
-   - Service SaaS (varies): "1 project, 30% complete, 0h this week" ⚠️
-   - Huge Capital (purple): "3 projects, 80% complete, 15h this week"
-   - S4 (blue): "1 project, 90% complete, 8h this week"
-   - 808 (orange): "1 project, 45% complete, 5h this week"
-3. Businesses with warnings are flagged: zero hours this week, stalled projects (no activity 7+ days), overdue tasks
-4. Quick action: clicking business mini-card navigates to that specific Business page
-5. Visual indicator shows which business has most active tasks (needs most attention)
-6. Business card shows upcoming deadlines: "Next deadline: Huge Capital deliverable in 3 days"
+   - Overall completion % (average across all projects)
+   - Total active tasks across all projects
+   - Projects needing attention count
+2. Card shows project summary statistics:
+   - Projects in progress count
+   - Stalled projects (no activity 7+ days) count with warning
+   - Overdue tasks across all projects count
+   - Next upcoming deadline
+3. Projects with warnings are flagged: stalled, overdue tasks, blocked
+4. Quick action: clicking card navigates to Business Projects page
+5. Visual indicator shows priority projects (most urgent)
+6. Card shows: "Next deadline: Project X deliverable in 3 days"
 
-### Story 5.4: Health, Content, Life, Golf Area Summary Cards
+### Story 5.4: Health Focus & Content Library Cards
 
-As someone balancing business and personal goals,
-I want Health, Content, Life, and Golf area cards to show status alongside business cards,
-so that personal goals have equal visibility and don't get neglected.
+As someone balancing business and personal wellness,
+I want Health and Content Library cards to show status alongside business cards,
+so that wellness and learning have visibility and don't get neglected.
 
 #### Acceptance Criteria
 
-1. **Health card** displays:
+1. **Health Focus card** displays (Health area from time tracking):
    - Hours invested this week vs. weekly target (e.g., "3h / 5h target") ⚠️
-   - Active health goals count (workouts scheduled, meal plans)
-   - Recent activity: "Last workout: 2 days ago"
+   - Days since last Health area Deep Work session
+   - Recent activity: "Last health session: 2 days ago"
    - Warning if health hours below 80% of weekly target
-2. **Content card** displays:
+   - Health area time trend (small sparkline chart)
+2. **Content Library card** displays (Content Library module data):
    - Library items count (reading/watching queue)
-   - Tee Up with TG episodes status (planned, in progress, published)
+   - Items completed this week
    - Recent content activity: "Last library item completed: 1 day ago"
-   - Next content deadline if applicable
-3. **Life card** displays:
-   - Active life tasks count across all subcategories (Journal, Shopping, Travel, etc.)
-   - Recent journal entries count (encourages daily journaling)
-   - Upcoming life events from Travel or important dates
-   - Brain dumps count (ideas captured but not processed)
-4. **Golf card** displays:
-   - Recent rounds count this month
-   - Strokes gained trend (improving/declining)
-   - Next golf session scheduled
-   - Handicap or scoring average if tracked
-5. All cards use consistent visual design: color-coded (teal=Health, pink=Life, orange=Golf, green=Content), same info hierarchy
-6. Cards show "No recent activity" state when area hasn't been used in 7+ days
+   - Next high-priority item to review
+3. Cards use consistent visual design with color coding
+4. Cards show "No recent activity" state when no activity in 7+ days
+5. Click Health card → navigate to Time Analytics filtered to Health area
+6. Click Content card → navigate to Content Library page
 
 ### Story 5.5: Finances Area Summary Card
 
