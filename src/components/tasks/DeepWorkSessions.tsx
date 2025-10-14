@@ -103,9 +103,8 @@ export const DeepWorkSessions: FC<DeepWorkSessionsProps> = () => {
   const areaCounts = useMemo(() => {
     const counts: Record<string, number> = { 'All Areas': sessions.length };
     sessions.forEach(s => {
-      if (s.area) {
-        counts[s.area] = (counts[s.area] || 0) + 1;
-      }
+      const areaName = s.area || 'Unallocated';
+      counts[areaName] = (counts[areaName] || 0) + 1;
     });
     return counts;
   }, [sessions]);
@@ -123,14 +122,15 @@ export const DeepWorkSessions: FC<DeepWorkSessionsProps> = () => {
     const taskMap = new Map<string, { area: string; minutes: number; sessions: number; taskName: string }>();
 
     sessions.forEach(s => {
-      const key = s.task?.task_name || 'Unknown';
+      const key = s.tasks?.task_name || 'Unknown';
+      const areaName = s.area || 'Unallocated';
       const existing = taskMap.get(key);
       if (existing) {
         existing.minutes += s.duration_minutes || 0;
         existing.sessions += 1;
       } else {
         taskMap.set(key, {
-          area: s.area || 'Unknown',
+          area: areaName,
           minutes: s.duration_minutes || 0,
           sessions: 1,
           taskName: key,
@@ -328,7 +328,8 @@ export const DeepWorkSessions: FC<DeepWorkSessionsProps> = () => {
                 ? `${startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - ${endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
                 : startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
-              const areaColor = AREA_COLORS[session.area || ''] || 'bg-gray-600';
+              const areaName = session.area || 'Unallocated';
+              const areaColor = AREA_COLORS[areaName] || 'bg-gray-600';
 
               return (
                 <div
@@ -341,13 +342,13 @@ export const DeepWorkSessions: FC<DeepWorkSessionsProps> = () => {
                     ⏱️ {formatTime(session.duration_minutes || 0)}
                   </div>
                   <Badge className={`${areaColor} border-white/20`}>
-                    {session.area || 'Unknown'}
+                    {areaName}
                   </Badge>
                   <Badge className="bg-amber-500 border-none">
-                    {session.task_type || 'N/A'}
+                    {session.labels && session.labels.length > 0 ? session.labels[0] : 'N/A'}
                   </Badge>
                   <Badge className="bg-white text-gray-900 border-none">
-                    {session.task?.task_name || 'Unknown Task'}
+                    {session.tasks?.task_name || 'Unknown Task'}
                   </Badge>
                 </div>
               );

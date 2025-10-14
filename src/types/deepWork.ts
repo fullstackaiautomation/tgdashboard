@@ -17,11 +17,9 @@ export interface DeepWorkSession {
   id: string;
   user_id: string;
 
-  // Relationships
-  business_id: string | null;
-  life_area_id: string | null;
-  project_id: string | null;
-  phase_id: string | null;
+  // Area (simple string approach)
+  area: string | null;
+  task_type: string | null;
   task_id: string | null;
 
   // Session details
@@ -48,26 +46,6 @@ export interface DeepWorkSession {
   updated_at: string;
 
   // Joined data (optional, from queries with joins)
-  businesses?: {
-    id: string;
-    name: string;
-    slug: string;
-    color?: string;
-  };
-  life_areas?: {
-    id: string;
-    name: string;
-    category: string;
-    color?: string;
-  };
-  projects?: {
-    id: string;
-    name: string;
-  };
-  phases?: {
-    id: string;
-    name: string;
-  };
   tasks?: {
     id: string;
     task_name: string;
@@ -75,10 +53,8 @@ export interface DeepWorkSession {
 }
 
 export interface CreateDeepWorkSessionInput {
-  business_id?: string | null;
-  life_area_id?: string | null;
-  project_id?: string | null;
-  phase_id?: string | null;
+  area?: string | null;
+  task_type?: string | null;
   task_id?: string | null;
   session_name?: string | null;
   labels?: string[];
@@ -88,6 +64,8 @@ export interface CreateDeepWorkSessionInput {
 }
 
 export interface UpdateDeepWorkSessionInput {
+  area?: string | null;
+  task_type?: string | null;
   end_time?: string | null;
   notes?: string | null;
   was_interrupted?: boolean;
@@ -97,6 +75,7 @@ export interface UpdateDeepWorkSessionInput {
   status?: SessionStatus;
   paused_duration?: number;
   labels?: string[];
+  // NOTE: duration_minutes is GENERATED, cannot be updated directly
 }
 
 // Analytics types
@@ -135,9 +114,8 @@ export interface DeepWorkFilters {
     start: Date;
     end: Date;
   };
-  businessId?: string;
-  lifeAreaId?: string;
-  projectId?: string;
+  area?: string;
+  taskType?: string;
   taskId?: string;
   labels?: string[];
   status?: SessionStatus;

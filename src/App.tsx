@@ -8,6 +8,8 @@ import { DeepWorkSidebar } from './components/tasks/DeepWorkSidebar'
 import { BusinessDashboard } from './components/business/BusinessDashboard'
 import FinanceDashboard from './components/finance/FinanceDashboard'
 import NotesBoard from './components/notes/NotesBoard'
+import { TimeAnalytics } from './pages/TimeAnalytics'
+import { Health } from './pages/Health'
 
 type Area = 'Full Stack' | 'S4' | '808' | 'Personal' | 'Huge Capital' | 'Golf' | 'Health'
 type EffortLevel = '$$$ Printer $$$' | '$ Makes Money $' | '-$ Save Dat $-' | ':( No Money ):' | '8) Vibing (8'
@@ -49,7 +51,7 @@ function App() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [deepWorkSessions, setDeepWorkSessions] = useState<any[]>([])
   const [selectedArea, _setSelectedArea] = useState<Area | 'All Areas'>('All Areas')
-  const [activeMainTab, setActiveMainTab] = useState<'tasks' | 'business' | 'content' | 'finance' | 'notes' | 'review'>('tasks')
+  const [activeMainTab, setActiveMainTab] = useState<'tasks' | 'business' | 'content' | 'finance' | 'notes' | 'review' | 'analytics' | 'health'>('tasks')
   const [activeTasksSubTab, setActiveTasksSubTab] = useState<'tasks-list' | 'deepwork'>('tasks-list') // NEW: Tasks Hub subtabs
   const [selectedTimePeriod, _setSelectedTimePeriod] = useState<'All Time' | 'Today' | 'This Week' | 'This Month'>('All Time')
   const [selectedDWArea, _setSelectedDWArea] = useState<Area | 'All Areas'>('All Areas')
@@ -1132,6 +1134,63 @@ function App() {
             </button>
           </div>
 
+          {/* Main Tab - Time Analytics */}
+          <div style={{ marginBottom: '8px' }}>
+            <button
+              onClick={() => setActiveMainTab('analytics')}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                backgroundColor: activeMainTab === 'analytics' ? '#06b6d4' : 'transparent',
+                color: activeMainTab === 'analytics' ? 'white' : '#06b6d4',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '15px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 3v18h18"></path>
+                <path d="M18 17V9"></path>
+                <path d="M13 17V5"></path>
+                <path d="M8 17v-3"></path>
+              </svg>
+              Time Analytics
+            </button>
+          </div>
+
+          {/* Main Tab - Health */}
+          <div style={{ marginBottom: '8px' }}>
+            <button
+              onClick={() => setActiveMainTab('health')}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                backgroundColor: activeMainTab === 'health' ? '#14b8a6' : 'transparent',
+                color: activeMainTab === 'health' ? 'white' : '#14b8a6',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '15px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+              </svg>
+              Health
+            </button>
+          </div>
+
           {/* Main Tab - Review Dashboard */}
           <div style={{ marginBottom: '8px' }}>
             <button
@@ -1218,6 +1277,20 @@ function App() {
         {activeMainTab === 'notes' && (
           <div style={{ flex: 1, overflow: 'hidden' }}>
             <NotesBoard />
+          </div>
+        )}
+
+        {/* Time Analytics Tab */}
+        {activeMainTab === 'analytics' && (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <TimeAnalytics />
+          </div>
+        )}
+
+        {/* Health Tab */}
+        {activeMainTab === 'health' && (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <Health />
           </div>
         )}
 

@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import {
   Dialog,
@@ -17,31 +17,53 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCreateDeepWorkSession, useUpdateDeepWorkSession } from '../../hooks/useDeepWorkSessions';
+import { useUpdateDeepWorkSession, useDeleteDeepWorkSession, type DeepWorkLog } from '../../hooks/useDeepWorkSessions';
 import { useTasks } from '../../hooks/useTasks';
 import type { Area } from '../../types/task';
 
-interface AddDeepWorkSessionModalProps {
+interface EditDeepWorkSessionModalProps {
   isOpen: boolean;
   onClose: () => void;
+  session: DeepWorkLog;
 }
 
 const AREAS: Area[] = ['Personal', 'Full Stack', 'Huge Capital', '808', 'S4', 'Golf', 'Health'];
 
-export const AddDeepWorkSessionModal: FC<AddDeepWorkSessionModalProps> = ({ isOpen, onClose }) => {
-  const [area, setArea] = useState<Area>('Personal');
-  const [taskId, setTaskId] = useState<string>('no-task');
-  const [taskType, setTaskType] = useState<string>('');
+export const EditDeepWorkSessionModal: FC<EditDeepWorkSessionModalProps> = ({ isOpen, onClose, session }) => {
+  const [area, setArea] = useState<Area>(session.area as Area);
+  const [taskId, setTaskId] = useState<string>(session.task_id || 'no-task');
+  const [taskType, setTaskType] = useState<string>(session.task_type || '');
+
+  // Helper function to convert UTC Date to local datetime-local string
+  const toLocalDateTimeString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  // Convert ISO strings to datetime-local format (YYYY-MM-DDTHH:mm) in LOCAL time
   const [startDate, setStartDate] = useState<string>(
-    new Date().toISOString().slice(0, 16) // YYYY-MM-DDTHH:mm format
+    toLocalDateTimeString(new Date(session.start_time))
   );
   const [endDate, setEndDate] = useState<string>(
-    new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16) // 1 hour from now
+    session.end_time ? toLocalDateTimeString(new Date(session.end_time)) : ''
   );
 
-  const createSession = useCreateDeepWorkSession();
   const updateSession = useUpdateDeepWorkSession();
+  const deleteSession = useDeleteDeepWorkSession();
   const { data: allTasks = [] } = useTasks();
+
+  // Update local state when session prop changes
+  useEffect(() => {
+    setArea(session.area as Area);
+    setTaskId(session.task_id || 'no-task');
+    setTaskType(session.task_type || '');
+    setStartDate(toLocalDateTimeString(new Date(session.start_time)));
+    setEndDate(session.end_time ? toLocalDateTimeString(new Date(session.end_time)) : '');
+  }, [session]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,37 +75,41 @@ export const AddDeepWorkSessionModal: FC<AddDeepWorkSessionModalProps> = ({ isOp
 
     try {
       const startTime = new Date(startDate).toISOString();
-      const endTime = new Date(endDate).toISOString();
+      const endTime = endDate ? new Date(endDate).toISOString() : null;
+      const durationMinutes = endTime
+        ? Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 60000)
+        : null;
 
-      // Create the session with start_time and end_time
-      // duration_minutes will be calculated automatically (GENERATED COLUMN)
-      const newSession = await createSession.mutateAsync({
-        area,
-        task_id: taskId === 'no-task' ? null : taskId,
-        task_type: taskType || null,
-        start_time: startTime,
-      });
-
-      // Update with end_time (duration_minutes is auto-calculated)
       await updateSession.mutateAsync({
-        id: newSession.id,
+        id: session.id,
         updates: {
+          area,
+          task_id: taskId === 'no-task' ? null : taskId,
+          task_type: taskType || null,
+          start_time: startTime,
           end_time: endTime,
-          status: 'completed',
+          duration_minutes: durationMinutes,
         },
       });
 
-      // Reset form
-      setArea('Personal');
-      setTaskId('no-task');
-      setTaskType('');
-      setStartDate(new Date().toISOString().slice(0, 16));
-      setEndDate(new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16));
-
       onClose();
     } catch (error) {
-      console.error('Failed to create deep work session:', error);
-      alert('Failed to create session. Please try again.');
+      console.error('Failed to update deep work session:', error);
+      alert('Failed to update session. Please try again.');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this session? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await deleteSession.mutateAsync(session.id);
+      onClose();
+    } catch (error) {
+      console.error('Failed to delete deep work session:', error);
+      alert('Failed to delete session. Please try again.');
     }
   };
 
@@ -100,7 +126,7 @@ export const AddDeepWorkSessionModal: FC<AddDeepWorkSessionModalProps> = ({ isOp
       <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-lg">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-bold">Add Deep Work Session</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Edit Deep Work Session</DialogTitle>
             <Button
               variant="ghost"
               size="sm"
@@ -193,7 +219,7 @@ export const AddDeepWorkSessionModal: FC<AddDeepWorkSessionModalProps> = ({ isOp
           {/* End Date/Time */}
           <div className="space-y-2">
             <Label htmlFor="endDate" className="text-sm font-medium text-gray-200">
-              End Date & Time *
+              End Date & Time
             </Label>
             <Input
               id="endDate"
@@ -201,20 +227,30 @@ export const AddDeepWorkSessionModal: FC<AddDeepWorkSessionModalProps> = ({ isOp
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               className="bg-gray-900 border-gray-700 text-white focus:border-orange-500"
-              required
             />
           </div>
 
           {/* Duration Preview */}
-          <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-3">
-            <div className="text-sm text-gray-400">Duration Preview:</div>
-            <div className="text-lg font-bold text-orange-400">
-              {Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 60000)} minutes
+          {endDate && (
+            <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-3">
+              <div className="text-sm text-gray-400">Duration Preview:</div>
+              <div className="text-lg font-bold text-orange-400">
+                {Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 60000)} minutes
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDelete}
+              disabled={deleteSession.isPending}
+              className="flex-1 border-red-600 text-red-400 hover:bg-red-900/20"
+            >
+              {deleteSession.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -225,10 +261,10 @@ export const AddDeepWorkSessionModal: FC<AddDeepWorkSessionModalProps> = ({ isOp
             </Button>
             <Button
               type="submit"
-              disabled={createSession.isPending}
+              disabled={updateSession.isPending}
               className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
             >
-              {createSession.isPending ? 'Adding...' : 'Add Session'}
+              {updateSession.isPending ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </form>

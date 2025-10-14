@@ -1,108 +1,100 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
+/**
+ * React Query hooks for Deep Work Sessions
+ * Story 4.1: Time Allocation Calculation
+ */
 
-// Deep Work Log interface matching the existing table
-export interface DeepWorkLog {
-  id: string;
-  user_id: string;
-  task_id: string | null;
-  area: string;
-  task_type: string | null;
-  start_time: string;
-  end_time: string | null;
-  duration_minutes: number | null;
-  created_at?: string;
-  task?: {
-    task_name: string;
-  };
-}
-
-export interface CreateDeepWorkLogInput {
-  task_id?: string | null;
-  area: string;
-  task_type?: string | null;
-  start_time: string;
-}
-
-export interface UpdateDeepWorkLogInput {
-  end_time?: string;
-  duration_minutes?: number;
-}
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import type {
+  DeepWorkSession,
+  CreateDeepWorkSessionInput,
+  UpdateDeepWorkSessionInput,
+  DeepWorkFilters,
+} from '@/types/deepWork';
 
 /**
- * Hook for fetching deep work sessions from deep_work_log
+ * Hook for fetching deep work sessions with optional filters
  */
-export function useDeepWorkSessions(filters?: { taskId?: string; area?: string }) {
+export function useDeepWorkSessions(filters: DeepWorkFilters = {}) {
   return useQuery({
     queryKey: ['deep-work-sessions', filters],
     queryFn: async () => {
-      // First, get all deep work sessions
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       let query = supabase
         .from('deep_work_log')
-        .select('*')
+        .select(`
+          *,
+          tasks:task_id(id, task_name)
+        `)
+        .eq('user_id', user.id)
         .order('start_time', { ascending: false });
 
-      if (filters?.taskId) {
-        query = query.eq('task_id', filters.taskId);
+      // Apply filters
+      if (filters.dateRange) {
+        query = query
+          .gte('start_time', filters.dateRange.start.toISOString())
+          .lte('start_time', filters.dateRange.end.toISOString());
       }
-      if (filters?.area) {
+
+      if (filters.area) {
         query = query.eq('area', filters.area);
       }
 
-      const { data: sessions, error } = await query;
+      if (filters.taskType) {
+        query = query.eq('task_type', filters.taskType);
+      }
+
+      if (filters.taskId) {
+        query = query.eq('task_id', filters.taskId);
+      }
+
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+
+      if (filters.labels && filters.labels.length > 0) {
+        query = query.overlaps('labels', filters.labels);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
-
-      // Then, get task names for sessions that have task_id
-      const sessionWithTasks = await Promise.all(
-        (sessions || []).map(async (session) => {
-          if (session.task_id) {
-            const { data: task } = await supabase
-              .from('tasks')
-              .select('task_name')
-              .eq('id', session.task_id)
-              .single();
-
-            return {
-              ...session,
-              task: task ? { task_name: task.task_name } : null,
-            };
-          }
-          return { ...session, task: null };
-        })
-      );
-
-      return sessionWithTasks as DeepWorkLog[];
+      return data as DeepWorkSession[];
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
 /**
- * Hook for creating a deep work session
+ * Hook for creating a new deep work session
  */
 export function useCreateDeepWorkSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: CreateDeepWorkLogInput) => {
+    mutationFn: async (input: CreateDeepWorkSessionInput) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
         .from('deep_work_log')
         .insert({
-          ...input,
           user_id: user.id,
-          duration_minutes: null, // Will be calculated when session ends
-          end_time: null,
+          ...input,
+          status: 'active',
         })
         .select()
         .single();
 
       if (error) throw error;
-      return data as DeepWorkLog;
+      return data as DeepWorkSession;
     },
     onSuccess: () => {
+      // Invalidate all deep work and time allocation queries
       queryClient.invalidateQueries({ queryKey: ['deep-work-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['time-allocation'] });
     },
   });
 }
@@ -114,7 +106,7 @@ export function useUpdateDeepWorkSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: UpdateDeepWorkLogInput }) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: UpdateDeepWorkSessionInput }) => {
       const { data, error } = await supabase
         .from('deep_work_log')
         .update(updates)
@@ -123,10 +115,11 @@ export function useUpdateDeepWorkSession() {
         .single();
 
       if (error) throw error;
-      return data as DeepWorkLog;
+      return data as DeepWorkSession;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deep-work-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['time-allocation'] });
     },
   });
 }
@@ -149,32 +142,112 @@ export function useDeleteDeepWorkSession() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deep-work-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['time-allocation'] });
     },
   });
 }
 
 /**
  * Hook for completing a deep work session
- * This is a convenience function that updates the session with end_time and duration
+ * Updates status to 'completed' and sets end_time
  */
 export function useCompleteDeepWorkSession() {
   const updateSession = useUpdateDeepWorkSession();
 
   return useMutation({
-    mutationFn: async ({
-      id,
-      durationMinutes,
-    }: {
-      id: string;
-      durationMinutes: number;
-    }) => {
+    mutationFn: async (id: string) => {
       return updateSession.mutateAsync({
         id,
         updates: {
           end_time: new Date().toISOString(),
-          duration_minutes: durationMinutes,
+          status: 'completed',
         },
       });
     },
+  });
+}
+
+/**
+ * Hook for pausing a deep work session
+ */
+export function usePauseDeepWorkSession() {
+  const updateSession = useUpdateDeepWorkSession();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return updateSession.mutateAsync({
+        id,
+        updates: {
+          status: 'paused',
+        },
+      });
+    },
+  });
+}
+
+/**
+ * Hook for resuming a paused deep work session
+ */
+export function useResumeDeepWorkSession() {
+  const updateSession = useUpdateDeepWorkSession();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return updateSession.mutateAsync({
+        id,
+        updates: {
+          status: 'active',
+        },
+      });
+    },
+  });
+}
+
+/**
+ * Hook for cancelling a deep work session
+ */
+export function useCancelDeepWorkSession() {
+  const updateSession = useUpdateDeepWorkSession();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return updateSession.mutateAsync({
+        id,
+        updates: {
+          status: 'cancelled',
+          end_time: new Date().toISOString(),
+        },
+      });
+    },
+  });
+}
+
+/**
+ * Hook for fetching active (running) deep work session
+ * Useful for displaying the current timer
+ */
+export function useActiveDeepWorkSession() {
+  return useQuery({
+    queryKey: ['deep-work-sessions', 'active'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase
+        .from('deep_work_log')
+        .select(`
+          *,
+          tasks:task_id(id, task_name)
+        `)
+        .eq('user_id', user.id)
+        .in('status', ['active', 'paused'])
+        .order('start_time', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as DeepWorkSession | null;
+    },
+    refetchInterval: 1000, // Refetch every second for live timer
   });
 }
