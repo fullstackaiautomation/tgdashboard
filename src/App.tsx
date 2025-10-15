@@ -88,6 +88,7 @@ function App() {
   const [editTaskSearchTerm, setEditTaskSearchTerm] = useState<string>('')
   const [showEditTaskDropdown, setShowEditTaskDropdown] = useState<boolean>(false)
   const [_editingTaskField, setEditingTaskField] = useState<{taskId: string, field: string} | null>(null)
+  const [hoveredMainPage, setHoveredMainPage] = useState<string | null>(null)
 
   // Load persisted timer state on mount
   useEffect(() => {
@@ -933,10 +934,10 @@ function App() {
   void _top5Tasks;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#1a1a1a', color: '#fff' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#1a1a1a', color: '#fff', overflow: 'visible' }}>
       {/* Sticky Sidebar */}
       <div style={{
-        width: '240px',
+        width: '264px',
         backgroundColor: '#0f0f0f',
         borderRight: '1px solid #2a2a2a',
         position: 'sticky',
@@ -944,7 +945,9 @@ function App() {
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        overflowY: 'auto'
+        overflowY: 'auto',
+        overflowX: 'visible',
+        zIndex: 100
       }}>
         {/* Logo/Header */}
         <div style={{ padding: '24px', borderBottom: '1px solid #2a2a2a' }}>
@@ -962,70 +965,136 @@ function App() {
         </div>
 
         {/* Navigation */}
-        <div style={{ flex: 1, padding: '16px' }}>
-          {/* Main Tab - Tasks */}
-          <div style={{ marginBottom: '8px' }}>
+        <div style={{ flex: 1, padding: '16px', position: 'relative', overflow: 'visible' }}>
+          {/* Daily Main Page */}
+          <div
+            style={{ marginBottom: '8px', position: 'relative' }}
+            onMouseEnter={() => setHoveredMainPage('tasks')}
+            onMouseLeave={() => setHoveredMainPage(null)}
+          >
             <button
-              onClick={() => {
-                setActiveMainTab('tasks');
-                setActiveTasksSubTab('tasks-list');
-              }}
+              onClick={() => setActiveMainTab('tasks')}
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                backgroundColor: activeMainTab === 'tasks' ? '#f97316' : 'transparent',
-                color: activeMainTab === 'tasks' ? 'white' : '#f97316',
+                backgroundColor: activeMainTab === 'tasks' || activeMainTab === 'calendar' || activeMainTab === 'dailytime' ? '#10b981' : 'transparent',
+                color: activeMainTab === 'tasks' || activeMainTab === 'calendar' || activeMainTab === 'dailytime' ? 'white' : '#10b981',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontWeight: '600',
-                fontSize: '15px',
+                fontSize: '22.5px',
                 textAlign: 'left',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                justifyContent: 'space-between'
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 11l3 3L22 4"></path>
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 11l3 3L22 4"></path>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+                Daily
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
-              Tasks
             </button>
 
-            {/* Submenu - Deep Work (only show when Tasks is active) */}
-            {activeMainTab === 'tasks' && (
-              <div style={{ marginTop: '4px', marginLeft: '28px' }}>
+            {/* Submenu on hover or when active */}
+            {(hoveredMainPage === 'tasks' || activeMainTab === 'tasks' || activeMainTab === 'calendar' || activeMainTab === 'dailytime') && (
+              <div
+                style={{
+                  marginTop: '4px',
+                  marginLeft: '16px',
+                  backgroundColor: '#1a1a1a',
+                  border: '1px solid #2a2a2a',
+                  borderRadius: '8px',
+                  padding: '8px'
+                }}
+                onMouseEnter={() => setHoveredMainPage('tasks')}
+                onMouseLeave={() => setHoveredMainPage(null)}
+              >
                 <button
-                  onClick={() => setActiveTasksSubTab('deepwork')}
+                  onClick={() => setActiveMainTab('tasks')}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
+                    backgroundColor: activeMainTab === 'tasks' ? '#2a2a2a' : 'transparent',
+                    color: activeMainTab === 'tasks' ? '#14d399' : '#9ca3af',
                     border: 'none',
                     borderRadius: '6px',
                     cursor: 'pointer',
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    backgroundColor: '#fb923c',
-                    color: 'white',
-                    transition: 'all 0.2s',
-                    textAlign: 'left'
+                    fontSize: '21px',
+                    fontWeight: activeMainTab === 'tasks' ? '600' : '500',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '4px'
                   }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 11l3 3L22 4"></path>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
                   </svg>
-                  Deep Work
+                  Tasks
+                </button>
+                <button
+                  onClick={() => setActiveMainTab('calendar')}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: activeMainTab === 'calendar' ? '#2a2a2a' : 'transparent',
+                    color: activeMainTab === 'calendar' ? '#1eefac' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '21px',
+                    fontWeight: activeMainTab === 'calendar' ? '600' : '500',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '4px'
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="2" y="3" width="12" height="11" rx="1" />
+                    <path d="M2 6h12M5 1v4M11 1v4" />
+                  </svg>
+                  Calendar
+                </button>
+                <button
+                  onClick={() => setActiveMainTab('dailytime')}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: activeMainTab === 'dailytime' ? '#2a2a2a' : 'transparent',
+                    color: activeMainTab === 'dailytime' ? '#0d9668' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '21px',
+                    fontWeight: activeMainTab === 'dailytime' ? '600' : '500',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="8" cy="8" r="6" />
+                    <path d="M8 4v4l3 2" />
+                  </svg>
+                  Daily Time
                 </button>
               </div>
             )}
           </div>
 
-          {/* Main Tab - Business */}
+          {/* Projects Main Page */}
           <div style={{ marginBottom: '8px' }}>
             <button
               onClick={() => setActiveMainTab('business')}
@@ -1038,7 +1107,7 @@ function App() {
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontWeight: '600',
-                fontSize: '15px',
+                fontSize: '22.5px',
                 textAlign: 'left',
                 display: 'flex',
                 alignItems: 'center',
@@ -1053,50 +1122,20 @@ function App() {
             </button>
           </div>
 
-          {/* Main Tab - Content Library */}
-          <div style={{ marginBottom: '8px' }}>
-            <button
-              onClick={() => setActiveMainTab('content')}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                backgroundColor: activeMainTab === 'content' ? '#10b981' : 'transparent',
-                color: activeMainTab === 'content' ? 'white' : '#10b981',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '15px',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M2 3h12M2 8h12M2 13h12" />
-                <circle cx="5" cy="3" r="1" fill="currentColor" />
-                <circle cx="5" cy="8" r="1" fill="currentColor" />
-                <circle cx="5" cy="13" r="1" fill="currentColor" />
-              </svg>
-              Content Library
-            </button>
-          </div>
-
-          {/* Main Tab - Finance */}
+          {/* Finance Main Page */}
           <div style={{ marginBottom: '8px' }}>
             <button
               onClick={() => setActiveMainTab('finance')}
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                backgroundColor: activeMainTab === 'finance' ? '#eab308' : 'transparent',
-                color: activeMainTab === 'finance' ? 'white' : '#eab308',
+                backgroundColor: activeMainTab === 'finance' ? '#f97316' : 'transparent',
+                color: activeMainTab === 'finance' ? 'white' : '#f97316',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontWeight: '600',
-                fontSize: '15px',
+                fontSize: '22.5px',
                 textAlign: 'left',
                 display: 'flex',
                 alignItems: 'center',
@@ -1111,105 +1150,20 @@ function App() {
             </button>
           </div>
 
-          {/* Main Tab - Notes */}
-          <div style={{ marginBottom: '8px' }}>
-            <button
-              onClick={() => setActiveMainTab('notes')}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                backgroundColor: activeMainTab === 'notes' ? '#8b5cf6' : 'transparent',
-                color: activeMainTab === 'notes' ? 'white' : '#8b5cf6',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '15px',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="2" width="10" height="12" rx="1" />
-                <path d="M6 6h4M6 9h4M6 12h2" />
-              </svg>
-              Notes
-            </button>
-          </div>
-
-          {/* Main Tab - Time Analytics */}
-          <div style={{ marginBottom: '8px' }}>
-            <button
-              onClick={() => setActiveMainTab('analytics')}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                backgroundColor: activeMainTab === 'analytics' ? '#06b6d4' : 'transparent',
-                color: activeMainTab === 'analytics' ? 'white' : '#06b6d4',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '15px',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 3v18h18"></path>
-                <path d="M18 17V9"></path>
-                <path d="M13 17V5"></path>
-                <path d="M8 17v-3"></path>
-              </svg>
-              Time Analytics
-            </button>
-          </div>
-
-          {/* Main Tab - Deep Work Insights */}
-          <div style={{ marginBottom: '8px' }}>
-            <button
-              onClick={() => setActiveMainTab('insights')}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                backgroundColor: activeMainTab === 'insights' ? '#f59e0b' : 'transparent',
-                color: activeMainTab === 'insights' ? 'white' : '#f59e0b',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '15px',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-              </svg>
-              Insights
-            </button>
-          </div>
-
-          {/* Main Tab - Health */}
+          {/* Health Main Page */}
           <div style={{ marginBottom: '8px' }}>
             <button
               onClick={() => setActiveMainTab('health')}
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                backgroundColor: activeMainTab === 'health' ? '#14b8a6' : 'transparent',
-                color: activeMainTab === 'health' ? 'white' : '#14b8a6',
+                backgroundColor: activeMainTab === 'health' ? '#10b981' : 'transparent',
+                color: activeMainTab === 'health' ? 'white' : '#10b981',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontWeight: '600',
-                fontSize: '15px',
+                fontSize: '22.5px',
                 textAlign: 'left',
                 display: 'flex',
                 alignItems: 'center',
@@ -1223,111 +1177,265 @@ function App() {
             </button>
           </div>
 
-          {/* Main Tab - Review Dashboard */}
-          <div style={{ marginBottom: '8px' }}>
+          {/* Review Main Page */}
+          <div
+            style={{ marginBottom: '8px', position: 'relative' }}
+            onMouseEnter={() => setHoveredMainPage('review')}
+            onMouseLeave={() => setHoveredMainPage(null)}
+          >
             <button
               onClick={() => setActiveMainTab('review')}
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                backgroundColor: activeMainTab === 'review' ? '#ec4899' : 'transparent',
-                color: activeMainTab === 'review' ? 'white' : '#ec4899',
+                backgroundColor: activeMainTab === 'review' || activeMainTab === 'analytics' || activeMainTab === 'insights' || activeMainTab === 'planning' ? '#ec4899' : 'transparent',
+                color: activeMainTab === 'review' || activeMainTab === 'analytics' || activeMainTab === 'insights' || activeMainTab === 'planning' ? 'white' : '#ec4899',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontWeight: '600',
-                fontSize: '15px',
+                fontSize: '22.5px',
                 textAlign: 'left',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                justifyContent: 'space-between'
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="2" width="12" height="12" rx="2" />
-                <rect x="5" y="5" width="6" height="2" fill="currentColor" />
-                <rect x="5" y="9" width="4" height="2" fill="currentColor" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="2" width="12" height="12" rx="2" />
+                  <rect x="5" y="5" width="6" height="2" fill="currentColor" />
+                  <rect x="5" y="9" width="4" height="2" fill="currentColor" />
+                </svg>
+                Review
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
-              Review
             </button>
 
-            {/* Planning Tab */}
+            {/* Submenu on hover or when active */}
+            {(hoveredMainPage === 'review' || activeMainTab === 'review' || activeMainTab === 'analytics' || activeMainTab === 'insights' || activeMainTab === 'planning') && (
+              <div
+                style={{
+                  marginTop: '4px',
+                  marginLeft: '16px',
+                  backgroundColor: '#1a1a1a',
+                  border: '1px solid #2a2a2a',
+                  borderRadius: '8px',
+                  padding: '8px'
+                }}
+                onMouseEnter={() => setHoveredMainPage('review')}
+                onMouseLeave={() => setHoveredMainPage(null)}
+              >
+                <button
+                  onClick={() => setActiveMainTab('review')}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: activeMainTab === 'review' ? '#2a2a2a' : 'transparent',
+                    color: activeMainTab === 'review' ? '#F55DAA' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '21px',
+                    fontWeight: activeMainTab === 'review' ? '600' : '500',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '4px'
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="2" y="2" width="12" height="12" rx="2" />
+                    <rect x="5" y="5" width="6" height="2" fill="currentColor" />
+                    <rect x="5" y="9" width="4" height="2" fill="currentColor" />
+                  </svg>
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => setActiveMainTab('analytics')}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: activeMainTab === 'analytics' ? '#2a2a2a' : 'transparent',
+                    color: activeMainTab === 'analytics' ? '#FF6BB8' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '21px',
+                    fontWeight: activeMainTab === 'analytics' ? '600' : '500',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '4px'
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="8" cy="8" r="6" />
+                    <path d="M8 4v4l3 2" />
+                  </svg>
+                  Deep Work
+                </button>
+                <button
+                  onClick={() => setActiveMainTab('insights')}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: activeMainTab === 'insights' ? '#2a2a2a' : 'transparent',
+                    color: activeMainTab === 'insights' ? '#E93D87' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '21px',
+                    fontWeight: activeMainTab === 'insights' ? '600' : '500',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '4px'
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                  Insights
+                </button>
+                <button
+                  onClick={() => setActiveMainTab('planning')}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: activeMainTab === 'planning' ? '#2a2a2a' : 'transparent',
+                    color: activeMainTab === 'planning' ? '#D92A6D' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '21px',
+                    fontWeight: activeMainTab === 'planning' ? '600' : '500',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="4" width="10" height="10" rx="1" />
+                    <path d="M5 2v4M11 2v4" />
+                  </svg>
+                  Time Planning
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Resources Main Page */}
+          <div
+            style={{ marginBottom: '8px', position: 'relative' }}
+            onMouseEnter={() => setHoveredMainPage('resources')}
+            onMouseLeave={() => setHoveredMainPage(null)}
+          >
             <button
-              onClick={() => setActiveMainTab('planning')}
+              onClick={() => setActiveMainTab('content')}
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                backgroundColor: activeMainTab === 'planning' ? '#f59e0b' : 'transparent',
-                color: activeMainTab === 'planning' ? 'white' : '#f59e0b',
+                backgroundColor: activeMainTab === 'content' || activeMainTab === 'notes' ? '#eab308' : 'transparent',
+                color: activeMainTab === 'content' || activeMainTab === 'notes' ? 'white' : '#eab308',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontWeight: '600',
-                fontSize: '15px',
+                fontSize: '22.5px',
                 textAlign: 'left',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                justifyContent: 'space-between'
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="4" width="10" height="10" rx="1" />
-                <path d="M5 2v4M11 2v4" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M2 3h12M2 8h12M2 13h12" />
+                  <circle cx="5" cy="3" r="1" fill="currentColor" />
+                  <circle cx="5" cy="8" r="1" fill="currentColor" />
+                  <circle cx="5" cy="13" r="1" fill="currentColor" />
+                </svg>
+                Resources
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
-              Planning
             </button>
 
-            {/* Calendar Tab */}
-            <button
-              onClick={() => setActiveMainTab('calendar')}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                backgroundColor: activeMainTab === 'calendar' ? '#14b8a6' : 'transparent',
-                color: activeMainTab === 'calendar' ? 'white' : '#14b8a6',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '15px',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="3" width="12" height="11" rx="1" />
-                <path d="M2 6h12M5 1v4M11 1v4" />
-              </svg>
-              Calendar
-            </button>
-
-            {/* Daily Time Tab */}
-            <button
-              onClick={() => setActiveMainTab('dailytime')}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                backgroundColor: activeMainTab === 'dailytime' ? '#14b8a6' : 'transparent',
-                color: activeMainTab === 'dailytime' ? 'white' : '#14b8a6',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '15px',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="8" cy="8" r="6" />
-                <path d="M8 4v4l3 2" />
-              </svg>
-              Daily Time
-            </button>
+            {/* Submenu on hover or when active */}
+            {(hoveredMainPage === 'resources' || activeMainTab === 'content' || activeMainTab === 'notes') && (
+              <div
+                style={{
+                  marginTop: '4px',
+                  marginLeft: '16px',
+                  backgroundColor: '#1a1a1a',
+                  border: '1px solid #2a2a2a',
+                  borderRadius: '8px',
+                  padding: '8px'
+                }}
+                onMouseEnter={() => setHoveredMainPage('resources')}
+                onMouseLeave={() => setHoveredMainPage(null)}
+              >
+                <button
+                  onClick={() => setActiveMainTab('content')}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: activeMainTab === 'content' ? '#2a2a2a' : 'transparent',
+                    color: activeMainTab === 'content' ? '#FFC61A' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '21px',
+                    fontWeight: activeMainTab === 'content' ? '600' : '500',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '4px'
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M2 3h12M2 8h12M2 13h12" />
+                    <circle cx="5" cy="3" r="1" fill="currentColor" />
+                    <circle cx="5" cy="8" r="1" fill="currentColor" />
+                    <circle cx="5" cy="13" r="1" fill="currentColor" />
+                  </svg>
+                  Content Library
+                </button>
+                <button
+                  onClick={() => setActiveMainTab('notes')}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: activeMainTab === 'notes' ? '#2a2a2a' : 'transparent',
+                    color: activeMainTab === 'notes' ? '#D4A004' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '21px',
+                    fontWeight: activeMainTab === 'notes' ? '600' : '500',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="2" width="10" height="12" rx="1" />
+                    <path d="M6 6h4M6 9h4M6 12h2" />
+                  </svg>
+                  Notes
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1390,10 +1498,10 @@ function App() {
           </div>
         )}
 
-        {/* Time Analytics Tab */}
+        {/* Deep Work Sessions Tab */}
         {activeMainTab === 'analytics' && (
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            <TimeAnalytics />
+            <DeepWorkSessions />
           </div>
         )}
 
