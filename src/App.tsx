@@ -10,6 +10,9 @@ import FinanceDashboard from './components/finance/FinanceDashboard'
 import NotesBoard from './components/notes/NotesBoard'
 import { TimeAnalytics } from './pages/TimeAnalytics'
 import { Health } from './pages/Health'
+import { Planning } from './pages/Planning'
+import { Calendar } from './pages/Calendar'
+import { DailyTime } from './pages/DailyTime'
 
 type Area = 'Full Stack' | 'S4' | '808' | 'Personal' | 'Huge Capital' | 'Golf' | 'Health'
 type EffortLevel = '$$$ Printer $$$' | '$ Makes Money $' | '-$ Save Dat $-' | ':( No Money ):' | '8) Vibing (8'
@@ -51,7 +54,7 @@ function App() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [deepWorkSessions, setDeepWorkSessions] = useState<any[]>([])
   const [selectedArea, _setSelectedArea] = useState<Area | 'All Areas'>('All Areas')
-  const [activeMainTab, setActiveMainTab] = useState<'tasks' | 'business' | 'content' | 'finance' | 'notes' | 'review' | 'analytics' | 'health'>('tasks')
+  const [activeMainTab, setActiveMainTab] = useState<'tasks' | 'business' | 'content' | 'finance' | 'notes' | 'review' | 'analytics' | 'health' | 'planning' | 'calendar'>('tasks')
   const [activeTasksSubTab, setActiveTasksSubTab] = useState<'tasks-list' | 'deepwork'>('tasks-list') // NEW: Tasks Hub subtabs
   const [selectedTimePeriod, _setSelectedTimePeriod] = useState<'All Time' | 'Today' | 'This Week' | 'This Month'>('All Time')
   const [selectedDWArea, _setSelectedDWArea] = useState<Area | 'All Areas'>('All Areas')
@@ -1218,6 +1221,84 @@ function App() {
               </svg>
               Review
             </button>
+
+            {/* Planning Tab */}
+            <button
+              onClick={() => setActiveMainTab('planning')}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                backgroundColor: activeMainTab === 'planning' ? '#f59e0b' : 'transparent',
+                color: activeMainTab === 'planning' ? 'white' : '#f59e0b',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '15px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="10" height="10" rx="1" />
+                <path d="M5 2v4M11 2v4" />
+              </svg>
+              Planning
+            </button>
+
+            {/* Calendar Tab */}
+            <button
+              onClick={() => setActiveMainTab('calendar')}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                backgroundColor: activeMainTab === 'calendar' ? '#14b8a6' : 'transparent',
+                color: activeMainTab === 'calendar' ? 'white' : '#14b8a6',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '15px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="3" width="12" height="11" rx="1" />
+                <path d="M2 6h12M5 1v4M11 1v4" />
+              </svg>
+              Calendar
+            </button>
+
+            {/* Daily Time Tab */}
+            <button
+              onClick={() => setActiveMainTab('dailytime')}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                backgroundColor: activeMainTab === 'dailytime' ? '#14b8a6' : 'transparent',
+                color: activeMainTab === 'dailytime' ? 'white' : '#14b8a6',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '15px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="8" cy="8" r="6" />
+                <path d="M8 4v4l3 2" />
+              </svg>
+              Daily Time
+            </button>
           </div>
         </div>
 
@@ -1291,6 +1372,27 @@ function App() {
         {activeMainTab === 'health' && (
           <div style={{ flex: 1, overflowY: 'auto' }}>
             <Health />
+          </div>
+        )}
+
+        {/* Planning Tab */}
+        {activeMainTab === 'planning' && (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <Planning />
+          </div>
+        )}
+
+        {/* Calendar Tab */}
+        {activeMainTab === 'calendar' && (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <Calendar />
+          </div>
+        )}
+
+        {/* Daily Time Tab */}
+        {activeMainTab === 'dailytime' && (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <DailyTime />
           </div>
         )}
 
