@@ -8,10 +8,11 @@ import {
   useNetWorthLog,
 } from '../../hooks/useFinance'
 import type { AccountDetail } from '../../types/finance'
+import { formatDateString, getTodayNoon } from '../../utils/dateHelpers'
 
 const FinanceOverview = () => {
   const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
+    formatDateString(getTodayNoon())
   )
   const [balances, setBalances] = useState<Record<string, number>>({})
   const [isSaving, setIsSaving] = useState(false)

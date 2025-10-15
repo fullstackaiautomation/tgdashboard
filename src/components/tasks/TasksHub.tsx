@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 import { useState, useMemo, useEffect } from 'react';
-import { useTasks, useUpdateTask } from '../../hooks/useTasks';
+import { useTasks } from '../../hooks/useTasks';
+import { useCreateTimeBlock, useDeleteTimeBlock } from '../../hooks/useCalendar';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { supabase } from '../../lib/supabase';
 import { TaskCard } from './TaskCard';
@@ -8,7 +9,8 @@ import { TaskFilters } from './TaskFilters';
 import { DailySchedulePanel } from './DailySchedulePanel';
 import { AddTaskModal } from './AddTaskModal';
 import type { TaskHub } from '../../types/task';
-import { format } from 'date-fns';
+import { parseISO, addMinutes, format as formatDate } from 'date-fns';
+import { parseLocalDate, getTodayMidnight } from '../../utils/dateHelpers';
 
 /**
  * Filter tasks by business/area and status
@@ -32,8 +34,7 @@ const filterTasks = (
 
     // Status filter
     if (statusFilter) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const today = getTodayMidnight();
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       const dayAfterTomorrow = new Date(today);
@@ -42,25 +43,34 @@ const filterTasks = (
       if (statusFilter === 'due-today') {
         // Exclude completed tasks from "Due Today"
         if (task.status === 'Done') return false;
-        const dueDate = task.due_date ? new Date(task.due_date) : null;
-        if (!dueDate || dueDate < today || dueDate >= tomorrow) return false;
+        const dueDate = task.due_date ? parseLocalDate(task.due_date) : null;
+        if (!dueDate) return false;
+        const dueDateMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate(), 0, 0, 0, 0);
+        if (dueDateMidnight.getTime() < today.getTime() || dueDateMidnight.getTime() >= tomorrow.getTime()) return false;
       }
 
       if (statusFilter === 'completed-today') {
         const completedDate = task.completed_at ? new Date(task.completed_at) : null;
-        if (!completedDate || completedDate < today || completedDate >= tomorrow) return false;
+        if (!completedDate) return false;
+        const completedMidnight = new Date(completedDate.getFullYear(), completedDate.getMonth(), completedDate.getDate(), 0, 0, 0, 0);
+        if (completedMidnight.getTime() < today.getTime() || completedMidnight.getTime() >= tomorrow.getTime()) return false;
       }
 
       if (statusFilter === 'due-tomorrow') {
         // Exclude completed tasks from "Due Tomorrow"
         if (task.status === 'Done') return false;
-        const dueDate = task.due_date ? new Date(task.due_date) : null;
-        if (!dueDate || dueDate < tomorrow || dueDate >= dayAfterTomorrow) return false;
+        const dueDate = task.due_date ? parseLocalDate(task.due_date) : null;
+        if (!dueDate) return false;
+        const dueDateMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate(), 0, 0, 0, 0);
+        if (dueDateMidnight.getTime() < tomorrow.getTime() || dueDateMidnight.getTime() >= dayAfterTomorrow.getTime()) return false;
       }
 
       if (statusFilter === 'overdue') {
-        const isOverdue = task.due_date && new Date(task.due_date) < today && task.status !== 'Done';
-        if (!isOverdue) return false;
+        if (task.status === 'Done') return false;
+        const dueDate = task.due_date ? parseLocalDate(task.due_date) : null;
+        if (!dueDate) return false;
+        const dueDateMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate(), 0, 0, 0, 0);
+        if (dueDateMidnight.getTime() >= today.getTime()) return false;
       }
 
       if (statusFilter === 'active' && task.status === 'Done') return false;
@@ -80,7 +90,8 @@ const filterTasks = (
 
 export const TasksHub: FC = () => {
   const { data: tasks, isLoading, error } = useTasks();
-  const updateTaskMutation = useUpdateTask();
+  const createTimeBlock = useCreateTimeBlock();
+  const deleteTimeBlock = useDeleteTimeBlock();
   const [businessFilter, setBusinessFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>('due-today');
   const [userId, setUserId] = useState<string | null>(null);
@@ -108,66 +119,47 @@ export const TasksHub: FC = () => {
       if (!a.due_date) return 1;
       if (!b.due_date) return -1;
 
-      // Compare due dates
-      const dateA = new Date(a.due_date).getTime();
-      const dateB = new Date(b.due_date).getTime();
-      return dateA - dateB;
+      // Compare due dates using parseLocalDate to avoid timezone issues
+      const dateA = parseLocalDate(a.due_date);
+      const dateB = parseLocalDate(b.due_date);
+      if (!dateA || !dateB) return 0;
+      return dateA.getTime() - dateB.getTime();
     });
   }, [tasks, businessFilter, statusFilter]);
 
-  // Filter scheduled tasks (tasks with scheduled_date)
-  const scheduledTasks = useMemo(() => {
-    return tasks?.filter((task) => task.scheduled_date) || [];
-  }, [tasks]);
-
-  // Handle drop - update task's scheduled_date and scheduled_time
+  // Handle drop - create time block
   const handleTaskDrop = async (taskId: string, date: string, time: string) => {
     try {
-      await updateTaskMutation.mutateAsync({
-        id: taskId,
-        updates: {
-          scheduled_date: date,
-          scheduled_time: time,
-        },
-        skipConflictCheck: true,
+      // Calculate end time (1 hour after start)
+      const startTime = `${time}:00`; // HH:MM:SS format
+      const endTime = formatDate(
+        addMinutes(parseISO(`${date}T${time}`), 60),
+        'HH:mm:ss'
+      );
+
+      await createTimeBlock.mutateAsync({
+        taskId,
+        scheduledDate: parseISO(date),
+        startTime,
+        endTime,
+        plannedDurationMinutes: 60,
       });
 
-      console.log('✅ Task scheduled successfully:', { taskId, date, time });
+      console.log('✅ Task scheduled to time block:', { taskId, date, time });
     } catch (err) {
       console.error('❌ Failed to schedule task:', err);
+      alert('Failed to schedule task. Please try again.');
     }
   };
 
-  // Handle remove - clear task's scheduled_date and scheduled_time
-  const handleTaskRemove = async (taskId: string) => {
+  // Handle remove - delete time block
+  const handleBlockRemove = async (blockId: string) => {
     try {
-      await updateTaskMutation.mutateAsync({
-        id: taskId,
-        updates: {
-          scheduled_date: null,
-          scheduled_time: null,
-        },
-        skipConflictCheck: true,
-      });
+      await deleteTimeBlock.mutateAsync(blockId);
+      console.log('✅ Time block removed:', blockId);
     } catch (err) {
-      console.error('Failed to remove task from schedule:', err);
-    }
-  };
-
-  // Save schedule to schedule_log table
-  const handleSaveSchedule = async (date: Date, schedule: Record<string, string[]>) => {
-    if (!userId) return;
-
-    try {
-      const { error } = await supabase.from('schedule_log').upsert({
-        user_id: userId,
-        log_date: format(date, 'yyyy-MM-dd'),
-        scheduled_tasks: schedule,
-      });
-
-      if (error) throw error;
-    } catch (err) {
-      console.error('Failed to save schedule:', err);
+      console.error('❌ Failed to remove time block:', err);
+      alert('Failed to remove time block. Please try again.');
     }
   };
 
@@ -240,10 +232,8 @@ export const TasksHub: FC = () => {
         {/* Right sidebar: Schedule */}
         <div className="space-y-6">
           <DailySchedulePanel
-            scheduledTasks={scheduledTasks}
-            onSaveSchedule={handleSaveSchedule}
             onTaskDrop={handleTaskDrop}
-            onTaskRemove={handleTaskRemove}
+            onBlockRemove={handleBlockRemove}
             className="h-[calc(100vh-200px)] max-h-[900px]"
           />
         </div>

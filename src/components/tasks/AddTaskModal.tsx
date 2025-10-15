@@ -4,6 +4,7 @@ import { useCreateTask } from '../../hooks/useTasks';
 import { useBusinesses } from '../../hooks/useBusinesses';
 import { useProjects, usePhases } from '../../hooks/useProjects';
 import { DateTimePicker } from './DateTimePicker';
+import { parseLocalDate } from '../../utils/dateHelpers';
 import type {
   CreateTaskDTO,
   TaskStatus,
@@ -70,6 +71,15 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
     }
 
     try {
+      // Convert date string to ISO timestamp at noon local time to avoid timezone shifts
+      let dueDateISO: string | undefined = undefined;
+      if (dueDate) {
+        const parsedDate = parseLocalDate(dueDate);
+        if (parsedDate) {
+          dueDateISO = parsedDate.toISOString();
+        }
+      }
+
       if (isRecurring && recurringType !== 'none') {
         // Create recurring task with date in the name
         const baseName = taskName.trim();
@@ -105,7 +115,7 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
           description: description.trim() || undefined,
           status,
           priority,
-          due_date: dueDate || undefined,
+          due_date: dueDateISO,
           effort_level: effortLevel,
           automation,
           hours_projected: hoursProjected ? parseFloat(hoursProjected) : 0,
@@ -124,7 +134,7 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
           description: description.trim() || undefined,
           status,
           priority,
-          due_date: dueDate || undefined,
+          due_date: dueDateISO,
           effort_level: effortLevel,
           automation,
           hours_projected: hoursProjected ? parseFloat(hoursProjected) : 0,

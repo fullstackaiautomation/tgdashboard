@@ -1,29 +1,26 @@
 import type { FC } from 'react';
 import { useState } from 'react';
-import { format } from 'date-fns';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X } from 'lucide-react';
+import { format, parseISO, differenceInMinutes } from 'date-fns';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { TaskHub } from '../../types/task';
-// import { ResizableTaskBlock } from './ResizableTaskBlock';
+import { useDailySchedule } from '@/hooks/useCalendar';
+import type { DailyScheduleBlock, TimeBlockStatus } from '@/types/calendar';
+import { formatDateString, getTodayNoon } from '@/utils/dateHelpers';
 
 interface DailySchedulePanelProps {
-  scheduledTasks: TaskHub[];
-  onSaveSchedule: (date: Date, schedule: Record<string, string[]>) => void;
   onTaskDrop: (taskId: string, date: string, time: string) => void;
-  onTaskRemove?: (taskId: string) => void;
-  onTaskResize?: (taskId: string, newStartTime: string, newEndTime: string) => void;
+  onBlockRemove: (blockId: string) => void;
   className?: string;
 }
 
 interface TimeSlotProps {
   time: string;
-  tasks: TaskHub[];
+  blocks: DailyScheduleBlock[];
   date: Date;
   onTaskDrop: (taskId: string, date: string, time: string) => void;
-  onTaskRemove?: (taskId: string) => void;
-  isSecondHalf?: boolean; // Is this the second 30-min slot of an hour?
+  onBlockRemove: (blockId: string) => void;
 }
 
 // Generate time slots from 6:00 AM to 6:00 AM next day (30-minute intervals)
@@ -49,35 +46,56 @@ const generateTimeSlots = (): string[] => {
 const TIME_SLOTS = generateTimeSlots();
 
 /**
- * Get business color for task
+ * Get area color from area string
  */
-const getBusinessColor = (task: TaskHub): string => {
-  if (task.businesses) {
-    const slug = task.businesses.slug;
-    if (slug === 'full-stack' || slug === 'fullstack') return 'var(--color-business-fullstack)';
-    if (slug === 'huge-capital') return 'var(--color-business-hugecapital)';
-    if (slug === 's4') return 'var(--color-business-s4)';
-    if (slug === '808') return 'var(--color-business-808)';
-  }
-
-  if (task.life_areas) {
-    const category = task.life_areas.category.toLowerCase();
-    if (category === 'personal') return 'var(--color-area-personal)';
-    if (category === 'health') return 'var(--color-area-health)';
-    if (category === 'golf') return 'var(--color-area-golf)';
-  }
-
-  if (task.area) {
-    if (task.area === 'Full Stack') return 'var(--color-business-fullstack)';
-    if (task.area === 'Huge Capital') return 'var(--color-business-hugecapital)';
-    if (task.area === 'S4') return 'var(--color-business-s4)';
-    if (task.area === '808') return 'var(--color-business-808)';
-    if (task.area === 'Personal') return 'var(--color-area-personal)';
-    if (task.area === 'Health') return 'var(--color-area-health)';
-    if (task.area === 'Golf') return 'var(--color-area-golf)';
-  }
-
+const getAreaColor = (area: string): string => {
+  if (area === 'Full Stack') return 'var(--color-business-fullstack)';
+  if (area === 'Huge Capital') return 'var(--color-business-hugecapital)';
+  if (area === 'S4') return 'var(--color-business-s4)';
+  if (area === '808') return 'var(--color-business-808)';
+  if (area === 'Personal') return 'var(--color-area-personal)';
+  if (area === 'Health') return 'var(--color-area-health)';
+  if (area === 'Golf') return 'var(--color-area-golf)';
   return '#6b7280';
+};
+
+/**
+ * Calculate duration display string
+ */
+const calculateDuration = (startTime: string, endTime: string): string => {
+  const start = parseISO(`2000-01-01T${startTime}`);
+  const end = parseISO(`2000-01-01T${endTime}`);
+  const minutes = differenceInMinutes(end, start);
+
+  if (minutes < 60) return `${minutes}m`;
+  const hours = minutes / 60;
+  if (hours === 1) return '1h';
+  return `${hours.toFixed(1)}h`;
+};
+
+/**
+ * Get status badge color classes
+ */
+const getStatusColor = (status: TimeBlockStatus): string => {
+  switch (status) {
+    case 'scheduled': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+    case 'in_progress': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+    case 'completed': return 'bg-green-500/20 text-green-400 border-green-500/30';
+    case 'cancelled': return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+  }
+};
+
+/**
+ * Get status icon
+ */
+const getStatusIcon = (status: TimeBlockStatus): React.ReactNode => {
+  switch (status) {
+    case 'in_progress': return <Clock className="w-3 h-3" />;
+    case 'completed': return <CheckCircle className="w-3 h-3" />;
+    case 'cancelled': return <XCircle className="w-3 h-3" />;
+    default: return null;
+  }
 };
 
 /**
@@ -92,7 +110,7 @@ const _calculateTopPosition = (time: string): number => {
   return (offsetMinutes / 30) * 40;
 };
 
-const TimeSlot: FC<TimeSlotProps> = ({ time, tasks, date, onTaskDrop, onTaskRemove }) => {
+const TimeSlot: FC<TimeSlotProps> = ({ time, blocks, date, onTaskDrop, onBlockRemove }) => {
   const [isOver, setIsOver] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -148,34 +166,55 @@ const TimeSlot: FC<TimeSlotProps> = ({ time, tasks, date, onTaskDrop, onTaskRemo
         {format(new Date(`2000-01-01T${time}`), 'h:mm a')}
       </div>
 
-      {/* Tasks */}
+      {/* Time Blocks */}
       <div className="flex-1 flex flex-col gap-1.5">
-        {tasks.length === 0 ? (
+        {blocks.length === 0 ? (
           <div className="text-xs text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
             Drop task here
           </div>
         ) : (
-          tasks.map((task) => (
-            <div key={task.id} className="flex items-center gap-1 group/task">
+          blocks.map((block) => (
+            <div key={block.block_id} className="flex items-center gap-2 group/block">
+              {/* Status Badge */}
               <Badge
-                className="text-white border-0 text-xs px-2 py-1 font-medium justify-start flex-1"
-                style={{ backgroundColor: getBusinessColor(task) }}
-                title={task.task_name}
+                className={`text-xs px-1.5 py-0.5 border flex items-center gap-1 ${getStatusColor(block.status)}`}
+                title={`Status: ${block.status}`}
               >
-                <span className="truncate">{task.task_name}</span>
+                {getStatusIcon(block.status)}
+                <span className="capitalize">{block.status}</span>
               </Badge>
-              {onTaskRemove && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTaskRemove(task.id);
-                  }}
-                  className="opacity-0 group-hover/task:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300"
-                  title="Remove from schedule"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
+
+              {/* Task Name with Area Color */}
+              <Badge
+                className="text-white border-0 text-xs px-2 py-1 font-medium flex-1"
+                style={{ backgroundColor: getAreaColor(block.area) }}
+                title={block.task_name}
+              >
+                <span className="truncate">{block.task_name}</span>
+              </Badge>
+
+              {/* Duration Display */}
+              <span className="text-xs text-gray-400 shrink-0">
+                {format(parseISO(`2000-01-01T${block.start_time}`), 'h:mm a')} -
+                {format(parseISO(`2000-01-01T${block.end_time}`), 'h:mm a')}
+                <span className="ml-1 text-gray-500">
+                  ({calculateDuration(block.start_time, block.end_time)})
+                </span>
+              </span>
+
+              {/* Remove Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm('Remove this time block? (Task will not be deleted)')) {
+                    onBlockRemove(block.block_id);
+                  }
+                }}
+                className="opacity-0 group-hover/block:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300"
+                title="Remove time block"
+              >
+                <X className="w-3 h-3" />
+              </button>
             </div>
           ))
         )}
@@ -188,10 +227,8 @@ const TimeSlot: FC<TimeSlotProps> = ({ time, tasks, date, onTaskDrop, onTaskRemo
  * DailySchedulePanel - Modern schedule view with drag-and-drop
  */
 export const DailySchedulePanel: FC<DailySchedulePanelProps> = ({
-  scheduledTasks,
   onTaskDrop,
-  onTaskRemove,
-  onTaskResize: _onTaskResize,
+  onBlockRemove,
   className = '',
 }) => {
   // Always get fresh "today" - don't cache in state initialization
@@ -203,6 +240,8 @@ export const DailySchedulePanel: FC<DailySchedulePanelProps> = ({
 
   const [selectedDate, setSelectedDate] = useState<Date>(getTodayLocal());
 
+  // Fetch time blocks from database
+  const { data: timeBlocks = [], isLoading } = useDailySchedule(selectedDate);
 
   const handlePreviousDay = () => {
     setSelectedDate((prev) => {
@@ -223,25 +262,16 @@ export const DailySchedulePanel: FC<DailySchedulePanelProps> = ({
     });
   };
 
-  // Filter tasks for selected date and group by time
-  const tasksByTime: Record<string, TaskHub[]> = {};
+  // Group time blocks by start time
+  const blocksByTime: Record<string, DailyScheduleBlock[]> = {};
 
-  // Format selected date as YYYY-MM-DD using local time
-  const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
-
-  const filteredForDate = scheduledTasks.filter(
-    (task) => task.scheduled_date === selectedDateStr
-  );
-
-
-  filteredForDate.forEach((task) => {
-    // Normalize time format: Remove seconds if present (e.g., "12:00:00" -> "12:00")
-    const rawTime = task.scheduled_time || '09:00';
-    const time = rawTime.substring(0, 5); // Get HH:MM only
-    if (!tasksByTime[time]) {
-      tasksByTime[time] = [];
+  timeBlocks.forEach((block) => {
+    // Normalize time format: Get HH:MM only
+    const time = block.start_time.substring(0, 5); // Remove seconds
+    if (!blocksByTime[time]) {
+      blocksByTime[time] = [];
     }
-    tasksByTime[time].push(task);
+    blocksByTime[time].push(block);
   });
 
   // Check if selected date is today (using local time)
@@ -295,26 +325,32 @@ export const DailySchedulePanel: FC<DailySchedulePanelProps> = ({
           </Button>
         </div>
 
-        {/* Task Count */}
-        {filteredForDate.length > 0 && (
+        {/* Block Count */}
+        {timeBlocks.length > 0 && (
           <div className="text-xs text-gray-400 mt-2">
-            {filteredForDate.length} task{filteredForDate.length !== 1 ? 's' : ''} scheduled
+            {timeBlocks.length} block{timeBlocks.length !== 1 ? 's' : ''} scheduled
           </div>
         )}
       </CardHeader>
 
       {/* Time Slots */}
       <CardContent className="flex-1 overflow-y-auto p-0">
-        {TIME_SLOTS.map((time) => (
-          <TimeSlot
-            key={time}
-            time={time}
-            tasks={tasksByTime[time] || []}
-            date={selectedDate}
-            onTaskDrop={onTaskDrop}
-            onTaskRemove={onTaskRemove}
-          />
-        ))}
+        {isLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <div className="text-sm text-gray-400">Loading schedule...</div>
+          </div>
+        ) : (
+          TIME_SLOTS.map((time) => (
+            <TimeSlot
+              key={time}
+              time={time}
+              blocks={blocksByTime[time] || []}
+              date={selectedDate}
+              onTaskDrop={onTaskDrop}
+              onBlockRemove={onBlockRemove}
+            />
+          ))
+        )}
       </CardContent>
     </Card>
   );

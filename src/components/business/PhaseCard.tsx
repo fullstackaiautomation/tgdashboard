@@ -10,6 +10,7 @@ import { EditTaskModal } from './EditTaskModal';
 import { PhaseTasksList } from './PhaseTasksList';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { parseLocalDate, formatDateString } from '../../utils/dateHelpers';
 
 interface PhaseCardProps {
   phase: Phase;
@@ -58,11 +59,20 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
     }
   };
 
-  const handleUpdateDueDate = async (taskId: string, dueDate: string) => {
+  const handleUpdateDueDate = async (taskId: string, dueDateString: string) => {
     try {
+      // Convert date string to ISO timestamp at noon local time
+      let dueDateISO: string | null = null;
+      if (dueDateString) {
+        const parsedDate = parseLocalDate(dueDateString);
+        if (parsedDate) {
+          dueDateISO = parsedDate.toISOString();
+        }
+      }
+
       await updateTask.mutateAsync({
         id: taskId,
-        updates: { due_date: dueDate || null }
+        updates: { due_date: dueDateISO }
       });
     } catch (error) {
       console.error('Failed to update due date:', error);
@@ -257,7 +267,7 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
                         <Calendar className="w-3 h-3 text-gray-500" />
                         <input
                           type="date"
-                          value={task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : ''}
+                          value={task.due_date ? formatDateString(parseLocalDate(task.due_date) || new Date()) : ''}
                           onChange={(e) => handleUpdateDueDate(task.id, e.target.value)}
                           className="bg-transparent text-sm text-gray-300 border-none focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1"
                         />

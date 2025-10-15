@@ -9,6 +9,7 @@ import { useDailyProgress } from '@/hooks/useDailyProgress';
 import { useTasks } from '@/hooks/useTasks';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 import { CheckCircle2, Circle, AlertCircle } from 'lucide-react';
+import { parseLocalDate, getTodayMidnight } from '@/utils/dateHelpers';
 
 interface DueTodayCardProps {
   date?: Date;
@@ -32,15 +33,19 @@ export const DueTodayCard: FC<DueTodayCardProps> = ({
   const { data: dailyProgress, isLoading: progressLoading } = useDailyProgress(date);
   const { data: allTasks = [], isLoading: tasksLoading } = useTasks();
 
-  // Filter tasks due today
+  // Filter tasks due today (compare date strings directly)
   const tasksToday = allTasks.filter(t => t.due_date === dateString);
 
   // Separate overdue tasks that are also due today (edge case)
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const overdueTasksToday = tasksToday.filter(t =>
-    t.due_date && new Date(t.due_date) < today && t.progress_percentage < 100
-  );
+  // Use timezone-safe date comparison
+  const today = getTodayMidnight();
+  const overdueTasksToday = tasksToday.filter(t => {
+    if (!t.due_date || t.progress_percentage >= 100) return false;
+    const dueDate = parseLocalDate(t.due_date);
+    if (!dueDate) return false;
+    const dueDateMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate(), 0, 0, 0, 0);
+    return dueDateMidnight.getTime() < today.getTime();
+  });
 
   const isLoading = progressLoading || tasksLoading;
 

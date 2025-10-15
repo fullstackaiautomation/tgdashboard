@@ -2,6 +2,7 @@ import type { FC, FormEvent } from 'react';
 import { useState } from 'react';
 import { useCreateTask } from '../../hooks/useTasks';
 import { useBusiness } from '../../hooks/useBusinesses';
+import { parseLocalDate } from '../../utils/dateHelpers';
 import type { CreateTaskDTO, TaskStatus, Area, Automation, EffortLevel } from '../../types/task';
 
 interface TaskFormProps {
@@ -51,6 +52,15 @@ export const TaskForm: FC<TaskFormProps> = ({
       return;
     }
 
+    // Convert date string to ISO timestamp at noon local time to avoid timezone shifts
+    let dueDateISO: string | undefined = undefined;
+    if (dueDate) {
+      const parsedDate = parseLocalDate(dueDate);
+      if (parsedDate) {
+        dueDateISO = parsedDate.toISOString();
+      }
+    }
+
     const newTask: CreateTaskDTO = {
       task_name: taskName.trim(),
       description: description.trim() || undefined,
@@ -58,7 +68,7 @@ export const TaskForm: FC<TaskFormProps> = ({
       project_id: projectId,
       ...(phaseId && { phase_id: phaseId }), // Only include if defined
       status,
-      due_date: dueDate || undefined,
+      due_date: dueDateISO,
       // Legacy fields for To-Do List compatibility
       area: business ? mapBusinessSlugToArea(business.slug) : undefined,
       task_type: phaseName || 'General', // Set to phase name (task_type will be renamed to phase_name later)

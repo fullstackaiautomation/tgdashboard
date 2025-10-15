@@ -44,7 +44,12 @@
       "Bash(bash:*)",
       "Bash(supabase:*)",
       "Bash(awk:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(git reset:*)",
+      "Bash(mv:*)",
+      "Bash(tree:*)",
+      "Bash(node fix-dates.js)",
+      "Bash(cmd /c \"move fix-dates.js scripts\\migrations\\fix-dates.js\")"
     ],
     "deny": [],
     "ask": []

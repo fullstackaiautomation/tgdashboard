@@ -17,6 +17,7 @@ import {
   useCreateTimeBlock,
   useTimeBlockConflicts,
 } from '@/hooks/useCalendar';
+import { useTaskHasTimeBlocks } from '@/hooks/useTaskTimeBlocks';
 import type { UnscheduledTask } from '@/types/calendar';
 import type { Area } from '@/types/task';
 
@@ -49,6 +50,13 @@ const DraggableTaskCard: FC<DraggableTaskCardProps> = ({ task, isSelected, onQui
     id: `task-${task.task_id}`,
     data: task,
   });
+
+  // Check if task has time blocks and if it's completed
+  const { data: hasTimeBlocks = false } = useTaskHasTimeBlocks(task.task_id);
+  const isCompleted = task.status === 'Done';
+
+  // Determine button state
+  const buttonState = isCompleted ? 'completed' : hasTimeBlocks ? 'scheduled' : 'schedule';
 
   return (
     <div
@@ -117,9 +125,16 @@ const DraggableTaskCard: FC<DraggableTaskCardProps> = ({ task, isSelected, onQui
               e.stopPropagation();
               onQuickSchedule(task);
             }}
-            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"
+            disabled={buttonState === 'completed'}
+            className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+              buttonState === 'completed'
+                ? 'bg-green-600 text-white cursor-default'
+                : buttonState === 'scheduled'
+                ? 'bg-yellow-500 text-gray-900 hover:bg-yellow-600'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
           >
-            Schedule
+            {buttonState === 'completed' ? 'Completed' : buttonState === 'scheduled' ? 'Scheduled' : 'Schedule'}
           </button>
         )}
       </div>

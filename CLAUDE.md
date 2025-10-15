@@ -217,11 +217,49 @@ SUPABASE_DB_PASSWORD=your_db_password
 supabase secrets set ANTHROPIC_API_KEY=your_anthropic_key
 ```
 
+## Date/Time & Timezone Handling
+
+**CRITICAL:** The application uses **LOCAL TIMEZONE** throughout the frontend and **UTC** in the database.
+
+### Quick Rules
+
+1. **Database**: Always use `TIMESTAMPTZ` for timestamps, `DATE` for calendar dates
+2. **Frontend**: Always use helpers from `src/utils/dateHelpers.ts`
+3. **Never**: Use `new Date().toISOString().split('T')[0]` or direct `new Date('YYYY-MM-DD')`
+
+### Required Reading
+
+- **[TIMEZONE-POLICY.md](docs/TIMEZONE-POLICY.md)** - Complete timezone standards and guidelines
+- **[TIMEZONE-AUDIT-REPORT.md](docs/TIMEZONE-AUDIT-REPORT.md)** - Full audit of all date/time handling
+
+### Common Patterns
+
+```typescript
+import { formatDateString, getTodayNoon, parseLocalDate } from '@/utils/dateHelpers';
+
+// ✅ Get today's date as YYYY-MM-DD
+const today = formatDateString(getTodayNoon());
+
+// ✅ Parse user-entered date
+const dateObj = parseLocalDate('2025-10-15');
+
+// ✅ Create timestamp for logging
+const timestamp = new Date().toISOString();
+
+// ✅ Display timestamp
+{format(new Date(timestamp), 'MMM d, yyyy h:mm a')}
+```
+
+**See [TIMEZONE-POLICY.md](docs/TIMEZONE-POLICY.md) for complete guidelines.**
+
+---
+
 ## Development Workflow
 
 ### Before Adding New Features
 
 1. Review relevant documentation files:
+   - **`docs/TIMEZONE-POLICY.md`** - **READ FIRST if working with dates/times**
    - `FINANCE_SETUP_INSTRUCTIONS.md` - Finance module state & plans
    - `START-HERE.md` - Recent work summary
    - `IMPLEMENTATION_SUMMARY.md` - Implementation details
@@ -231,6 +269,8 @@ supabase secrets set ANTHROPIC_API_KEY=your_anthropic_key
 3. Review existing hooks for reusable patterns
 
 4. Consider impact on real-time sync if modifying tasks/business data
+
+5. **If adding date/time features**, follow [TIMEZONE-POLICY.md](docs/TIMEZONE-POLICY.md) exactly
 
 ### Database Migrations
 

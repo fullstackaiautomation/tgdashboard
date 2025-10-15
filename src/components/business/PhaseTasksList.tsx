@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import type { TaskHub } from '../../types/task';
 import { ProgressIndicator } from '../shared/ProgressIndicator';
 import { format } from 'date-fns';
+import { parseLocalDate } from '../../utils/dateHelpers';
 
 interface PhaseTasksListProps {
   tasks: TaskHub[];
@@ -70,10 +71,17 @@ export const PhaseTasksList: FC<PhaseTasksListProps> = ({
             ) : (
               <div className="space-y-3">
                 {sortedTasks.map((task) => {
-                  const isOverdue =
-                    task.due_date &&
-                    new Date(task.due_date) < new Date() &&
-                    (task.progress_percentage ?? 0) < 100;
+                  // Check if task is overdue using timezone-safe comparison
+                  let isOverdue = false;
+                  if (task.due_date && (task.progress_percentage ?? 0) < 100) {
+                    const dueDate = parseLocalDate(task.due_date);
+                    if (dueDate) {
+                      const dueDateMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate(), 0, 0, 0, 0);
+                      const todayMidnight = new Date();
+                      todayMidnight.setHours(0, 0, 0, 0);
+                      isOverdue = dueDateMidnight.getTime() < todayMidnight.getTime();
+                    }
+                  }
 
                   return (
                     <div
@@ -143,12 +151,15 @@ export const PhaseTasksList: FC<PhaseTasksListProps> = ({
                             </span>
 
                             {/* Due Date */}
-                            {task.due_date && (
-                              <span className={isOverdue ? 'text-red-400 font-medium' : ''}>
-                                Due: {format(new Date(task.due_date), 'MMM d, yyyy')}
-                                {isOverdue && ' (Overdue)'}
-                              </span>
-                            )}
+                            {task.due_date && (() => {
+                              const dueDate = parseLocalDate(task.due_date);
+                              return dueDate ? (
+                                <span className={isOverdue ? 'text-red-400 font-medium' : ''}>
+                                  Due: {format(dueDate, 'MMM d, yyyy')}
+                                  {isOverdue && ' (Overdue)'}
+                                </span>
+                              ) : null;
+                            })()}
 
                             {/* Area */}
                             {task.area && (

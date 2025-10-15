@@ -49,7 +49,15 @@ const getSourceName = (task: TaskHub): string => {
 
 const isOverdue = (task: TaskHub): boolean => {
   if (!task.due_date || task.status === 'Done') return false;
-  return new Date(task.due_date) < new Date();
+  const dueDate = parseLocalDate(task.due_date);
+  if (!dueDate) return false;
+
+  // Compare dates at midnight to avoid time component issues
+  const dueDateMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate(), 0, 0, 0, 0);
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+
+  return dueDateMidnight.getTime() < todayMidnight.getTime();
 };
 
 export const EnhancedTaskCard: FC<EnhancedTaskCardProps> = ({ task, className = '', onUndo: _onUndo }) => {

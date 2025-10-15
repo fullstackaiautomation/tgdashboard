@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useUpdateTask, useDeleteTask } from '../../hooks/useTasks';
 import { useUndo } from '../../hooks/useUndo';
 import { useProjects, usePhases } from '../../hooks/useProjects';
+import { useTaskHasTimeBlocks } from '../../hooks/useTaskTimeBlocks';
 import { ProgressSlider } from '../shared/ProgressSlider';
 import { DateTimePicker } from './DateTimePicker';
 import { TimeTrackingModal } from './TimeTrackingModal';
@@ -108,6 +109,9 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
 
   // Fetch phases for the selected project
   const { data: phases } = usePhases(task.project_id || undefined);
+
+  // Check if task has time blocks
+  const { data: hasTimeBlocks = false } = useTaskHasTimeBlocks(task.id);
 
   const businessColor = getBusinessColor(task);
   const sourceName = getSourceName(task);
@@ -479,6 +483,22 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
                 <span>Set Date</span>
               </Button>
             )}
+
+            {/* Schedule Status Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled
+              className={`h-6 px-3 text-xs font-medium rounded-md ${
+                isCompleted
+                  ? 'bg-green-600 text-white cursor-default'
+                  : hasTimeBlocks
+                  ? 'bg-yellow-500 text-gray-900 cursor-default'
+                  : 'bg-blue-600 text-white cursor-default'
+              }`}
+            >
+              {isCompleted ? 'Completed' : hasTimeBlocks ? 'Scheduled' : 'Schedule'}
+            </Button>
 
             {/* Expand Button with Delete Dropdown */}
             <div className="relative">
