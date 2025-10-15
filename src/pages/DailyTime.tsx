@@ -1,18 +1,26 @@
 /**
- * DailyTime - Side-by-side view of planned vs actual time
+ * DailyTime - Daily progress tracking with planned vs actual time
  *
- * Left side: Daily Schedule (planned time blocks from task_time_blocks)
- * Right side: Deep Work Log (actual time spent - both productive and non-productive)
+ * Top: Daily progress overview (Story 2.5)
+ * Middle: Side-by-side view of planned vs actual time
+ * Bottom: End of day summary (appears after 6pm)
  */
 
 import { type FC, useState } from 'react';
-import { format, startOfDay } from 'date-fns';
+import { format, startOfDay, addDays } from 'date-fns';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DailyScheduleView } from '@/components/daily-time/DailyScheduleView';
 import { DeepWorkLogView } from '@/components/daily-time/DeepWorkLogView';
+import { DailyProgressHeader } from '@/components/daily/DailyProgressHeader';
+import { DueTodayCard } from '@/components/daily/DueTodayCard';
+import { TimeAllocation } from '@/components/daily/TimeAllocation';
+import { EndOfDaySummary } from '@/components/daily/EndOfDaySummary';
+import { useDeepWorkProgress } from '@/hooks/useDeepWorkProgress';
+import { ProgressBar } from '@/components/shared/ProgressBar';
 
 export const DailyTime: FC = () => {
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
+  const { data: deepWorkProgress } = useDeepWorkProgress(selectedDate);
 
   const handlePrevDay = () => {
     setSelectedDate((prev) => {
@@ -32,6 +40,10 @@ export const DailyTime: FC = () => {
 
   const handleToday = () => {
     setSelectedDate(startOfDay(new Date()));
+  };
+
+  const handlePlanTomorrow = () => {
+    setSelectedDate(startOfDay(addDays(new Date(), 1)));
   };
 
   return (
@@ -72,14 +84,66 @@ export const DailyTime: FC = () => {
         </div>
       </div>
 
-      {/* Side-by-side layout */}
-      <div className="grid grid-cols-2 gap-6">
+      {/* Daily Progress Overview (Story 2.5) */}
+      <div className="mb-6">
+        <DailyProgressHeader date={selectedDate} />
+      </div>
+
+      {/* Top Row: Due Today Card + Deep Work Progress */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Due Today Card */}
+        <DueTodayCard date={selectedDate} />
+
+        {/* Deep Work Progress Card */}
+        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+          <h3 className="text-xl font-bold text-white mb-4">Deep Work Progress</h3>
+
+          {deepWorkProgress && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-400">
+                  {deepWorkProgress.hoursWorked.toFixed(1)}h of {deepWorkProgress.hoursGoal.toFixed(1)}h goal
+                </span>
+                <span className={`text-sm font-semibold ${
+                  deepWorkProgress.deepWorkProgress < 33 ? 'text-red-400' :
+                  deepWorkProgress.deepWorkProgress < 67 ? 'text-yellow-400' :
+                  'text-green-400'
+                }`}>
+                  {deepWorkProgress.deepWorkProgress.toFixed(0)}%
+                </span>
+              </div>
+              <ProgressBar progress={deepWorkProgress.deepWorkProgress} size="md" showLabel={false} />
+
+              <div className="mt-4 text-sm text-gray-500">
+                {deepWorkProgress.deepWorkProgress >= 100 ? (
+                  <p className="text-green-400">✅ Goal achieved! Great work!</p>
+                ) : deepWorkProgress.deepWorkProgress >= 80 ? (
+                  <p className="text-yellow-400">Almost there! Keep going!</p>
+                ) : (
+                  <p>{(deepWorkProgress.hoursGoal - deepWorkProgress.hoursWorked).toFixed(1)}h remaining to reach goal</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Time Allocation */}
+      <div className="mb-6">
+        <TimeAllocation date={selectedDate} />
+      </div>
+
+      {/* Side-by-side layout: Planned Schedule vs Deep Work Log */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Left: Planned Schedule */}
         <DailyScheduleView selectedDate={selectedDate} />
 
         {/* Right: Deep Work Log (Actual) */}
         <DeepWorkLogView selectedDate={selectedDate} />
       </div>
+
+      {/* End of Day Summary (only visible after 6pm) */}
+      <EndOfDaySummary date={selectedDate} onPlanTomorrow={handlePlanTomorrow} />
     </div>
   );
 };

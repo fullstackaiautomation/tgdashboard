@@ -7,6 +7,7 @@ import { useUpdatePhase } from '../../hooks/useProjects';
 import { usePhaseProgress } from '../../hooks/usePhaseProgress';
 import { TaskForm } from './TaskForm';
 import { EditTaskModal } from './EditTaskModal';
+import { PhaseTasksList } from './PhaseTasksList';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -25,6 +26,7 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
   const [editValue, setEditValue] = useState('');
   const [isEditingPhaseName, setIsEditingPhaseName] = useState(false);
   const [editPhaseName, setEditPhaseName] = useState('');
+  const [showTasksList, setShowTasksList] = useState(false);
 
   const { data: allTasks } = useTasks();
   const updateTask = useUpdateTask();
@@ -189,9 +191,17 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
           </div>
         </div>
         <div className="flex items-center gap-6">
-          <div className="text-right">
+          <div
+            className="text-right cursor-pointer hover:text-blue-400 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowTasksList(true);
+            }}
+            title="Click to view task details"
+          >
             <span className="text-sm text-gray-400">Progress: </span>
             <span className="text-sm font-bold text-gray-100">{progress.toFixed(0)}%</span>
+            <span className="text-xs text-gray-500 ml-2">({completedCount}/{totalCount})</span>
           </div>
           {totalCount > 0 && (
             <Button
@@ -395,6 +405,14 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
           businessId={businessId}
         />
       )}
+
+      {/* Phase Tasks List Modal (Drill-down) */}
+      <PhaseTasksList
+        tasks={phaseTasks}
+        phaseName={phase.name}
+        isOpen={showTasksList}
+        onClose={() => setShowTasksList(false)}
+      />
     </div>
   );
 };

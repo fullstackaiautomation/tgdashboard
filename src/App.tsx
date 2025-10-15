@@ -13,6 +13,8 @@ import { Health } from './pages/Health'
 import { Planning } from './pages/Planning'
 import { Calendar } from './pages/Calendar'
 import { DailyTime } from './pages/DailyTime'
+import { DeepWorkInsights } from './pages/DeepWorkInsights'
+import { ReviewDashboard } from './pages/ReviewDashboard'
 
 type Area = 'Full Stack' | 'S4' | '808' | 'Personal' | 'Huge Capital' | 'Golf' | 'Health'
 type EffortLevel = '$$$ Printer $$$' | '$ Makes Money $' | '-$ Save Dat $-' | ':( No Money ):' | '8) Vibing (8'
@@ -54,7 +56,7 @@ function App() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [deepWorkSessions, setDeepWorkSessions] = useState<any[]>([])
   const [selectedArea, _setSelectedArea] = useState<Area | 'All Areas'>('All Areas')
-  const [activeMainTab, setActiveMainTab] = useState<'tasks' | 'business' | 'content' | 'finance' | 'notes' | 'review' | 'analytics' | 'health' | 'planning' | 'calendar'>('tasks')
+  const [activeMainTab, setActiveMainTab] = useState<'tasks' | 'business' | 'content' | 'finance' | 'notes' | 'review' | 'analytics' | 'health' | 'planning' | 'calendar' | 'dailytime' | 'insights'>('tasks')
   const [activeTasksSubTab, setActiveTasksSubTab] = useState<'tasks-list' | 'deepwork'>('tasks-list') // NEW: Tasks Hub subtabs
   const [selectedTimePeriod, _setSelectedTimePeriod] = useState<'All Time' | 'Today' | 'This Week' | 'This Month'>('All Time')
   const [selectedDWArea, _setSelectedDWArea] = useState<Area | 'All Areas'>('All Areas')
@@ -1167,6 +1169,33 @@ function App() {
             </button>
           </div>
 
+          {/* Main Tab - Deep Work Insights */}
+          <div style={{ marginBottom: '8px' }}>
+            <button
+              onClick={() => setActiveMainTab('insights')}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                backgroundColor: activeMainTab === 'insights' ? '#f59e0b' : 'transparent',
+                color: activeMainTab === 'insights' ? 'white' : '#f59e0b',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '15px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              Insights
+            </button>
+          </div>
+
           {/* Main Tab - Health */}
           <div style={{ marginBottom: '8px' }}>
             <button
@@ -1368,6 +1397,13 @@ function App() {
           </div>
         )}
 
+        {/* Deep Work Insights Tab */}
+        {activeMainTab === 'insights' && (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <DeepWorkInsights />
+          </div>
+        )}
+
         {/* Health Tab */}
         {activeMainTab === 'health' && (
           <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -1397,198 +1433,8 @@ function App() {
         )}
 
         {activeMainTab === 'review' && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-            <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-              <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '24px', color: 'white' }}>
-                📊 Review Dashboard
-              </h1>
-
-              {/* Area Cards Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-
-                {/* TASKS Card */}
-                <button
-                  onClick={() => setActiveMainTab('tasks')}
-                  style={{
-                    backgroundColor: '#1a1a1a',
-                    border: '2px solid #f97316',
-                    borderRadius: '12px',
-                    padding: '24px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#fb923c'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#f97316'}
-                >
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#f97316', marginBottom: '12px' }}>
-                    ✓ TASKS
-                  </div>
-                  <div style={{ fontSize: '48px', fontWeight: 'bold', color: 'white', marginBottom: '8px' }}>
-                    {Math.round((stats.completed / (stats.active + stats.completed)) * 100) || 0}%
-                  </div>
-                  <div style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '12px' }}>
-                    {stats.active} active · {stats.completed} complete
-                  </div>
-                  <div style={{
-                    width: '100%',
-                    height: '8px',
-                    backgroundColor: '#374151',
-                    borderRadius: '4px',
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      width: `${Math.round((stats.completed / (stats.active + stats.completed)) * 100) || 0}%`,
-                      height: '100%',
-                      backgroundColor: '#3b82f6',
-                      transition: 'all 0.3s'
-                    }} />
-                  </div>
-                </button>
-
-                {/* BUSINESS Card - Expanded */}
-                <div style={{
-                  backgroundColor: '#1a1a1a',
-                  border: '2px solid #a855f7',
-                  borderRadius: '12px',
-                  padding: '24px',
-                  gridColumn: 'span 2'
-                }}>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#a855f7', marginBottom: '16px' }}>
-                    💼 BUSINESS
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {['Full Stack AI', 'Huge Capital', 'S4', '808', 'Service SaaS'].map((businessName) => {
-                      const businessTasks = tasks.filter(t => {
-                        if (businessName === 'Full Stack AI') return t.area === 'Full Stack'
-                        if (businessName === 'Huge Capital') return t.area === 'Huge Capital'
-                        if (businessName === 'S4') return t.area === 'S4'
-                        if (businessName === '808') return t.area === '808'
-                        return false
-                      })
-                      const totalTasks = businessTasks.length
-                      const completedTasks = businessTasks.filter(t => t.status === 'Done').length
-                      const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
-
-                      return (
-                        <div key={businessName} style={{ padding: '12px', backgroundColor: '#0a0a0a', borderRadius: '8px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: '500', color: 'white' }}>{businessName}</span>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: progress < 33 ? '#ef4444' : progress < 67 ? '#eab308' : '#22c55e' }}>
-                              {progress}%
-                            </span>
-                          </div>
-                          <div style={{
-                            width: '100%',
-                            height: '6px',
-                            backgroundColor: '#374151',
-                            borderRadius: '3px',
-                            overflow: 'hidden'
-                          }}>
-                            <div style={{
-                              width: `${progress}%`,
-                              height: '100%',
-                              backgroundColor: progress < 33 ? '#ef4444' : progress < 67 ? '#eab308' : '#22c55e',
-                              transition: 'all 0.3s'
-                            }} />
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>
-                            {completedTasks} of {totalTasks} tasks
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* CONTENT Card */}
-                <button
-                  onClick={() => setActiveMainTab('content')}
-                  style={{
-                    backgroundColor: '#1a1a1a',
-                    border: '2px solid #10b981',
-                    borderRadius: '12px',
-                    padding: '24px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#34d399'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#10b981'}
-                >
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#10b981', marginBottom: '12px' }}>
-                    📚 CONTENT
-                  </div>
-                  <div style={{ fontSize: '14px', color: '#9ca3af' }}>
-                    Click to view content library
-                  </div>
-                </button>
-
-                {/* HEALTH Placeholder Card */}
-                <div style={{
-                  backgroundColor: '#1a1a1a',
-                  border: '2px solid #444',
-                  borderRadius: '12px',
-                  padding: '24px',
-                  opacity: 0.5
-                }}>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#9ca3af', marginBottom: '12px' }}>
-                    💪 HEALTH
-                  </div>
-                  <div style={{ fontSize: '14px', color: '#9ca3af' }}>
-                    Coming soon
-                  </div>
-                </div>
-
-                {/* FINANCES Placeholder Card */}
-                <div style={{
-                  backgroundColor: '#1a1a1a',
-                  border: '2px solid #444',
-                  borderRadius: '12px',
-                  padding: '24px',
-                  opacity: 0.5
-                }}>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#9ca3af', marginBottom: '12px' }}>
-                    💰 FINANCES
-                  </div>
-                  <div style={{ fontSize: '14px', color: '#9ca3af' }}>
-                    Coming soon
-                  </div>
-                </div>
-
-                {/* LIFE Placeholder Card */}
-                <div style={{
-                  backgroundColor: '#1a1a1a',
-                  border: '2px solid #444',
-                  borderRadius: '12px',
-                  padding: '24px',
-                  opacity: 0.5
-                }}>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#9ca3af', marginBottom: '12px' }}>
-                    🌟 LIFE
-                  </div>
-                  <div style={{ fontSize: '14px', color: '#9ca3af' }}>
-                    Coming soon
-                  </div>
-                </div>
-
-                {/* GOLF Placeholder Card */}
-                <div style={{
-                  backgroundColor: '#1a1a1a',
-                  border: '2px solid #444',
-                  borderRadius: '12px',
-                  padding: '24px',
-                  opacity: 0.5
-                }}>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#9ca3af', marginBottom: '12px' }}>
-                    ⛳ GOLF
-                  </div>
-                  <div style={{ fontSize: '14px', color: '#9ca3af' }}>
-                    Coming soon
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <ReviewDashboard onNavigate={setActiveMainTab} />
           </div>
         )}
       </div>

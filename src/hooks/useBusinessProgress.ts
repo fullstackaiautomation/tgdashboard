@@ -10,6 +10,7 @@ interface BusinessProgress {
   totalTasks: number;
   lastActivityDate: string | null;
   isStalled: boolean;
+  daysSinceActivity: number;
 }
 
 /**
@@ -35,6 +36,7 @@ export const useBusinessProgress = (
         totalTasks: 0,
         lastActivityDate: null,
         isStalled: false,
+        daysSinceActivity: Infinity,
       };
     }
 
@@ -90,9 +92,10 @@ export const useBusinessProgress = (
       : null;
 
     // Check if stalled (no activity in 14+ days for business level)
-    const isStalled = lastActivityDate
-      ? new Date().getTime() - new Date(lastActivityDate).getTime() > 14 * 24 * 60 * 60 * 1000
-      : false;
+    const daysSinceActivity = lastActivityDate
+      ? Math.floor((new Date().getTime() - new Date(lastActivityDate).getTime()) / (24 * 60 * 60 * 1000))
+      : Infinity;
+    const isStalled = daysSinceActivity > 14;
 
     return {
       overallCompletion: Math.round(overallCompletion * 10) / 10,
@@ -102,6 +105,7 @@ export const useBusinessProgress = (
       totalTasks,
       lastActivityDate,
       isStalled,
+      daysSinceActivity,
     };
   }, [projects, phases, tasks]);
 };

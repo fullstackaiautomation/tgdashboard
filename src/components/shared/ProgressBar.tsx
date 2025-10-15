@@ -1,4 +1,5 @@
 import type { FC } from 'react';
+import { getProgressClasses } from '../../utils/progressColors';
 
 interface ProgressBarProps {
   progress: number; // 0-100
@@ -7,15 +8,6 @@ interface ProgressBarProps {
   onClick?: () => void;
   className?: string;
 }
-
-/**
- * Get progress color class based on percentage
- */
-const getProgressColor = (progress: number): string => {
-  if (progress < 33) return 'bg-red-500';
-  if (progress < 67) return 'bg-yellow-500';
-  return 'bg-green-500';
-};
 
 /**
  * ProgressBar - Horizontal progress bar with color gradient
@@ -39,7 +31,7 @@ export const ProgressBar: FC<ProgressBarProps> = ({
     lg: 'h-3',
   };
 
-  const progressColor = getProgressColor(progress);
+  const progressColor = getProgressClasses(progress);
   const isClickable = !!onClick;
 
   return (

@@ -9,9 +9,11 @@ import { useBusinesses } from '../../hooks/useBusinesses';
 import { useProjects, usePhases, useDeleteProject, useUpdateProject } from '../../hooks/useProjects';
 import { useTasks } from '../../hooks/useTasks';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
+import { useBusinessProgress } from '../../hooks/useBusinessProgress';
 import { supabase } from '../../lib/supabase';
 import { ProjectCard } from './ProjectCard';
 import { NewProjectModal } from './NewProjectModal';
+import { BusinessMetrics } from './BusinessMetrics';
 
 export const BusinessDashboard: FC = () => {
   const { data: businesses, isLoading: businessesLoading } = useBusinesses();
@@ -114,6 +116,19 @@ export const BusinessDashboard: FC = () => {
     return allTasks.filter(t => t.business_id === selectedBusinessId);
   }, [allTasks, selectedBusinessId]);
 
+  // Filter phases for selected business
+  const filteredPhases = useMemo(() => {
+    if (!allPhases || !selectedBusinessId) return [];
+    return allPhases.filter(p => filteredProjects.some(proj => proj.id === p.project_id));
+  }, [allPhases, selectedBusinessId, filteredProjects]);
+
+  // Calculate business-level metrics - MUST call hook unconditionally
+  const businessMetrics = useBusinessProgress(
+    selectedBusinessId ? filteredProjects : [],
+    selectedBusinessId ? filteredPhases : [],
+    selectedBusinessId ? filteredTasks : []
+  );
+
   if (businessesLoading) {
     return (
       <div className="p-6">
@@ -212,6 +227,19 @@ export const BusinessDashboard: FC = () => {
           );
         })}
       </div>
+
+      {/* Business Metrics - Show when a business is selected */}
+      {selectedBusinessId && businessMetrics.totalProjects > 0 && (
+        <BusinessMetrics
+          projectCount={businessMetrics.totalProjects}
+          overallProgress={businessMetrics.overallCompletion}
+          activeTasks={businessMetrics.activeTasks}
+          completedTasks={businessMetrics.completedTasks}
+          hoursInvested={0}
+          isStalled={businessMetrics.isStalled}
+          daysSinceActivity={businessMetrics.daysSinceActivity}
+        />
+      )}
 
       {/* Project Filter Buttons - Only show when a business is selected */}
       {selectedBusinessId && allProjects && (

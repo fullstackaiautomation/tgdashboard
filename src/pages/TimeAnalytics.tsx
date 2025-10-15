@@ -1,107 +1,130 @@
-import { type FC, useState } from 'react';
-import { Settings } from 'lucide-react';
-import { AreaTimeCard } from '@/components/analytics/AreaTimeCard';
-import { AreaComparisonChart } from '@/components/analytics/AreaComparisonChart';
-import { AreaTimeTrend } from '@/components/analytics/AreaTimeTrend';
-import { AreaLabelBreakdown } from '@/components/analytics/AreaLabelBreakdown';
-import { TimeBudgetSettings } from '@/components/analytics/TimeBudgetSettings';
-import { useAllAreasTimeStats } from '@/hooks/useAreaTimeStats';
-
-type Area = 'Full Stack' | 'S4' | '808' | 'Personal' | 'Huge Capital' | 'Golf' | 'Health';
-
-const AREAS: Area[] = ['Full Stack', 'S4', '808', 'Personal', 'Huge Capital', 'Golf', 'Health'];
-
 /**
- * TimeAnalytics - Dedicated analytics page showing time invested per area
+ * TimeAnalytics - Comprehensive Time Allocation Visual Analytics Dashboard
  *
- * Layout:
- * 1. Area Comparison Chart (full width)
- * 2. Grid of 7 AreaTimeCard components (3 columns)
- * 3. AreaTimeTrend (full width, collapsible)
- * 4. AreaLabelBreakdown (full width)
+ * Story 4.4: Visual analytics showing time allocation patterns and trends
  *
  * Features:
- * - Real-time data with 5-minute cache
- * - Responsive layout (3 cols desktop, 2 tablet, 1 mobile)
- * - Loading states
- * - Empty state handling
- * - Time budget settings
+ * - Date range selector (This Week, This Month, Last 3 Months, Custom)
+ * - Weekly heatmap visualization
+ * - Area distribution pie chart
+ * - Task type breakdown chart
+ * - 3-month trend analysis
+ * - Focus time metric
+ * - Peak productivity analysis
+ * - Label time analysis
+ * - Week-over-week comparison
  */
-export const TimeAnalytics: FC = () => {
-  const { data: allStats, isLoading } = useAllAreasTimeStats();
-  const [showBudgetSettings, setShowBudgetSettings] = useState(false);
 
-  // Check if there's any data at all
-  const hasData = allStats && allStats.length > 0 && allStats.some(stat => stat.total_hours > 0);
+import { type FC, useState } from 'react';
+import { startOfWeek, startOfMonth, subMonths } from 'date-fns';
+import { Download } from 'lucide-react';
+import type { DateRange } from '@/hooks/useTimeAnalytics';
+import { DateRangeSelector, type DateRangePreset } from '@/components/analytics/DateRangeSelector';
+import { WeeklyHeatmap } from '@/components/analytics/WeeklyHeatmap';
+import { AreaDistributionPieChart } from '@/components/analytics/AreaDistributionPieChart';
+import { TaskTypeBreakdown } from '@/components/analytics/TaskTypeBreakdown';
+import { TimeAllocationTrendGraph } from '@/components/analytics/TimeAllocationTrendGraph';
+import { FocusTimeMetric } from '@/components/analytics/FocusTimeMetric';
+import { PeakProductivityChart } from '@/components/analytics/PeakProductivityChart';
+import { LabelTimeAnalysis } from '@/components/analytics/LabelTimeAnalysis';
+import { WeekComparisonView } from '@/components/analytics/WeekComparisonView';
+
+export const TimeAnalytics: FC = () => {
+  const [selectedPreset, setSelectedPreset] = useState<DateRangePreset>('last-3-months');
+  const [dateRange, setDateRange] = useState<DateRange>({
+    start: subMonths(new Date(), 3),
+    end: new Date(),
+  });
+
+  const handlePresetChange = (preset: DateRangePreset) => {
+    setSelectedPreset(preset);
+
+    // Update date range based on preset
+    switch (preset) {
+      case 'this-week':
+        setDateRange({
+          start: startOfWeek(new Date(), { weekStartsOn: 1 }),
+          end: new Date(),
+        });
+        break;
+      case 'this-month':
+        setDateRange({
+          start: startOfMonth(new Date()),
+          end: new Date(),
+        });
+        break;
+      case 'last-3-months':
+        setDateRange({
+          start: subMonths(new Date(), 3),
+          end: new Date(),
+        });
+        break;
+      case 'custom':
+        // Keep current date range
+        break;
+    }
+  };
+
+  const handleExportPDF = () => {
+    // TODO: Implement PDF export functionality
+    alert('PDF export feature coming soon!');
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-6">
       {/* Header */}
-      <div className="mb-8 flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-100">Time Analytics</h1>
-          <p className="text-gray-400 mt-2">
-            Track and analyze time investment across your 7 life areas
-          </p>
+      <div className="mb-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-100">Time Allocation Analytics</h1>
+            <p className="text-gray-400 mt-2">
+              Visual analytics showing time allocation patterns and productivity trends
+            </p>
+          </div>
+          <button
+            onClick={handleExportPDF}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Export PDF
+          </button>
         </div>
-        <button
-          onClick={() => setShowBudgetSettings(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Settings className="w-4 h-4" />
-          Time Budgets
-        </button>
+
+        {/* Date Range Selector */}
+        <DateRangeSelector
+          selectedPreset={selectedPreset}
+          dateRange={dateRange}
+          onPresetChange={handlePresetChange}
+          onDateRangeChange={setDateRange}
+        />
       </div>
 
-      {/* Time Budget Settings Modal */}
-      <TimeBudgetSettings
-        isOpen={showBudgetSettings}
-        onClose={() => setShowBudgetSettings(false)}
-      />
+      {/* Main Analytics Grid */}
+      <div className="space-y-6">
+        {/* Section 1: Weekly Heatmap (full width) */}
+        <WeeklyHeatmap weekStart={startOfWeek(new Date(), { weekStartsOn: 1 })} />
 
-      {/* Loading state */}
-      {isLoading && (
-        <div className="space-y-6">
-          <div className="bg-gray-800 rounded-lg p-8 border border-gray-700 animate-pulse">
-            <div className="h-64 bg-gray-700 rounded"></div>
-          </div>
+        {/* Section 2: Focus Time + Area Distribution (2 columns) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <FocusTimeMetric dateRange={dateRange} />
+          <AreaDistributionPieChart dateRange={dateRange} />
         </div>
-      )}
 
-      {/* Empty state */}
-      {!isLoading && !hasData && (
-        <div className="bg-gray-800 rounded-lg p-12 text-center border border-gray-700">
-          <div className="text-6xl mb-4">📊</div>
-          <h2 className="text-2xl font-bold text-gray-100 mb-2">No Deep Work Sessions Yet</h2>
-          <p className="text-gray-400 mb-6">
-            Start logging deep work sessions to see your time analytics
-          </p>
-          <p className="text-sm text-gray-500">
-            Go to the Tasks tab → Deep Work to start tracking your focused work time
-          </p>
+        {/* Section 3: Task Type + Peak Productivity (2 columns) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TaskTypeBreakdown dateRange={dateRange} />
+          <PeakProductivityChart dateRange={dateRange} />
         </div>
-      )}
 
-      {/* Main content */}
-      {!isLoading && hasData && (
-        <div className="space-y-6">
-          {/* Section 1: Area Comparison Chart (full width) */}
-          <AreaComparisonChart />
+        {/* Section 4: 3-Month Trend Analysis (full width) */}
+        <TimeAllocationTrendGraph dateRange={dateRange} />
 
-          {/* Section 2: Grid of 7 AreaTimeCard components */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {AREAS.map(area => (
-              <AreaTimeCard key={area} area={area} />
-            ))}
-          </div>
+        {/* Section 5: Label Analysis (full width) */}
+        <LabelTimeAnalysis dateRange={dateRange} topN={10} />
 
-          {/* Section 3: AreaTimeTrend (full width, collapsible) */}
-          <AreaTimeTrend />
-
-          {/* Section 4: AreaLabelBreakdown (full width) */}
-          <AreaLabelBreakdown />
-        </div>
-      )}
+        {/* Section 6: Week Comparison (full width, collapsible) */}
+        <WeekComparisonView />
+      </div>
     </div>
   );
 };

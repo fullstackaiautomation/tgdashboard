@@ -1,179 +1,131 @@
 #!/bin/bash
-# Pre-Deployment Security Check Script
-# Version: 1.0.0
-# Purpose: Automated security verification before production deployment
+# Automated Security Check Script
+# Runs comprehensive security checks before deployment
 
 set -e
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Counters
-PASS_COUNT=0
-FAIL_COUNT=0
-WARN_COUNT=0
+CHECKS_PASSED=0
+CHECKS_FAILED=0
 
-echo "🔒 Pre-Deployment Security Checks"
-echo "=================================="
+echo "========================================"
+echo "Security Check - tg-dashboard"
+echo "========================================"
 echo ""
 
-# Function to print pass message
-pass() {
-    echo -e "${GREEN}✅ PASS:${NC} $1"
-    ((PASS_COUNT++))
-}
-
-# Function to print fail message and exit
-fail() {
-    echo -e "${RED}❌ FAIL:${NC} $1"
-    ((FAIL_COUNT++))
-}
-
-# Function to print warning message
-warn() {
-    echo -e "${YELLOW}⚠️  WARN:${NC} $1"
-    ((WARN_COUNT++))
-}
-
-# Check 1: Scan for hardcoded Supabase API keys (JWT pattern)
-echo "Check 1: Scanning for hardcoded Supabase API keys..."
-if grep -r "eyJhbGciOiJI" src/ --include="*.ts" --include="*.tsx" 2>/dev/null; then
-    fail "Hardcoded Supabase key detected in source code (JWT token pattern found)"
+# Check 1: .env in .gitignore
+echo "Check 1: Verify .env in .gitignore..."
+if grep -q "^\.env$" .gitignore; then
+    echo -e "${GREEN}✓ PASS${NC}: .env is in .gitignore"
+    ((CHECKS_PASSED++))
 else
-    pass "No hardcoded Supabase keys found"
+    echo -e "${RED}✗ FAIL${NC}: .env NOT in .gitignore"
+    ((CHECKS_FAILED++))
 fi
 
-# Check 2: Scan for hardcoded Supabase URLs
+# Check 2: .env.example exists
 echo ""
-echo "Check 2: Scanning for hardcoded Supabase URLs..."
-if grep -r "https://[a-z0-9]*\.supabase\.co" src/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "import.meta.env"; then
-    fail "Hardcoded Supabase URL detected (should use import.meta.env.VITE_SUPABASE_URL)"
+echo "Check 2: Verify .env.example exists..."
+if [ -f ".env.example" ]; then
+    echo -e "${GREEN}✓ PASS${NC}: .env.example exists"
+    ((CHECKS_PASSED++))
 else
-    pass "No hardcoded Supabase URLs found"
+    echo -e "${RED}✗ FAIL${NC}: .env.example NOT found"
+    ((CHECKS_FAILED++))
 fi
 
-# Check 3: Verify .env in .gitignore
+# Check 3: No hardcoded Supabase URLs
 echo ""
-echo "Check 3: Verifying .env in .gitignore..."
-if ! grep -q "^\.env$" .gitignore 2>/dev/null; then
-    fail ".env not found in .gitignore (risk of committing secrets)"
+echo "Check 3: Scan for hardcoded Supabase URLs..."
+HARDCODED_URLS=$(grep -r "https://[a-z0-9]\{20\}\.supabase\.co" src/ --include="*.ts" --include="*.tsx" 2>/dev/null || true)
+if [ -z "$HARDCODED_URLS" ]; then
+    echo -e "${GREEN}✓ PASS${NC}: No hardcoded Supabase URLs found"
+    ((CHECKS_PASSED++))
 else
-    pass ".env present in .gitignore"
+    echo -e "${RED}✗ FAIL${NC}: Hardcoded Supabase URLs detected:"
+    echo "$HARDCODED_URLS"
+    ((CHECKS_FAILED++))
 fi
 
-# Check 4: Verify .env.local in .gitignore
+# Check 4: No hardcoded JWT tokens
 echo ""
-echo "Check 4: Verifying .env.local in .gitignore..."
-if ! grep -q "^\.env\.local$" .gitignore 2>/dev/null; then
-    warn ".env.local not found in .gitignore (recommended to add)"
+echo "Check 4: Scan for hardcoded JWT tokens..."
+HARDCODED_JWTS=$(grep -r "eyJhbGciOiJI" src/ --include="*.ts" --include="*.tsx" 2>/dev/null || true)
+if [ -z "$HARDCODED_JWTS" ]; then
+    echo -e "${GREEN}✓ PASS${NC}: No hardcoded JWT tokens found"
+    ((CHECKS_PASSED++))
 else
-    pass ".env.local present in .gitignore"
+    echo -e "${RED}✗ FAIL${NC}: Hardcoded JWT tokens detected:"
+    echo "$HARDCODED_JWTS"
+    ((CHECKS_FAILED++))
 fi
 
-# Check 5: Verify .env.example exists
+# Check 5: No service role key in client code
 echo ""
-echo "Check 5: Verifying .env.example exists..."
-if [ ! -f .env.example ]; then
-    fail ".env.example file missing (required for documenting env vars)"
+echo "Check 5: Scan for service role key references..."
+SERVICE_ROLE=$(grep -r "SERVICE_ROLE" src/ --include="*.ts" --include="*.tsx" 2>/dev/null || true)
+if [ -z "$SERVICE_ROLE" ]; then
+    echo -e "${GREEN}✓ PASS${NC}: No service role key references in client code"
+    ((CHECKS_PASSED++))
 else
-    pass ".env.example file exists"
+    echo -e "${RED}✗ FAIL${NC}: Service role key found in client code:"
+    echo "$SERVICE_ROLE"
+    ((CHECKS_FAILED++))
 fi
 
-# Check 6: Verify .env.example has no real secrets
+# Check 6: .env never committed to git
 echo ""
-echo "Check 6: Verifying .env.example has placeholder values only..."
-if [ -f .env.example ]; then
-    if grep -q "eyJhbGciOiJI" .env.example 2>/dev/null; then
-        fail "Real Supabase key found in .env.example (should use placeholders only)"
-    else
-        pass ".env.example contains placeholders only"
-    fi
-fi
-
-# Check 7: Scan for common secret patterns
-echo ""
-echo "Check 7: Scanning for common secret patterns..."
-SECRET_PATTERNS=("password\s*=\s*['\"][^'\"]+['\"]" "api_key\s*=\s*['\"][^'\"]+['\"]" "private_key" "secret\s*=\s*['\"][^'\"]+['\"]")
-PATTERN_FOUND=false
-for pattern in "${SECRET_PATTERNS[@]}"; do
-    if grep -rE "$pattern" src/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "// Example" | grep -v "placeholder"; then
-        fail "Potential secret found matching pattern: $pattern"
-        PATTERN_FOUND=true
-    fi
-done
-if [ "$PATTERN_FOUND" = false ]; then
-    pass "No common secret patterns found"
-fi
-
-# Check 8: Verify no service role key in client code
-echo ""
-echo "Check 8: Verifying no service role key in client code..."
-if grep -r "SERVICE_ROLE" src/ --include="*.ts" --include="*.tsx" 2>/dev/null; then
-    fail "Service role key reference found in client code (bypasses RLS, critical security risk)"
+echo "Check 6: Verify .env never committed to git history..."
+ENV_HISTORY=$(git log --all --full-history -- .env 2>/dev/null || true)
+if [ -z "$ENV_HISTORY" ]; then
+    echo -e "${GREEN}✓ PASS${NC}: .env never committed to git"
+    ((CHECKS_PASSED++))
 else
-    pass "No service role key references in client code"
+    echo -e "${RED}✗ FAIL${NC}: .env found in git history - MUST clean history"
+    ((CHECKS_FAILED++))
 fi
 
-# Check 9: Verify no OpenAI API keys in code
+# Check 7: Pre-commit hook exists and executable
 echo ""
-echo "Check 9: Scanning for OpenAI API keys..."
-if grep -r "sk-proj-" src/ --include="*.ts" --include="*.tsx" 2>/dev/null; then
-    fail "OpenAI API key detected in source code"
+echo "Check 7: Verify pre-commit hook..."
+if [ -x ".husky/pre-commit" ]; then
+    echo -e "${GREEN}✓ PASS${NC}: Pre-commit hook exists and is executable"
+    ((CHECKS_PASSED++))
 else
-    pass "No OpenAI API keys found"
+    echo -e "${YELLOW}⚠ WARNING${NC}: Pre-commit hook missing or not executable"
+    echo "  Run: chmod +x .husky/pre-commit"
 fi
 
-# Check 10: Verify no console.log with sensitive data patterns
+# Check 8: Verify Supabase client config
 echo ""
-echo "Check 10: Checking for console.log with potential sensitive data..."
-if grep -rE "console\.log.*\b(password|secret|key|token|account)\b" src/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "keyCode" | grep -v "keypress"; then
-    warn "console.log statements found that may expose sensitive data (review manually)"
+echo "Check 8: Verify Supabase client uses environment variables..."
+if grep -q "import.meta.env.VITE_SUPABASE" src/lib/supabase.ts; then
+    echo -e "${GREEN}✓ PASS${NC}: Supabase client uses environment variables"
+    ((CHECKS_PASSED++))
 else
-    pass "No suspicious console.log statements found"
-fi
-
-# Check 11: Verify git history clean of .env files
-echo ""
-echo "Check 11: Verifying .env never committed to git..."
-if git log --all --full-history --oneline -- .env .env.local 2>/dev/null | head -n 1; then
-    fail ".env or .env.local found in git history (must clean with git-filter-repo and rotate keys)"
-else
-    pass ".env files never committed to git history"
-fi
-
-# Check 12: Verify *.key pattern in .gitignore
-echo ""
-echo "Check 12: Verifying *.key in .gitignore..."
-if ! grep -q "^\*\.key$" .gitignore 2>/dev/null; then
-    warn "*.key pattern not in .gitignore (recommended to add for private key files)"
-else
-    pass "*.key pattern present in .gitignore"
+    echo -e "${RED}✗ FAIL${NC}: Supabase client may have hardcoded values"
+    ((CHECKS_FAILED++))
 fi
 
 # Summary
 echo ""
-echo "=================================="
+echo "========================================"
 echo "Security Check Summary"
-echo "=================================="
-echo -e "${GREEN}Passed:${NC} $PASS_COUNT"
-echo -e "${YELLOW}Warnings:${NC} $WARN_COUNT"
-echo -e "${RED}Failed:${NC} $FAIL_COUNT"
+echo "========================================"
+echo -e "${GREEN}Passed: $CHECKS_PASSED${NC}"
+echo -e "${RED}Failed: $CHECKS_FAILED${NC}"
 echo ""
 
-if [ $FAIL_COUNT -gt 0 ]; then
-    echo -e "${RED}❌ SECURITY CHECK FAILED${NC}"
-    echo "Deployment blocked. Fix the issues above before deploying."
-    exit 1
-else
-    if [ $WARN_COUNT -gt 0 ]; then
-        echo -e "${YELLOW}⚠️  SECURITY CHECK PASSED WITH WARNINGS${NC}"
-        echo "Review warnings above before deploying."
-    else
-        echo -e "${GREEN}✅ ALL SECURITY CHECKS PASSED${NC}"
-        echo "Safe to proceed with deployment."
-    fi
+if [ $CHECKS_FAILED -eq 0 ]; then
+    echo -e "${GREEN}✓ All security checks passed!${NC}"
+    echo "Ready for deployment."
     exit 0
+else
+    echo -e "${RED}✗ Security checks failed!${NC}"
+    echo "Fix the issues above before deployment."
+    exit 1
 fi

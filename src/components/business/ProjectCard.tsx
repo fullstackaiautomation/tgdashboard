@@ -1,13 +1,17 @@
 import type { FC } from 'react';
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, AlertTriangle, TrendingUp } from 'lucide-react';
 import type { Project } from '../../types/project';
 import { usePhases } from '../../hooks/useProjects';
 import { useTasks } from '../../hooks/useTasks';
 import { useProjectProgress } from '../../hooks/useProjectProgress';
 import { PhaseCard } from './PhaseCard';
 import { AddPhaseModal } from './AddPhaseModal';
+import { ProgressBar } from '../shared/ProgressBar';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { calculateVelocity, formatEstimatedCompletion } from '../../utils/projectVelocity';
+import { checkProjectActivity, formatLastActivity } from '../../utils/projectActivity';
 
 interface ProjectCardProps {
   project: Project;
@@ -26,18 +30,62 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId }) => {
   const unassignedTasks = projectTasks.filter((task) => !task.phase_id);
 
   // Calculate project progress
-  const { progress: _progress, totalPhases: _totalPhases, isStalled: _isStalled } = useProjectProgress(
+  const { progress, totalPhases, isStalled } = useProjectProgress(
     phases || [],
     projectTasks
   );
 
+  // Calculate velocity metrics
+  const velocityData = calculateVelocity(projectTasks);
+
+  // Check activity status
+  const activityStatus = checkProjectActivity(projectTasks);
+
   return (
-    <div className="bg-gray-900/50 rounded-lg overflow-hidden">
+    <div className="bg-gray-900/50 rounded-lg overflow-hidden border border-gray-700">
+      {/* Project Progress Header */}
+      <div className="px-6 py-4 bg-gray-800/70 border-b border-gray-700">
+        {/* Progress Bar - Large and Prominent */}
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-400">Project Progress</span>
+            <span className="text-2xl font-bold text-gray-100">{progress.toFixed(1)}%</span>
+          </div>
+          <ProgressBar progress={progress} size="lg" showLabel={false} />
+        </div>
+
+        {/* Metrics Row */}
+        <div className="flex items-center gap-4 flex-wrap">
+          {/* Velocity & Estimated Completion */}
+          {velocityData.velocity > 0 && velocityData.estimatedCompletionDate && (
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <TrendingUp size={14} className="text-blue-400" />
+              <span>{formatEstimatedCompletion(velocityData.estimatedCompletionDate)}</span>
+            </div>
+          )}
+
+          {/* Stalled Warning */}
+          {isStalled && (
+            <Badge className="bg-orange-600/20 text-orange-400 border border-orange-600">
+              <AlertTriangle size={12} className="mr-1" />
+              {activityStatus.message}
+            </Badge>
+          )}
+
+          {/* Last Activity (non-stalled projects) */}
+          {!isStalled && activityStatus.lastActivityDate && (
+            <span className="text-xs text-gray-500">
+              Last activity: {formatLastActivity(activityStatus.lastActivityDate)}
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Phases Section */}
       <div>
         <div className="flex items-center justify-between px-4 py-3 bg-gray-800/50 border-b border-gray-700">
           <h4 className="text-lg font-semibold text-gray-100">
-            Phases
+            Phases {totalPhases > 0 && <span className="text-sm text-gray-500 font-normal">({totalPhases})</span>}
           </h4>
         </div>
 
