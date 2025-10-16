@@ -123,15 +123,16 @@ export const useUpdateTask = () => {
       return data as TaskHub;
     },
     onMutate: async ({ id, updates }) => {
-      // Cancel outgoing queries
+      // Cancel all outgoing task queries (including schedule queries)
       await queryClient.cancelQueries({ queryKey: ['tasks'] });
 
       // Snapshot previous value
       const previousTasks = queryClient.getQueryData<TaskHub[]>(['tasks']);
 
-      // Optimistically update
-      queryClient.setQueryData<TaskHub[]>(['tasks'], (old) =>
-        old?.map((task) => (task.id === id ? { ...task, ...updates } as TaskHub : task))
+      // Optimistically update all task queries
+      queryClient.setQueriesData<TaskHub[]>(
+        { queryKey: ['tasks'] },
+        (old) => old?.map((task) => (task.id === id ? { ...task, ...updates } as TaskHub : task))
       );
 
       return { previousTasks };
@@ -143,6 +144,7 @@ export const useUpdateTask = () => {
       }
     },
     onSettled: () => {
+      // Invalidate both main tasks query and schedule queries
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
   });

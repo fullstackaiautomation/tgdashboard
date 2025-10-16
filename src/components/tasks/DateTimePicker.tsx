@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 // import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
@@ -10,6 +10,7 @@ interface DateTimePickerProps {
   scheduledTime?: string | null;
   onSchedule: (date: string | null, time: string | null) => void;
   onClose: () => void;
+  anchorEl?: HTMLElement | null;
 }
 
 /**
@@ -19,7 +20,22 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
   scheduledDate,
   onSchedule,
   onClose,
+  anchorEl,
 }) => {
+  // Calculate position based on anchor element
+  const [position, setPosition] = useState({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
+
+  useEffect(() => {
+    if (anchorEl) {
+      const rect = anchorEl.getBoundingClientRect();
+      setPosition({
+        top: `${rect.bottom + 8}px`,
+        left: `${rect.left}px`,
+        transform: 'none',
+      });
+    }
+  }, [anchorEl]);
+
   // Use the consistent date parsing helper for display
   // Convert null to undefined for useState compatibility
   const initialDate = parseLocalDateForDisplay(scheduledDate) || undefined;
@@ -79,12 +95,7 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
       <div
         className="absolute bg-gray-800 rounded-lg shadow-2xl border border-gray-700 p-3"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          // Position near the click point (adjust as needed)
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-        }}
+        style={position}
       >
         <Calendar
           mode="single"

@@ -64,6 +64,7 @@ export interface DailyScheduleBlock {
   actual_duration_minutes: number | null;
   status: TimeBlockStatus;
   notes: string | null;
+  task_status: TaskStatus;
 }
 
 export interface WeeklyCalendarSummary {

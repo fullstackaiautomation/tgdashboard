@@ -13,16 +13,16 @@ interface TaskFiltersProps {
 }
 
 const BUSINESSES = [
-  { id: 'full-stack', label: 'Full Stack', color: 'var(--color-business-fullstack)' },
-  { id: 'huge-capital', label: 'Huge Capital', color: 'var(--color-business-hugecapital)' },
-  { id: 's4', label: 'S4', color: 'var(--color-business-s4)' },
-  { id: '808', label: '808', color: 'var(--color-business-808)' },
+  { id: 'full-stack', label: 'Full Stack', gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }, // green gradient
+  { id: 'huge-capital', label: 'Huge Capital', gradient: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)' }, // purple gradient
+  { id: 's4', label: 'S4', gradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' }, // blue gradient
+  { id: '808', label: '808', gradient: 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)' }, // yellow gradient
 ];
 
 const LIFE_AREAS = [
-  { id: 'personal', label: 'Personal', color: 'var(--color-area-personal)' },
-  { id: 'health', label: 'Health', color: 'var(--color-area-health)' },
-  { id: 'golf', label: 'Golf', color: 'var(--color-area-golf)' },
+  { id: 'personal', label: 'Personal', gradient: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)' }, // pink gradient
+  { id: 'health', label: 'Health', gradient: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)' }, // teal gradient
+  { id: 'golf', label: 'Golf', gradient: 'linear-gradient(135deg, #f97316 0%, #c2410c 100%)' }, // orange gradient
 ];
 
 const STATUSES = [
@@ -143,41 +143,43 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
   };
 
   return (
-    <div className="space-y-4 mb-6">
+    <div className="space-y-3 mb-6">
       {/* Business/Area Filters Card - Full Width Stacked */}
-      <Card className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm border-gray-700/50 shadow-xl hover:shadow-2xl transition-shadow duration-300">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-8 gap-3">
+      <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/30 shadow-lg">
+        <CardContent className="pt-4 pb-4">
+          <div className="grid grid-cols-8 gap-2">
             <Badge
-              variant={selectedBusiness === null ? "default" : "outline"}
-              className={`cursor-pointer px-6 py-4 text-base font-bold transition-all duration-200 flex flex-col items-center ${
+              variant="outline"
+              className={`cursor-pointer px-5 py-3 text-lg font-semibold text-white transition-all duration-150 flex flex-col items-center ${
                 selectedBusiness === null
-                  ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white hover:from-gray-500 hover:to-gray-600 shadow-lg scale-105'
-                  : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border-gray-600 hover:scale-105'
+                  ? 'border-2 border-white shadow-lg'
+                  : 'border-0 hover:shadow-md'
               }`}
+              style={{
+                backgroundColor: '#4b5563',
+              }}
               onClick={() => onBusinessChange(null)}
             >
               <span>All Areas</span>
-              <span className="text-xl font-extrabold mt-1">{getBusinessCount(null)}</span>
+              <span className="text-xl font-bold mt-0.5">{getBusinessCount(null)}</span>
             </Badge>
 
             {BUSINESSES.map((business) => (
               <Badge
                 key={business.id}
                 variant="outline"
-                className={`cursor-pointer px-6 py-4 text-base font-bold text-white border-2 transition-all duration-200 flex flex-col items-center ${
+                className={`cursor-pointer px-5 py-3 text-lg font-semibold text-white transition-all duration-150 flex flex-col items-center ${
                   selectedBusiness === business.id
-                    ? 'ring-2 ring-white ring-offset-2 ring-offset-gray-900 scale-110 shadow-lg'
-                    : 'hover:scale-105 hover:shadow-md'
+                    ? 'border-2 border-white shadow-lg'
+                    : 'border-0 hover:shadow-md'
                 }`}
                 style={{
-                  backgroundColor: business.color,
-                  borderColor: business.color
+                  background: business.gradient,
                 }}
                 onClick={() => onBusinessChange(business.id)}
               >
                 <span>{business.label}</span>
-                <span className="text-xl font-extrabold mt-1">{getBusinessCount(business.id)}</span>
+                <span className="text-xl font-bold mt-0.5">{getBusinessCount(business.id)}</span>
               </Badge>
             ))}
 
@@ -185,19 +187,18 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
               <Badge
                 key={area.id}
                 variant="outline"
-                className={`cursor-pointer px-6 py-4 text-base font-bold text-white border-2 transition-all duration-200 flex flex-col items-center ${
+                className={`cursor-pointer px-5 py-3 text-lg font-semibold text-white transition-all duration-150 flex flex-col items-center ${
                   selectedBusiness === area.id
-                    ? 'ring-2 ring-white ring-offset-2 ring-offset-gray-900 scale-110 shadow-lg'
-                    : 'hover:scale-105 hover:shadow-md'
+                    ? 'border-2 border-white shadow-lg'
+                    : 'border-0 hover:shadow-md'
                 }`}
                 style={{
-                  backgroundColor: area.color,
-                  borderColor: area.color
+                  background: area.gradient,
                 }}
                 onClick={() => onBusinessChange(area.id)}
               >
                 <span>{area.label}</span>
-                <span className="text-xl font-extrabold mt-1">{getBusinessCount(area.id)}</span>
+                <span className="text-xl font-bold mt-0.5">{getBusinessCount(area.id)}</span>
               </Badge>
             ))}
           </div>
@@ -205,55 +206,42 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
       </Card>
 
       {/* Status Filters Card - Full Width Stacked */}
-      <Card className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm border-gray-700/50 shadow-xl hover:shadow-2xl transition-shadow duration-300">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-8 gap-3">
-            {STATUSES.slice(0, 4).map((status) => (
-              <Badge
-                key={status.id}
-                variant="outline"
-                className={`cursor-pointer px-6 py-4 text-base font-bold text-white border-2 transition-all duration-200 flex flex-col items-center ${
-                  selectedStatus === status.id
-                    ? 'ring-2 ring-white ring-offset-2 ring-offset-gray-900 scale-110 shadow-lg'
-                    : 'hover:scale-105 hover:shadow-md'
-                }`}
-                style={{
-                  backgroundColor: getStatusColor(status.id),
-                  borderColor: getStatusColor(status.id)
-                }}
-                onClick={() => onStatusChange(status.id)}
-              >
-                <span>{status.label}</span>
-                <span className="text-xl font-extrabold mt-1">{getStatusCount(status.id)}</span>
-              </Badge>
-            ))}
-
-            {/* Add Task Button - Between Overdue and Active */}
+      <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/30 shadow-lg">
+        <CardContent className="pt-4 pb-4">
+          <div className="grid grid-cols-8 gap-2">
+            {/* All Tasks Filter - First Position */}
             <Badge
               variant="outline"
-              className="cursor-pointer px-6 py-4 text-base font-bold bg-gradient-to-r from-gray-700 to-gray-800 text-gray-300 hover:from-gray-600 hover:to-gray-700 border-2 border-dashed border-gray-500 transition-all duration-200 hover:scale-105 hover:border-gray-400 flex items-center justify-center"
-              onClick={() => {/* TODO: Open add task modal */}}
+              className={`cursor-pointer px-5 py-3 text-lg font-semibold text-white transition-all duration-150 flex flex-col items-center ${
+                selectedStatus === null
+                  ? 'border-2 border-white shadow-lg'
+                  : 'border-0 hover:shadow-md'
+              }`}
+              style={{
+                backgroundColor: '#4b5563',
+              }}
+              onClick={() => onStatusChange(null)}
             >
-              + Add Task
+              <span>All Tasks</span>
+              <span className="text-xl font-bold mt-0.5">{tasks.length}</span>
             </Badge>
 
-            {STATUSES.slice(4).map((status) => (
+            {STATUSES.map((status) => (
               <Badge
                 key={status.id}
                 variant="outline"
-                className={`cursor-pointer px-6 py-4 text-base font-bold text-white border-2 transition-all duration-200 flex flex-col items-center ${
+                className={`cursor-pointer px-5 py-3 text-lg font-semibold text-white transition-all duration-150 flex flex-col items-center ${
                   selectedStatus === status.id
-                    ? 'ring-2 ring-white ring-offset-2 ring-offset-gray-900 scale-110 shadow-lg'
-                    : 'hover:scale-105 hover:shadow-md'
+                    ? 'border-2 border-white shadow-lg'
+                    : 'border-0 hover:shadow-md'
                 }`}
                 style={{
                   backgroundColor: getStatusColor(status.id),
-                  borderColor: getStatusColor(status.id)
                 }}
                 onClick={() => onStatusChange(status.id)}
               >
                 <span>{status.label}</span>
-                <span className="text-xl font-extrabold mt-1">{getStatusCount(status.id)}</span>
+                <span className="text-xl font-bold mt-0.5">{getStatusCount(status.id)}</span>
               </Badge>
             ))}
           </div>

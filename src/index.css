@@ -34,6 +34,32 @@ input, button, textarea, select {
   scrollbar-color: #4a4a4a transparent;
 }
 
+/* Discrete Scrollbar for Schedule Panel */
+.discrete-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.discrete-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.discrete-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(55, 65, 81, 0.3);
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+
+.discrete-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.5);
+}
+
+/* Firefox scrollbar */
+.discrete-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(55, 65, 81, 0.3) transparent;
+}
+
 /* Hide scrollbar option */
 .hide-scrollbar {
   -ms-overflow-style: none;  /* IE and Edge */

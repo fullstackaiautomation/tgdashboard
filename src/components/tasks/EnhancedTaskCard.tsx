@@ -215,12 +215,12 @@ export const EnhancedTaskCard: FC<EnhancedTaskCardProps> = ({ task, className = 
                   }
                 }}
                 autoFocus
-                className="flex-1 text-lg font-medium bg-gray-700 text-gray-100 px-2 py-1 rounded border border-gray-600 focus:border-orange-500 focus:outline-none"
+                className="flex-1 text-xl font-medium bg-gray-700 text-gray-100 px-2 py-1 rounded border border-gray-600 focus:border-orange-500 focus:outline-none"
               />
             ) : (
               <h3
                 onClick={() => setIsEditingTitle(true)}
-                className={`text-lg font-medium cursor-pointer hover:text-orange-400 transition-colors ${
+                className={`text-xl font-medium cursor-pointer hover:text-orange-400 transition-colors ${
                   task.status === 'Done' ? 'line-through text-gray-500' : 'text-gray-100'
                 }`}
               >

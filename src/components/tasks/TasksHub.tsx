@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useTasks } from '../../hooks/useTasks';
 import { useCreateTimeBlock, useDeleteTimeBlock } from '../../hooks/useCalendar';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { TaskCard } from './TaskCard';
 import { TaskFilters } from './TaskFilters';
@@ -107,25 +108,72 @@ export const TasksHub: FC = () => {
   // Enable real-time sync
   useRealtimeSync(userId);
 
-  // Filter tasks based on selected filters and sort by due date ascending
+  // Fetch all time blocks for sorting
+  const { data: allTimeBlocks = [] } = useQuery({
+    queryKey: ['all-time-blocks'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('task_time_blocks')
+        .select('task_id, scheduled_date, start_time')
+        .order('scheduled_date', { ascending: true })
+        .order('start_time', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching time blocks:', error);
+        return [];
+      }
+      return data || [];
+    },
+    staleTime: 30000, // 30 seconds
+  });
+
+  // Filter tasks based on selected filters and sort by scheduled date/time, then due date
   const filteredTasks = useMemo(() => {
     if (!tasks) return [];
     const filtered = filterTasks(tasks, businessFilter, statusFilter);
 
-    // Sort by due date ascending (earliest first)
+    // Filter to only today's time blocks for sorting
+    const today = formatDate(new Date(), 'yyyy-MM-dd');
+    const todaysTimeBlocks = allTimeBlocks.filter(block => block.scheduled_date === today);
+
+    // Create a map of task_id to earliest time block for today
+    const timeBlockMap = new Map<string, { scheduled_date: string; start_time: string }>();
+    todaysTimeBlocks.forEach((block) => {
+      if (!timeBlockMap.has(block.task_id)) {
+        timeBlockMap.set(block.task_id, {
+          scheduled_date: block.scheduled_date,
+          start_time: block.start_time,
+        });
+      }
+    });
+
+    // Sort by: 1) scheduled date/time (if exists), 2) due date (if exists), 3) created date
     return filtered.sort((a, b) => {
-      // Tasks without due dates go to the end
+      const aTimeBlock = timeBlockMap.get(a.id);
+      const bTimeBlock = timeBlockMap.get(b.id);
+
+      // If both have time blocks, sort by scheduled date/time
+      if (aTimeBlock && bTimeBlock) {
+        const dateCompare = aTimeBlock.scheduled_date.localeCompare(bTimeBlock.scheduled_date);
+        if (dateCompare !== 0) return dateCompare;
+        return aTimeBlock.start_time.localeCompare(bTimeBlock.start_time);
+      }
+
+      // Tasks with time blocks come before tasks without
+      if (aTimeBlock && !bTimeBlock) return -1;
+      if (!aTimeBlock && bTimeBlock) return 1;
+
+      // If neither has time blocks, sort by due date
       if (!a.due_date && !b.due_date) return 0;
       if (!a.due_date) return 1;
       if (!b.due_date) return -1;
 
-      // Compare due dates using parseLocalDate to avoid timezone issues
       const dateA = parseLocalDate(a.due_date);
       const dateB = parseLocalDate(b.due_date);
       if (!dateA || !dateB) return 0;
       return dateA.getTime() - dateB.getTime();
     });
-  }, [tasks, businessFilter, statusFilter]);
+  }, [tasks, businessFilter, statusFilter, allTimeBlocks]);
 
   // Handle drop - create time block
   const handleTaskDrop = async (taskId: string, date: string, time: string) => {
@@ -188,7 +236,7 @@ export const TasksHub: FC = () => {
   }
 
   return (
-    <div className="py-6 px-2 max-w-full mx-auto">
+    <div className="py-6 px-8 max-w-full mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-gray-100">Tasks</h1>
         <button
@@ -209,7 +257,7 @@ export const TasksHub: FC = () => {
       />
 
       {/* Two-column layout: Main content + Right sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr,400px] gap-4 mt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr,550px] gap-4 mt-6">
         {/* Left column: Task cards */}
         <div>
           {filteredTasks.length === 0 ? (
@@ -234,7 +282,7 @@ export const TasksHub: FC = () => {
           <DailySchedulePanel
             onTaskDrop={handleTaskDrop}
             onBlockRemove={handleBlockRemove}
-            className="h-[calc(100vh-200px)] max-h-[900px]"
+            className="h-[calc(100vh-80px)]"
           />
         </div>
       </div>

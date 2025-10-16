@@ -236,6 +236,8 @@ export const useCreateTimeBlock = () => {
       queryClient.invalidateQueries({ queryKey: ['daily-schedule'] });
       queryClient.invalidateQueries({ queryKey: ['weekly-calendar-summary'] });
       queryClient.invalidateQueries({ queryKey: ['unscheduled-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-time-blocks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-has-time-blocks'] });
     },
   });
 };
@@ -274,6 +276,8 @@ export const useUpdateTimeBlock = () => {
       queryClient.invalidateQueries({ queryKey: ['daily-schedule'] });
       queryClient.invalidateQueries({ queryKey: ['weekly-calendar-summary'] });
       queryClient.invalidateQueries({ queryKey: ['task-scheduling-analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['task-time-blocks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-has-time-blocks'] });
     },
   });
 };
@@ -298,6 +302,8 @@ export const useDeleteTimeBlock = () => {
       queryClient.invalidateQueries({ queryKey: ['daily-schedule'] });
       queryClient.invalidateQueries({ queryKey: ['weekly-calendar-summary'] });
       queryClient.invalidateQueries({ queryKey: ['unscheduled-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-time-blocks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-has-time-blocks'] });
     },
   });
 };
