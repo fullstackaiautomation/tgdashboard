@@ -143,7 +143,7 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
     const newRows = [...rows];
     newRows.splice(index, 1);
     // Add a new empty row at the end
-    newRows.push({ id: undefined, date: formatDateString(getTodayNoon()), startTime: '', endTime: '', notes: '' });
+    newRows.push({ date: formatDateString(getTodayNoon()), startTime: '', endTime: '', notes: '' });
     setRows(newRows);
   };
 
@@ -247,7 +247,7 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
 
     // Fill remaining rows with empty entries
     while (newRows.length < 4) {
-      newRows.push({ id: undefined, date: formatDateString(getTodayNoon()), startTime: '', endTime: '', notes: '' });
+      newRows.push({ date: formatDateString(getTodayNoon()), startTime: '', endTime: '', notes: '' });
     }
 
     setRows(newRows);
@@ -331,7 +331,7 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={dateObj}
+                    selected={dateObj ?? undefined}
                     onSelect={(date) => {
                       if (date) {
                         // Normalize to midnight local time
