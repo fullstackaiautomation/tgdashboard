@@ -237,7 +237,7 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
     });
 
     const logsToLoad = sortedLogs.slice(0, 4);
-    const newRows = logsToLoad.map((log) => ({
+    const newRows: LogRow[] = logsToLoad.map((log) => ({
       id: log.id,
       date: log.log_date,
       startTime: log.start_time || '',
