@@ -24,6 +24,7 @@ interface TaskCardProps {
   task: TaskHub;
   className?: string;
   compact?: boolean;
+  scheduleDate?: Date;
 }
 
 /**
@@ -98,12 +99,13 @@ const getEffortLevelColor = (effortLevel: string | null): string => {
 /**
  * Minimalist TaskCard - Clean, compact, scannable
  */
-export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
+export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [editedTitle, setEditedTitle] = useState(task.task_name);
   const [editedNotes, setEditedNotes] = useState(task.description || '');
+  const [hoursProjectedInput, setHoursProjectedInput] = useState('');
   const [showProgressSlider, setShowProgressSlider] = useState(false);
   const [showDateTimePicker, setShowDateTimePicker] = useState(false);
   const [datePickerAnchor, setDatePickerAnchor] = useState<HTMLElement | null>(null);
@@ -128,13 +130,14 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
   // Get time blocks for the task
   const { data: allTimeBlocks = [] } = useTaskTimeBlocks(task.id);
 
-  // Filter to only show today's time blocks
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const todaysTimeBlocks = allTimeBlocks.filter(block => block.scheduled_date === today);
-  const hasTimeBlocks = todaysTimeBlocks.length > 0;
+  // Filter to only show selected schedule date's time blocks (default to today)
+  const dateToShow = scheduleDate || new Date();
+  const dateToShowStr = format(dateToShow, 'yyyy-MM-dd');
+  const scheduleDateTimeBlocks = allTimeBlocks.filter(block => block.scheduled_date === dateToShowStr);
+  const hasTimeBlocks = scheduleDateTimeBlocks.length > 0;
 
-  // Get the earliest time block for today
-  const earliestTimeBlock = todaysTimeBlocks.length > 0 ? todaysTimeBlocks[0] : null;
+  // Get the earliest time block for selected date
+  const earliestTimeBlock = scheduleDateTimeBlocks.length > 0 ? scheduleDateTimeBlocks[0] : null;
 
   const businessColor = getBusinessColor(task);
   const sourceName = getSourceName(task);
@@ -429,26 +432,33 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
                 onBlur={handleTitleSave}
                 onKeyDown={handleTitleKeyDown}
                 autoFocus
-                className="h-9 text-xl"
+                className="h-9 text-xl text-gray-100 font-medium bg-transparent border-gray-600 focus:border-blue-400"
               />
             ) : (
-              <h3
-                onClick={() => setIsEditingTitle(true)}
-                className={`text-xl font-medium cursor-pointer hover:text-blue-400 transition-colors truncate ${
-                  isCompleted ? 'line-through text-gray-500' : 'text-gray-100'
-                }`}
-              >
-                {task.task_name}
-              </h3>
+              <div>
+                <h3
+                  onClick={() => setIsEditingTitle(true)}
+                  className={`text-xl font-medium cursor-pointer hover:text-blue-400 transition-colors truncate ${
+                    isCompleted ? 'line-through text-gray-500' : 'text-gray-100'
+                  }`}
+                >
+                  {task.task_name}
+                </h3>
+                {task.description && (
+                  <p className="text-xs text-white mt-1 truncate">
+                    {task.description}
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
           {/* Compact Badges */}
-          <div className="flex items-center gap-2 shrink-0 flex-nowrap ml-auto">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap xl:flex-nowrap ml-auto">
             {/* Business/Area/Project Badge */}
             {task.projects ? (
               <Badge
-                className="text-white border-0 text-base px-4 py-1.5 font-medium whitespace-nowrap"
+                className="text-white border-0 text-sm sm:text-base px-2 sm:px-4 py-1 sm:py-1.5 font-medium whitespace-nowrap"
                 style={{ backgroundColor: businessColor }}
               >
                 {sourceName}
@@ -459,12 +469,12 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
                 onValueChange={(projectId) => handleUpdate({ project_id: projectId === 'no-project' ? null : projectId })}
               >
                 <SelectTrigger
-                  className="h-9 text-base px-4 py-0 border-0 gap-1 whitespace-nowrap"
+                  className="h-8 sm:h-9 text-sm sm:text-base px-2 sm:px-4 py-0 border-0 gap-1 whitespace-nowrap"
                   style={{
                     backgroundColor: businessColor,
                     color: 'white',
-                    minWidth: '180px',
-                    width: '180px'
+                    minWidth: '120px',
+                    width: '120px'
                   }}
                 >
                   <SelectValue placeholder="+ Project" />
@@ -483,7 +493,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
             {/* Phase Badge - appears when project and phase are selected */}
             {task.project_id && task.phase_id && task.phases && (
               <Badge
-                className="text-white border-0 text-base px-4 py-1.5 font-medium whitespace-nowrap"
+                className="text-white border-0 text-sm sm:text-base px-2 sm:px-4 py-1 sm:py-1.5 font-medium whitespace-nowrap"
                 style={{ backgroundColor: businessColor }}
               >
                 {task.phases.name}
@@ -499,7 +509,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
                   setDatePickerAnchor(e.currentTarget);
                   setShowDateTimePicker(true);
                 }}
-                className={`h-8 px-3 text-base gap-1 w-[117px] justify-center ${
+                className={`h-7 sm:h-8 px-2 sm:px-3 text-sm sm:text-base gap-1 w-[90px] sm:w-[117px] justify-center ${
                   overdue
                     ? 'text-red-400 hover:bg-red-500/10'
                     : dueToday
@@ -507,9 +517,9 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
                     : 'text-gray-400 hover:bg-gray-700'
                 }`}
               >
-                {overdue && <AlertCircle className="w-4 h-4" />}
-                <Calendar className="w-4 h-4" />
-                <span>
+                {overdue && <AlertCircle className="w-3 sm:w-4 h-3 sm:h-4" />}
+                <Calendar className="w-3 sm:w-4 h-3 sm:h-4" />
+                <span className="text-xs sm:text-base">
                   {dueToday
                     ? 'Today'
                     : overdue
@@ -525,16 +535,16 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
                   setDatePickerAnchor(e.currentTarget);
                   setShowDateTimePicker(true);
                 }}
-                className="h-8 px-3 text-base gap-1 w-[117px] justify-center text-gray-500 hover:bg-gray-700 hover:text-gray-300"
+                className="h-7 sm:h-8 px-2 sm:px-3 text-sm sm:text-base gap-1 w-[90px] sm:w-[117px] justify-center text-gray-500 hover:bg-gray-700 hover:text-gray-300"
               >
-                <Calendar className="w-4 h-4" />
-                <span>Set Date</span>
+                <Calendar className="w-3 sm:w-4 h-3 sm:h-4" />
+                <span className="text-xs sm:text-base">Set Date</span>
               </Button>
             )}
 
             {/* Schedule Status Button */}
             <div
-              className={`h-8 px-4 text-base font-medium rounded-md w-[117px] flex items-center justify-center text-white ${
+              className={`h-7 sm:h-8 px-2 sm:px-4 text-sm sm:text-base font-medium rounded-md w-[90px] sm:w-[117px] flex items-center justify-center text-white ${
                 isCompleted
                   ? 'bg-green-600'
                   : hasTimeBlocks
@@ -543,11 +553,13 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
               }`}
               title={earliestTimeBlock ? `Scheduled for ${earliestTimeBlock.scheduled_date}` : undefined}
             >
-              {isCompleted
-                ? 'Completed'
-                : hasTimeBlocks && earliestTimeBlock
-                ? format(new Date(`2000-01-01T${earliestTimeBlock.start_time}`), 'h:mm a')
-                : 'Schedule'}
+              <span className="text-xs sm:text-base">
+                {isCompleted
+                  ? 'Completed'
+                  : hasTimeBlocks && earliestTimeBlock
+                  ? format(new Date(`2000-01-01T${earliestTimeBlock.start_time}`), 'h:mm a')
+                  : 'Schedule'}
+              </span>
             </div>
 
             {/* Expand Button */}
@@ -581,9 +593,9 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
       {isExpanded && (
         <>
           <div className="border-t border-gray-700/30" />
-          <div className="p-6" style={{ backgroundColor: getExpandedBackground() }}>
-            {/* Three-column layout */}
-            <div className="grid grid-cols-[minmax(300px,1fr)_320px_900px] gap-8">
+          <div className="p-3 sm:p-4 lg:p-6" style={{ backgroundColor: getExpandedBackground() }}>
+            {/* Three-column layout - responsive: stacks on mobile, side-by-side on larger screens */}
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(200px,1fr)_280px_2fr] gap-4 sm:gap-6 lg:gap-8">
               {/* Left Column - Notes Panel */}
               <div className="flex flex-col">
                 <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Notes</label>
@@ -684,14 +696,34 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '' }) => {
                   <div>
                     <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Hours Projected</label>
                     <Input
-                      type="number"
-                      value={task.hours_projected !== null && task.hours_projected !== undefined ? task.hours_projected.toFixed(2) : ''}
-                      onChange={(e) =>
-                        handleUpdate({ hours_projected: e.target.value ? parseFloat(e.target.value) : null })
-                      }
-                      placeholder="0.00"
-                      step="0.25"
-                      className="h-10 text-sm bg-gray-800/50 border-gray-700/50 hover:bg-gray-800/70 transition-colors text-purple-400 font-semibold"
+                      type="text"
+                      value={hoursProjectedInput || (task.hours_projected !== null && task.hours_projected !== undefined ? task.hours_projected.toFixed(2) : '')}
+                      onFocus={() => {
+                        // On focus, show the raw value for editing
+                        setHoursProjectedInput(task.hours_projected ? task.hours_projected.toString() : '');
+                      }}
+                      onChange={(e) => {
+                        // Allow only numbers and decimal point while typing
+                        const value = e.target.value.replace(/[^0-9.]/g, '');
+                        setHoursProjectedInput(value);
+                      }}
+                      onBlur={() => {
+                        const value = hoursProjectedInput.trim();
+                        if (value === '') {
+                          handleUpdate({ hours_projected: null });
+                          setHoursProjectedInput('');
+                        } else {
+                          const numValue = parseFloat(value);
+                          if (!isNaN(numValue)) {
+                            handleUpdate({ hours_projected: numValue });
+                            setHoursProjectedInput(''); // Clear to show formatted value from task
+                          } else {
+                            setHoursProjectedInput(''); // Invalid input, clear it
+                          }
+                        }
+                      }}
+                      placeholder=""
+                      className="h-10 text-sm bg-gray-800/50 border-gray-700/50 hover:bg-gray-800/70 transition-colors text-purple-400 font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                 </div>

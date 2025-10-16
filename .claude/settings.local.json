@@ -49,7 +49,10 @@
       "Bash(mv:*)",
       "Bash(tree:*)",
       "Bash(node fix-dates.js)",
-      "Bash(cmd /c \"move fix-dates.js scripts\\migrations\\fix-dates.js\")"
+      "Bash(cmd /c \"move fix-dates.js scripts\\migrations\\fix-dates.js\")",
+      "Bash(tasklist)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash([ -f \".env.example\" ])"
     ],
     "deny": [],
     "ask": []

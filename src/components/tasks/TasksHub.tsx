@@ -97,6 +97,7 @@ export const TasksHub: FC = () => {
   const [statusFilter, setStatusFilter] = useState<string | null>('due-today');
   const [userId, setUserId] = useState<string | null>(null);
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState<Date>(new Date());
 
   // Get current user ID for real-time sync
   useEffect(() => {
@@ -132,9 +133,9 @@ export const TasksHub: FC = () => {
     if (!tasks) return [];
     const filtered = filterTasks(tasks, businessFilter, statusFilter);
 
-    // Filter to only today's time blocks for sorting
-    const today = formatDate(new Date(), 'yyyy-MM-dd');
-    const todaysTimeBlocks = allTimeBlocks.filter(block => block.scheduled_date === today);
+    // Filter to selected schedule date's time blocks for sorting
+    const scheduleDateStr = formatDate(scheduleDate, 'yyyy-MM-dd');
+    const todaysTimeBlocks = allTimeBlocks.filter(block => block.scheduled_date === scheduleDateStr);
 
     // Create a map of task_id to earliest time block for today
     const timeBlockMap = new Map<string, { scheduled_date: string; start_time: string }>();
@@ -173,7 +174,7 @@ export const TasksHub: FC = () => {
       if (!dateA || !dateB) return 0;
       return dateA.getTime() - dateB.getTime();
     });
-  }, [tasks, businessFilter, statusFilter, allTimeBlocks]);
+  }, [tasks, businessFilter, statusFilter, allTimeBlocks, scheduleDate]);
 
   // Handle drop - create time block
   const handleTaskDrop = async (taskId: string, date: string, time: string) => {
@@ -272,7 +273,7 @@ export const TasksHub: FC = () => {
           ) : (
             <div className="space-y-2 sm:space-y-3">
               {filteredTasks.map((task) => (
-                <DraggableTaskCard key={task.id} task={task} />
+                <DraggableTaskCard key={task.id} task={task} scheduleDate={scheduleDate} />
               ))}
             </div>
           )}
@@ -283,6 +284,7 @@ export const TasksHub: FC = () => {
           <DailySchedulePanel
             onTaskDrop={handleTaskDrop}
             onBlockRemove={handleBlockRemove}
+            onDateChange={setScheduleDate}
             className="h-[calc(100vh-200px)] sm:h-[calc(100vh-120px)] xl:h-[calc(100vh-80px)]"
           />
         </div>
@@ -304,9 +306,10 @@ export const TasksHub: FC = () => {
 // Wrapper to make TaskCard draggable
 interface DraggableTaskCardProps {
   task: TaskHub;
+  scheduleDate: Date;
 }
 
-const DraggableTaskCard: FC<DraggableTaskCardProps> = ({ task }) => {
+const DraggableTaskCard: FC<DraggableTaskCardProps> = ({ task, scheduleDate }) => {
   return (
     <div
       draggable
@@ -319,7 +322,7 @@ const DraggableTaskCard: FC<DraggableTaskCardProps> = ({ task }) => {
       }}
       style={{ cursor: 'grab' }}
     >
-      <TaskCard task={task} />
+      <TaskCard task={task} scheduleDate={scheduleDate} />
     </div>
   );
 };

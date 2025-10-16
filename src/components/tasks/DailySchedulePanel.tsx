@@ -1,15 +1,16 @@
 import type { FC } from 'react';
 import { useState } from 'react';
-import { format, parseISO, differenceInMinutes } from 'date-fns';
+import { format, parseISO, differenceInMinutes, addMinutes } from 'date-fns';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useDailySchedule } from '@/hooks/useCalendar';
+import { useDailySchedule, useUpdateTimeBlock } from '@/hooks/useCalendar';
 import type { DailyScheduleBlock } from '@/types/calendar';
 
 interface DailySchedulePanelProps {
   onTaskDrop: (taskId: string, date: string, time: string) => void;
   onBlockRemove: (blockId: string) => void;
+  onDateChange?: (date: Date) => void;
   className?: string;
 }
 
@@ -65,44 +66,198 @@ const calculateDuration = (startTime: string, endTime: string): string => {
 };
 
 /**
- * TimeBlock component - displays a single scheduled block with absolute positioning
+ * Calculate z-index for stacking blocks - earlier blocks get higher z-index
+ */
+const calculateZIndex = (blocks: DailyScheduleBlock[]): Map<string, number> => {
+  const zIndexMap = new Map<string, number>();
+
+  // Sort blocks by start time (earliest first)
+  const sortedBlocks = [...blocks].sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+  // Assign z-index: earlier blocks get higher z-index so they appear on top
+  sortedBlocks.forEach((block, index) => {
+    zIndexMap.set(block.block_id, sortedBlocks.length - index + 10);
+  });
+
+  return zIndexMap;
+};
+
+/**
+ * TimeBlock component - displays a single scheduled block with absolute positioning and drag-to-reposition
  */
 interface TimeBlockProps {
   block: DailyScheduleBlock;
   onRemove: (blockId: string) => void;
+  onMove: (blockId: string, newStartTime: string, newEndTime: string) => void;
+  stackZIndex?: number;
 }
 
-const TimeBlock: FC<TimeBlockProps> = ({ block, onRemove }) => {
+const TimeBlock: FC<TimeBlockProps> = ({ block, onRemove, onMove, stackZIndex = 10 }) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isResizingTop, setIsResizingTop] = useState(false);
+  const [isResizingBottom, setIsResizingBottom] = useState(false);
+
   const blockStyle = calculateBlockStyle(block);
   const color = getAreaColor(block.area);
   // Check if task is completed (either time block is completed OR task itself is marked Done)
   const isCompleted = block.status === 'completed' || block.task_status === 'Done';
 
+  const handleDragStart = (e: React.DragEvent) => {
+    setIsDragging(true);
+    e.dataTransfer.effectAllowed = 'move';
+    // Store the offset from the top of the block to where the user grabbed it
+    const rect = e.currentTarget.getBoundingClientRect();
+    setDragOffset(e.clientY - rect.top);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    setIsDragging(false);
+
+    // Calculate where the block was dropped
+    const scheduleContainer = e.currentTarget.closest('.relative');
+    if (!scheduleContainer) return;
+
+    const containerRect = scheduleContainer.getBoundingClientRect();
+    const dropY = e.clientY - containerRect.top - dragOffset;
+
+    // Convert pixels to hours from 6 AM (4rem = 1 hour)
+    const hoursFrom6AM = dropY / (4 * 16); // 16px = 1rem
+
+    // Snap to 15-minute increments
+    const totalMinutes = Math.round(hoursFrom6AM * 4) * 15; // Round to nearest 15 min
+    const newStartHour = 6 + Math.floor(totalMinutes / 60);
+    const newStartMin = totalMinutes % 60;
+
+    // Calculate duration of the block
+    const duration = differenceInMinutes(
+      parseISO(`2000-01-01T${block.end_time}`),
+      parseISO(`2000-01-01T${block.start_time}`)
+    );
+
+    // Calculate new times
+    const newStartTime = `${String(newStartHour).padStart(2, '0')}:${String(newStartMin).padStart(2, '0')}:00`;
+    const newEndDate = addMinutes(parseISO(`2000-01-01T${newStartTime}`), duration);
+    const newEndTime = format(newEndDate, 'HH:mm:ss');
+
+    // Update the block position
+    if (newStartTime !== block.start_time) {
+      onMove(block.block_id, newStartTime, newEndTime);
+    }
+  };
+
+  const handleResizeTopStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizingTop(true);
+
+    const scheduleContainer = document.querySelector('.discrete-scrollbar');
+    if (!scheduleContainer) return;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const containerRect = scheduleContainer.getBoundingClientRect();
+      const scrollTop = scheduleContainer.scrollTop;
+      const mouseY = moveEvent.clientY - containerRect.top + scrollTop;
+
+      // Convert pixels to hours from 6 AM (4rem = 1 hour, 1rem = 16px)
+      const hoursFrom6AM = mouseY / (4 * 16);
+
+      // Snap to 15-minute increments
+      const totalMinutes = Math.round(hoursFrom6AM * 4) * 15;
+      const newStartHour = 6 + Math.floor(totalMinutes / 60);
+      const newStartMin = totalMinutes % 60;
+
+      const newStartTime = `${String(newStartHour).padStart(2, '0')}:${String(newStartMin).padStart(2, '0')}:00`;
+
+      // Don't let start time go past end time
+      if (newStartTime < block.end_time) {
+        onMove(block.block_id, newStartTime, block.end_time);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingTop(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleResizeBottomStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizingBottom(true);
+
+    const scheduleContainer = document.querySelector('.discrete-scrollbar');
+    if (!scheduleContainer) return;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const containerRect = scheduleContainer.getBoundingClientRect();
+      const scrollTop = scheduleContainer.scrollTop;
+      const mouseY = moveEvent.clientY - containerRect.top + scrollTop;
+
+      // Convert pixels to hours from 6 AM (4rem = 1 hour, 1rem = 16px)
+      const hoursFrom6AM = mouseY / (4 * 16);
+
+      // Snap to 15-minute increments
+      const totalMinutes = Math.round(hoursFrom6AM * 4) * 15;
+      const newEndHour = 6 + Math.floor(totalMinutes / 60);
+      const newEndMin = totalMinutes % 60;
+
+      const newEndTime = `${String(newEndHour).padStart(2, '0')}:${String(newEndMin).padStart(2, '0')}:00`;
+
+      // Don't let end time go before start time
+      if (newEndTime > block.start_time) {
+        onMove(block.block_id, block.start_time, newEndTime);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingBottom(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
   return (
     <div
-      className="absolute cursor-pointer hover:opacity-90 transition-opacity group/block border-2 border-gray-900"
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      className={`absolute cursor-move hover:opacity-90 transition-opacity group/block border-2 border-gray-900 ${isDragging || isResizingTop || isResizingBottom ? 'opacity-50' : ''}`}
       style={{
         ...blockStyle,
-        left: '5.5rem', // Start after the time labels (w-20 + padding)
+        left: '5.5rem',
         right: '0.5rem',
         backgroundColor: color,
         padding: '0.5rem',
         borderRadius: '0.25rem',
-        zIndex: 10,
+        zIndex: isDragging || isResizingTop || isResizingBottom ? 50 : stackZIndex,
         opacity: isCompleted ? 0.5 : 1,
       }}
     >
+      {/* Top resize handle */}
+      <div
+        onMouseDown={handleResizeTopStart}
+        className="absolute top-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-white/20 transition-colors"
+        style={{ marginTop: '-4px' }}
+        title="Drag to adjust start time"
+      />
+
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className={`text-lg text-white font-semibold truncate ${isCompleted ? 'line-through' : ''}`}>
-            {block.task_name}
-          </div>
-          <div className="text-base text-white/80">
-            {format(parseISO(`2000-01-01T${block.start_time}`), 'h:mm a')} -{' '}
-            {format(parseISO(`2000-01-01T${block.end_time}`), 'h:mm a')}
-            <span className="ml-1 text-white/60">
-              ({calculateDuration(block.start_time, block.end_time)})
-            </span>
+          <div className="flex items-center gap-2">
+            <div className={`text-lg text-white font-semibold truncate ${isCompleted ? 'line-through' : ''}`}>
+              {block.task_name}
+            </div>
+            <div className="text-sm text-white/80 whitespace-nowrap">
+              {format(parseISO(`2000-01-01T${block.start_time}`), 'h:mm a')} - {format(parseISO(`2000-01-01T${block.end_time}`), 'h:mm a')} ({calculateDuration(block.start_time, block.end_time)})
+            </div>
           </div>
         </div>
 
@@ -120,6 +275,14 @@ const TimeBlock: FC<TimeBlockProps> = ({ block, onRemove }) => {
           <X className="w-5 h-5" />
         </button>
       </div>
+
+      {/* Bottom resize handle */}
+      <div
+        onMouseDown={handleResizeBottomStart}
+        className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-white/20 transition-colors"
+        style={{ marginBottom: '-4px' }}
+        title="Drag to adjust end time"
+      />
     </div>
   );
 };
@@ -130,6 +293,7 @@ const TimeBlock: FC<TimeBlockProps> = ({ block, onRemove }) => {
 export const DailySchedulePanel: FC<DailySchedulePanelProps> = ({
   onTaskDrop,
   onBlockRemove,
+  onDateChange,
   className = '',
 }) => {
   // Always get fresh "today" - don't cache in state initialization
@@ -144,9 +308,26 @@ export const DailySchedulePanel: FC<DailySchedulePanelProps> = ({
   // Fetch time blocks from database
   const { data: timeBlocks = [], isLoading } = useDailySchedule(selectedDate);
 
+  // Calculate z-index for stacking blocks (earlier blocks on top)
+  const zIndexMap = calculateZIndex(timeBlocks);
+
+  // Update time block hook
+  const updateTimeBlock = useUpdateTimeBlock();
+
+  const handleBlockMove = (blockId: string, newStartTime: string, newEndTime: string) => {
+    updateTimeBlock.mutate({
+      blockId,
+      updates: {
+        start_time: newStartTime,
+        end_time: newEndTime,
+      },
+    });
+  };
+
   const handlePreviousDay = () => {
     setSelectedDate((prev) => {
       const newDate = new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() - 1);
+      onDateChange?.(newDate);
       return newDate;
     });
   };
@@ -154,11 +335,13 @@ export const DailySchedulePanel: FC<DailySchedulePanelProps> = ({
   const handleToday = () => {
     const today = getTodayLocal();
     setSelectedDate(today);
+    onDateChange?.(today);
   };
 
   const handleNextDay = () => {
     setSelectedDate((prev) => {
       const newDate = new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() + 1);
+      onDateChange?.(newDate);
       return newDate;
     });
   };
@@ -266,6 +449,8 @@ export const DailySchedulePanel: FC<DailySchedulePanelProps> = ({
                 key={block.block_id}
                 block={block}
                 onRemove={onBlockRemove}
+                onMove={handleBlockMove}
+                stackZIndex={zIndexMap.get(block.block_id) ?? 10}
               />
             ))}
           </div>
