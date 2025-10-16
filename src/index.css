@@ -7,6 +7,25 @@ input, button, textarea, select {
   touch-action: manipulation;
 }
 
+/* Prevent text size adjustment on different screen sizes/DPIs */
+html {
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Ensure proper box-sizing for responsive layouts */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Prevent layout shift on monitor changes */
+body {
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
 /* Custom Scrollbar Styles */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;

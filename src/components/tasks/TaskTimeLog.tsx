@@ -290,7 +290,7 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
       </div>
 
       {/* Header Row */}
-      <div className="grid grid-cols-[100px_95px_95px_80px_1fr_30px] gap-2 mb-2 text-xs font-semibold text-gray-300 uppercase tracking-wide">
+      <div className="grid grid-cols-[90px_85px_85px_70px_1fr_30px] sm:grid-cols-[100px_95px_95px_80px_1fr_30px] gap-1 sm:gap-2 mb-2 text-xs font-semibold text-gray-300 uppercase tracking-wide">
         <div>Date</div>
         <div>Start</div>
         <div>End</div>
@@ -315,17 +315,17 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
           }
 
           return (
-            <div key={row.id || `row-${index}`} className="grid grid-cols-[100px_95px_95px_80px_1fr_30px] gap-2 items-center">
+            <div key={row.id || `row-${index}`} className="grid grid-cols-[90px_85px_85px_70px_1fr_30px] sm:grid-cols-[100px_95px_95px_80px_1fr_30px] gap-1 sm:gap-2 items-center">
               {/* Date Button with Calendar Popup */}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 px-2 justify-start text-xs text-white bg-gray-800/50 border-gray-700/50 hover:bg-gray-700/50"
+                    className="h-8 px-1 sm:px-2 justify-start text-[10px] sm:text-xs text-white bg-gray-800/50 border-gray-700/50 hover:bg-gray-700/50 overflow-hidden"
                   >
-                    <CalendarIcon className="w-3 h-3 mr-1 text-white" />
-                    {dateObj ? format(dateObj, 'M/d/yy') : 'Date'}
+                    <CalendarIcon className="w-3 h-3 mr-0.5 sm:mr-1 text-white flex-shrink-0" />
+                    <span className="truncate">{dateObj ? format(dateObj, 'M/d/yy') : 'Date'}</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -355,7 +355,7 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
                 value={row.startTime}
                 onValueChange={(value) => handleRowChange(index, 'startTime', value)}
               >
-                <SelectTrigger className="h-8 text-xs text-white bg-gray-800/50 border-gray-700/50">
+                <SelectTrigger className="h-8 text-[10px] sm:text-xs text-white bg-gray-800/50 border-gray-700/50 px-1 sm:px-2">
                   <SelectValue placeholder="Start">
                     {row.startTime ? formatTime12Hour(row.startTime) : 'Start'}
                   </SelectValue>
@@ -374,7 +374,7 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
                 value={row.endTime}
                 onValueChange={(value) => handleRowChange(index, 'endTime', value)}
               >
-                <SelectTrigger className="h-8 text-xs text-white bg-gray-800/50 border-gray-700/50">
+                <SelectTrigger className="h-8 text-[10px] sm:text-xs text-white bg-gray-800/50 border-gray-700/50 px-1 sm:px-2">
                   <SelectValue placeholder="End">
                     {row.endTime ? formatTime12Hour(row.endTime) : 'End'}
                   </SelectValue>
@@ -388,7 +388,7 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
                 </SelectContent>
               </Select>
 
-              <div className="h-8 flex items-center justify-center text-sm font-semibold text-green-400">
+              <div className="h-8 flex items-center justify-center text-xs sm:text-sm font-semibold text-green-400">
                 {hours > 0 ? hours.toFixed(2) : '—'}
               </div>
               <Input
@@ -396,7 +396,7 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
                 value={row.notes}
                 onChange={(e) => handleRowChange(index, 'notes', e.target.value)}
                 placeholder="Notes..."
-                className="h-8 text-xs text-white bg-gray-800/50 border-gray-700/50 placeholder:text-gray-400"
+                className="h-8 text-[10px] sm:text-xs text-white bg-gray-800/50 border-gray-700/50 placeholder:text-gray-400 px-1 sm:px-2"
               />
               <Button
                 variant="ghost"

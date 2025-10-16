@@ -236,15 +236,16 @@ export const TasksHub: FC = () => {
   }
 
   return (
-    <div className="py-6 px-8 max-w-full mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-100">Tasks</h1>
+    <div className="py-4 sm:py-6 px-4 sm:px-8 max-w-full mx-auto">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-100">Tasks</h1>
         <button
           onClick={() => setIsAddTaskModalOpen(true)}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+          className="px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm sm:text-base"
         >
           <span className="text-xl leading-none">+</span>
-          Add Task
+          <span className="hidden sm:inline">Add Task</span>
+          <span className="sm:hidden">Add</span>
         </button>
       </div>
 
@@ -257,19 +258,19 @@ export const TasksHub: FC = () => {
       />
 
       {/* Two-column layout: Main content + Right sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr,550px] gap-4 mt-6">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr,500px] 2xl:grid-cols-[1fr,550px] gap-3 sm:gap-4 mt-4 sm:mt-6">
         {/* Left column: Task cards */}
-        <div>
+        <div className="min-w-0">
           {filteredTasks.length === 0 ? (
-            <div className="bg-gray-800 rounded-lg p-8 text-center">
-              <p className="text-gray-400">
+            <div className="bg-gray-800 rounded-lg p-6 sm:p-8 text-center">
+              <p className="text-sm sm:text-base text-gray-400">
                 {tasks && tasks.length > 0
                   ? 'No tasks match the selected filters.'
                   : 'No tasks found. Create your first task to get started!'}
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {filteredTasks.map((task) => (
                 <DraggableTaskCard key={task.id} task={task} />
               ))}
@@ -278,11 +279,11 @@ export const TasksHub: FC = () => {
         </div>
 
         {/* Right sidebar: Schedule */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6 min-w-0">
           <DailySchedulePanel
             onTaskDrop={handleTaskDrop}
             onBlockRemove={handleBlockRemove}
-            className="h-[calc(100vh-80px)]"
+            className="h-[calc(100vh-200px)] sm:h-[calc(100vh-120px)] xl:h-[calc(100vh-80px)]"
           />
         </div>
       </div>
