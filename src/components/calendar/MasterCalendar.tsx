@@ -203,20 +203,29 @@ const ResizableTimeBlock: FC<ResizableTimeBlockProps> = ({ block, style, color, 
     return undefined;
   }, [isResizing, handleResizeMove, handleResizeEnd]);
 
-  const displayStyle = isResizing
-    ? { ...style, top: `${currentTop}rem`, height: `${currentHeight}rem` }
-    : style;
+  // Adjust top and height to account for vertical margins
+  const adjustedStyle = isResizing
+    ? {
+        top: `calc(${currentTop}rem + 2px)`,
+        height: `calc(${currentHeight}rem - 4px)`
+      }
+    : {
+        top: `calc(${style.top} + 2px)`,
+        height: `calc(${style.height} - 4px)`
+      };
 
   return (
     <div
       ref={blockRef}
-      className="absolute cursor-pointer hover:opacity-90 transition-opacity group"
+      className="absolute cursor-pointer hover:opacity-90 transition-opacity group overflow-hidden"
       style={{
-        ...displayStyle,
+        ...style,
+        ...adjustedStyle,
         backgroundColor: color,
         padding: '0.5rem',
         borderRadius: '0.25rem',
         zIndex: isResizing ? 20 : 10,
+        opacity: block.task_status === 'Done' ? 0.5 : 1,
       }}
       onClick={onClick}
     >
@@ -227,16 +236,21 @@ const ResizableTimeBlock: FC<ResizableTimeBlockProps> = ({ block, style, color, 
         style={{ marginTop: '-2px' }}
       />
 
-      <div className="text-xs text-white font-semibold truncate pointer-events-none">
+      <div className={`text-xs text-white font-semibold pointer-events-none overflow-hidden ${
+        block.task_status === 'Done' ? 'line-through' : ''
+      }`}
+      style={{
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical',
+        wordBreak: 'break-word',
+      }}>
         {block.task_name}
       </div>
-      <div className="text-xs text-white/80 pointer-events-none">
+      <div className="text-xs text-white/80 pointer-events-none whitespace-nowrap overflow-hidden text-ellipsis">
         {format(parseISO(`2000-01-01T${block.start_time}`), 'h:mm a')} -{' '}
         {format(parseISO(`2000-01-01T${block.end_time}`), 'h:mm a')}
       </div>
-      {block.status === 'completed' && (
-        <div className="text-xs text-white/80 mt-1 pointer-events-none">✓ Completed</div>
-      )}
 
       {/* Bottom resize handle */}
       <div
@@ -271,6 +285,22 @@ export const MasterCalendar: FC<MasterCalendarProps> = ({ onBlockClick }) => {
   // Generate week days
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
 
+  // Calculate week offset from current week
+  const thisWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const weeksDifference = Math.round(
+    (currentWeekStart.getTime() - thisWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000)
+  );
+
+  // Determine button label based on week offset
+  const getWeekLabel = () => {
+    if (weeksDifference === 0) return 'This Week';
+    if (weeksDifference === 1) return 'Next Week';
+    if (weeksDifference >= 2) return '2 Weeks From Now';
+    // For past weeks, show negative offset
+    if (weeksDifference === -1) return 'Last Week';
+    return `${Math.abs(weeksDifference)} Weeks Ago`;
+  };
+
   const handlePrevWeek = () => {
     setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   };
@@ -283,8 +313,8 @@ export const MasterCalendar: FC<MasterCalendarProps> = ({ onBlockClick }) => {
     setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
   };
 
-  // Time slots (6 AM to 11 PM in 1-hour increments)
-  const timeSlots = Array.from({ length: 18 }, (_, i) => i + 6); // 6-23 (6 AM to 11 PM)
+  // Time slots (6 AM to 5 AM next day in 1-hour increments)
+  const timeSlots = Array.from({ length: 24 }, (_, i) => i + 6); // 6-29 (6 AM to 5 AM next day)
 
   // Helper to parse time string to hour
   const parseTimeToHour = (timeStr: string): number => {
@@ -339,9 +369,9 @@ export const MasterCalendar: FC<MasterCalendarProps> = ({ onBlockClick }) => {
           </button>
           <button
             onClick={handleToday}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
           >
-            Today
+            {getWeekLabel()}
           </button>
           <button
             onClick={handleNextWeek}
@@ -352,61 +382,42 @@ export const MasterCalendar: FC<MasterCalendarProps> = ({ onBlockClick }) => {
         </div>
       </div>
 
-      {/* Weekly Summary */}
-      <div className="grid grid-cols-7 gap-2 mb-4">
-        {weekDays.map((day) => {
-          const dateKey = format(day, 'yyyy-MM-dd');
-          const summary = weeklySummary.find((s) => s.scheduled_date === dateKey);
-          const isToday = isSameDay(day, new Date());
+      {/* Calendar Grid */}
+      <div className="bg-gray-800 rounded-lg overflow-hidden">
+        {/* Header Row */}
+        <div className="grid bg-gray-900 border-b border-gray-700" style={{ gridTemplateColumns: '60px repeat(7, 1fr)' }}>
+          <div className="p-3 text-xs text-white font-semibold">TIME</div>
+          {weekDays.map((day) => {
+            const dateKey = format(day, 'yyyy-MM-dd');
+            const summary = weeklySummary.find((s) => s.scheduled_date === dateKey);
+            const isToday = isSameDay(day, new Date());
 
-          return (
-            <div
-              key={dateKey}
-              className={`p-3 rounded-lg border-2 ${
-                isToday
-                  ? 'border-blue-500 bg-blue-900/20'
-                  : 'border-gray-700 bg-gray-800'
-              }`}
-            >
-              <div className="text-center">
-                <div className="text-xs text-gray-400 uppercase">
-                  {format(day, 'EEE')}
+            return (
+              <div
+                key={dateKey}
+                className={`p-3 text-center ${
+                  isToday ? 'bg-blue-900/20' : ''
+                }`}
+              >
+                <div className={`text-xs font-medium ${isToday ? 'text-blue-400' : 'text-yellow-500'}`}>
+                  {format(day, 'EEEE')}
                 </div>
-                <div className={`text-lg font-bold ${isToday ? 'text-blue-400' : 'text-gray-100'}`}>
-                  {format(day, 'd')}
+                <div className={`text-xs ${isToday ? 'text-blue-400' : 'text-yellow-500'}`}>
+                  {format(day, 'M/d/yy')}
                 </div>
                 {summary && (
-                  <div className="mt-2 text-xs">
-                    <div className="text-gray-400">
+                  <div className="mt-1 text-xs space-y-0.5">
+                    <div className="text-white">
                       {summary.total_blocks} {summary.total_blocks === 1 ? 'block' : 'blocks'}
                     </div>
-                    <div className="text-gray-500">
-                      {Math.round(summary.total_planned_minutes / 60)}h planned
+                    <div className="text-white">
+                      {(summary.total_planned_minutes / 60).toFixed(1)}h planned
                     </div>
                   </div>
                 )}
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Calendar Grid */}
-      <div className="bg-gray-800 rounded-lg overflow-hidden">
-        {/* Header Row */}
-        <div className="grid grid-cols-8 bg-gray-900 border-b border-gray-700">
-          <div className="p-3 text-xs text-gray-500 font-semibold">TIME</div>
-          {weekDays.map((day) => (
-            <div
-              key={format(day, 'yyyy-MM-dd')}
-              className={`p-3 text-center ${
-                isSameDay(day, new Date()) ? 'bg-blue-900/20' : ''
-              }`}
-            >
-              <div className="text-xs text-gray-400">{format(day, 'EEE')}</div>
-              <div className="text-sm font-bold text-gray-100">{format(day, 'MMM d')}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Time Grid */}
@@ -415,11 +426,11 @@ export const MasterCalendar: FC<MasterCalendarProps> = ({ onBlockClick }) => {
           {timeSlots.map((hour) => (
             <div
               key={hour}
-              className="grid grid-cols-8 border-b border-gray-700"
-              style={{ height: '4rem' }}
+              className="grid border-b border-gray-700"
+              style={{ height: '4rem', gridTemplateColumns: '60px repeat(7, 1fr)' }}
             >
               <div className="p-2 text-xs text-gray-500">
-                {format(new Date().setHours(hour, 0), 'h a')}
+                {format(new Date().setHours(hour % 24, 0), 'h a')}
               </div>
               {weekDays.map((day) => (
                 <DroppableTimeSlot
@@ -440,10 +451,12 @@ export const MasterCalendar: FC<MasterCalendarProps> = ({ onBlockClick }) => {
               const blockStyle = calculateBlockStyle(block);
               const color = AREA_COLORS[block.area];
 
+              // Calculate position: 60px for TIME column + (dayIndex / 7) of remaining width
+              const columnWidth = `((100% - 60px) / 7)`;
               const style = {
                 ...blockStyle,
-                left: `${((dayIndex + 1) / 8) * 100}%`,
-                width: `${100 / 8}%`,
+                left: `calc(60px + ${columnWidth} * ${dayIndex})`,
+                width: `calc(${columnWidth})`,
               };
 
               return (
@@ -458,19 +471,6 @@ export const MasterCalendar: FC<MasterCalendarProps> = ({ onBlockClick }) => {
             });
           })}
         </div>
-      </div>
-
-      {/* Legend */}
-      <div className="mt-6 flex flex-wrap gap-4">
-        {(Object.keys(AREA_COLORS) as Area[]).map((area) => (
-          <div key={area} className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded"
-              style={{ backgroundColor: AREA_COLORS[area] }}
-            />
-            <span className="text-sm text-gray-300">{area}</span>
-          </div>
-        ))}
       </div>
     </div>
   );

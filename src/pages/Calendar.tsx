@@ -11,7 +11,7 @@
  */
 
 import { type FC, useState } from 'react';
-import { format, parseISO, subMonths, addMinutes } from 'date-fns';
+import { format, parseISO, startOfWeek, endOfWeek, addMinutes } from 'date-fns';
 import { X, CheckCircle, PlayCircle, XCircle, Edit2, Trash2 } from 'lucide-react';
 import { DndContext, DragOverlay, type DragEndEvent } from '@dnd-kit/core';
 import { MasterCalendar } from '@/components/calendar/MasterCalendar';
@@ -51,11 +51,23 @@ export const Calendar: FC = () => {
   const cancelTimeBlock = useCancelTimeBlock();
   const createTimeBlock = useCreateTimeBlock();
 
-  // Analytics for last 3 months
+  // Analytics for current week
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // Monday
+  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 }); // Sunday
   const { data: analytics = [] } = useTaskSchedulingAnalytics(
-    subMonths(new Date(), 3),
-    new Date()
+    weekStart,
+    weekEnd
   );
+
+  // Calculate totals across all areas
+  const totalStats = analytics.length > 0 ? {
+    total_blocks: analytics.reduce((sum, stat) => sum + stat.total_blocks, 0),
+    total_planned_hours: analytics.reduce((sum, stat) => sum + stat.total_planned_hours, 0),
+    completion_rate: Math.round(
+      analytics.reduce((sum, stat) => sum + (stat.completion_rate * stat.total_blocks), 0) /
+      analytics.reduce((sum, stat) => sum + stat.total_blocks, 0)
+    )
+  } : null;
 
   const handleBlockClick = (block: CalendarViewBlock) => {
     setSelectedBlock(block);
@@ -188,56 +200,65 @@ export const Calendar: FC = () => {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-100">Calendar & Scheduling</h1>
-          <p className="text-gray-400 mt-2">
-            Master calendar showing scheduled tasks and time blocks. Click tasks on the right to schedule them!
-          </p>
         </div>
 
       {/* Analytics Summary */}
       {analytics.length > 0 && (
         <div className="bg-gray-800 rounded-lg p-6 mb-6">
           <h3 className="text-lg font-bold text-gray-100 mb-4">
-            Scheduling Analytics (Last 3 Months)
+            Scheduling Analytics (This Week)
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {analytics.slice(0, 7).map((stat) => (
-              <div key={stat.area} className="bg-gray-900 rounded-lg p-4">
+          <div className="grid grid-cols-7 gap-3">
+            {/* All Areas Summary */}
+            {totalStats && (
+              <div className="rounded-lg p-3 bg-gray-700">
                 <div className="flex items-center gap-2 mb-2">
-                  <div
-                    className="w-3 h-3 rounded"
-                    style={{ backgroundColor: AREA_COLORS[stat.area] }}
-                  />
-                  <span className="text-sm font-semibold text-gray-300">{stat.area}</span>
+                  <span className="text-sm font-semibold text-white">All Areas</span>
                 </div>
                 <div className="space-y-1">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Blocks:</span>
-                    <span className="text-gray-100">{stat.total_blocks}</span>
+                    <span className="text-white">Blocks:</span>
+                    <span className="text-white font-semibold">{totalStats.total_blocks}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Planned:</span>
-                    <span className="text-gray-100">{stat.total_planned_hours}h</span>
+                    <span className="text-white">Planned:</span>
+                    <span className="text-white font-semibold">{totalStats.total_planned_hours.toFixed(1)}h</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Completion:</span>
-                    <span
-                      className={
-                        stat.completion_rate >= 70
-                          ? 'text-green-400'
-                          : stat.completion_rate >= 50
-                          ? 'text-yellow-400'
-                          : 'text-red-400'
-                      }
-                    >
+                    <span className="text-white">Completion:</span>
+                    <span className="text-white font-semibold">
+                      {totalStats.completion_rate}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Individual Areas */}
+            {analytics.slice(0, 6).map((stat) => (
+              <div
+                key={stat.area}
+                className="rounded-lg p-3"
+                style={{ backgroundColor: AREA_COLORS[stat.area] }}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-semibold text-white">{stat.area}</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white">Blocks:</span>
+                    <span className="text-white font-semibold">{stat.total_blocks}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white">Planned:</span>
+                    <span className="text-white font-semibold">{stat.total_planned_hours}h</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white">Completion:</span>
+                    <span className="text-white font-semibold">
                       {stat.completion_rate}%
                     </span>
                   </div>
-                  {stat.avg_accuracy && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Accuracy:</span>
-                      <span className="text-gray-100">{stat.avg_accuracy}%</span>
-                    </div>
-                  )}
                 </div>
               </div>
             ))}

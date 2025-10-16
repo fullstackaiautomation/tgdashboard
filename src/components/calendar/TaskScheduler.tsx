@@ -8,8 +8,8 @@
  * - Smart suggestions based on task duration and due date
  */
 
-import { type FC, useState } from 'react';
-import { format, addMinutes, parseISO } from 'date-fns';
+import { type FC, useState, useMemo, useEffect } from 'react';
+import { format, addMinutes, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { Clock, AlertTriangle, Plus, X, Filter, GripVertical } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import {
@@ -17,7 +17,7 @@ import {
   useCreateTimeBlock,
   useTimeBlockConflicts,
 } from '@/hooks/useCalendar';
-import { useTaskHasTimeBlocks } from '@/hooks/useTaskTimeBlocks';
+import { useTaskTimeBlocks } from '@/hooks/useTaskTimeBlocks';
 import type { UnscheduledTask } from '@/types/calendar';
 import type { Area } from '@/types/task';
 
@@ -43,20 +43,41 @@ interface DraggableTaskCardProps {
   isSelected: boolean;
   onQuickSchedule: (task: UnscheduledTask) => void;
   onClearSelection: () => void;
+  onScheduleStatusChange: (taskId: string, isScheduled: boolean) => void;
 }
 
-const DraggableTaskCard: FC<DraggableTaskCardProps> = ({ task, isSelected, onQuickSchedule, onClearSelection }) => {
+const DraggableTaskCard: FC<DraggableTaskCardProps> = ({ task, isSelected, onQuickSchedule, onClearSelection, onScheduleStatusChange }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `task-${task.task_id}`,
     data: task,
   });
 
-  // Check if task has time blocks and if it's completed
-  const { data: hasTimeBlocks = false } = useTaskHasTimeBlocks(task.task_id);
+  // Fetch time blocks for this task
+  const { data: timeBlocks = [] } = useTaskTimeBlocks(task.task_id);
   const isCompleted = task.status === 'Done';
 
-  // Determine button state
-  const buttonState = isCompleted ? 'completed' : hasTimeBlocks ? 'scheduled' : 'schedule';
+  // Get the earliest scheduled time block
+  const earliestBlock = timeBlocks.length > 0 ? timeBlocks[0] : null;
+
+  // Report schedule status to parent
+  const isScheduled = timeBlocks.length > 0;
+  useEffect(() => {
+    onScheduleStatusChange(task.task_id, isScheduled);
+  }, [task.task_id, isScheduled]);
+
+  // Determine button state and text
+  const buttonState = isCompleted ? 'completed' : isScheduled ? 'scheduled' : 'schedule';
+
+  const getButtonText = () => {
+    if (buttonState === 'completed') return 'Completed';
+    if (buttonState === 'schedule') return 'Schedule';
+    if (earliestBlock) {
+      const date = format(parseISO(earliestBlock.scheduled_date), 'MMM d');
+      const time = format(parseISO(`2000-01-01T${earliestBlock.start_time}`), 'h:mm a');
+      return `${date} ${time}`;
+    }
+    return 'Scheduled';
+  };
 
   return (
     <div
@@ -69,40 +90,38 @@ const DraggableTaskCard: FC<DraggableTaskCardProps> = ({ task, isSelected, onQui
           : 'cursor-grab'
       } ${
         isSelected
-          ? 'border-blue-500 bg-blue-900/20'
-          : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+          ? 'border-blue-500'
+          : 'border-transparent hover:border-gray-600'
       }`}
+      style={{
+        backgroundColor: isSelected ? undefined : AREA_COLORS[task.area]
+      }}
       onClick={() => onQuickSchedule(task)}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2 flex-1">
-          <GripVertical className="w-4 h-4 text-gray-500 flex-shrink-0" />
+          <GripVertical className="w-4 h-4 text-white/70 flex-shrink-0" />
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <div
-                className="w-3 h-3 rounded"
-                style={{ backgroundColor: AREA_COLORS[task.area] }}
-              />
-              <span className="font-semibold text-gray-100">{task.task_name}</span>
+              <span className="font-semibold text-white">{task.task_name}</span>
               {task.priority === 'High' && (
-                <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">
+                <span className="px-2 py-0.5 bg-red-500/30 text-white text-xs rounded">
                   High Priority
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-4 text-sm text-gray-400">
-              <span>{task.area}</span>
-              {task.hours_remaining > 0 && (
-                <>
-                  <span>•</span>
-                  <span>{task.hours_remaining.toFixed(1)}h remaining</span>
-                </>
-              )}
+            <div className="flex items-center gap-4 text-sm text-white/80">
               {task.due_date && (
                 <>
                   <span>•</span>
                   <span>Due {format(parseISO(task.due_date), 'MMM d')}</span>
+                </>
+              )}
+              {task.hours_remaining > 0 && (
+                <>
+                  <span>•</span>
+                  <span>{task.hours_remaining.toFixed(1)}h remaining</span>
                 </>
               )}
             </div>
@@ -134,7 +153,7 @@ const DraggableTaskCard: FC<DraggableTaskCardProps> = ({ task, isSelected, onQui
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
           >
-            {buttonState === 'completed' ? 'Completed' : buttonState === 'scheduled' ? 'Scheduled' : 'Schedule'}
+            {getButtonText()}
           </button>
         )}
       </div>
@@ -142,8 +161,13 @@ const DraggableTaskCard: FC<DraggableTaskCardProps> = ({ task, isSelected, onQui
   );
 };
 
+type DateFilter = 'All Tasks' | 'Due Today' | 'Due This Week' | 'Due This Month';
+type ScheduleFilter = 'All Tasks' | 'Scheduled' | 'Unscheduled';
+
 export const TaskScheduler: FC<TaskSchedulerProps> = ({ onScheduleComplete }) => {
   const [selectedArea, setSelectedArea] = useState<Area | 'All Areas'>('All Areas');
+  const [selectedDateFilter, setSelectedDateFilter] = useState<DateFilter>('All Tasks');
+  const [selectedScheduleFilter, setSelectedScheduleFilter] = useState<ScheduleFilter>('All Tasks');
   const { data: unscheduledTasks = [], isLoading } = useUnscheduledTasks(
     selectedArea === 'All Areas' ? undefined : selectedArea
   );
@@ -155,6 +179,55 @@ export const TaskScheduler: FC<TaskSchedulerProps> = ({ onScheduleComplete }) =>
   );
   const [startTime, setStartTime] = useState<string>('09:00');
   const [durationMinutes, setDurationMinutes] = useState<number>(60);
+
+  // Store schedule status for each task (we'll populate this via the child components)
+  const [taskScheduleStatus, setTaskScheduleStatus] = useState<Record<string, boolean>>({});
+
+  // Filter tasks by date
+  const dateFilteredTasks = useMemo(() => {
+    if (selectedDateFilter === 'All Tasks') return unscheduledTasks;
+
+    const now = new Date();
+
+    return unscheduledTasks.filter((task) => {
+      if (!task.due_date) return false;
+
+      const dueDate = parseISO(task.due_date);
+
+      switch (selectedDateFilter) {
+        case 'Due Today':
+          return isWithinInterval(dueDate, {
+            start: startOfDay(now),
+            end: endOfDay(now),
+          });
+        case 'Due This Week':
+          return isWithinInterval(dueDate, {
+            start: startOfWeek(now, { weekStartsOn: 1 }),
+            end: endOfWeek(now, { weekStartsOn: 1 }),
+          });
+        case 'Due This Month':
+          return isWithinInterval(dueDate, {
+            start: startOfMonth(now),
+            end: endOfMonth(now),
+          });
+        default:
+          return true;
+      }
+    });
+  }, [unscheduledTasks, selectedDateFilter]);
+
+  // Filter by schedule status
+  const filteredTasks = useMemo(() => {
+    if (selectedScheduleFilter === 'All Tasks') return dateFilteredTasks;
+
+    return dateFilteredTasks.filter((task) => {
+      const isScheduled = taskScheduleStatus[task.task_id] || false;
+
+      if (selectedScheduleFilter === 'Scheduled') return isScheduled;
+      if (selectedScheduleFilter === 'Unscheduled') return !isScheduled;
+      return true;
+    });
+  }, [dateFilteredTasks, selectedScheduleFilter, taskScheduleStatus]);
 
   // Calculate end time
   const endTime = format(
@@ -201,6 +274,10 @@ export const TaskScheduler: FC<TaskSchedulerProps> = ({ onScheduleComplete }) =>
     setDurationMinutes(estimatedMinutes);
   };
 
+  const handleScheduleStatusChange = (taskId: string, isScheduled: boolean) => {
+    setTaskScheduleStatus(prev => ({ ...prev, [taskId]: isScheduled }));
+  };
+
   if (isLoading) {
     return (
       <div className="bg-gray-900 rounded-lg p-6">
@@ -216,19 +293,12 @@ export const TaskScheduler: FC<TaskSchedulerProps> = ({ onScheduleComplete }) =>
         <Clock className="w-6 h-6 text-orange-400" />
         <div>
           <h2 className="text-xl font-bold text-gray-100">Task Scheduler</h2>
-          <p className="text-sm text-gray-400">
-            {unscheduledTasks.length} task{unscheduledTasks.length !== 1 ? 's' : ''} to schedule
-          </p>
         </div>
       </div>
 
       {/* Area Filter */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-2">
-          <Filter className="w-4 h-4 text-gray-400" />
-          <span className="text-sm text-gray-400">Filter by Area:</span>
-        </div>
-        <div className="flex flex-wrap gap-2">
+      <div className="mb-4">
+        <div className="flex gap-2">
           <button
             onClick={() => setSelectedArea('All Areas')}
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
@@ -243,37 +313,83 @@ export const TaskScheduler: FC<TaskSchedulerProps> = ({ onScheduleComplete }) =>
             <button
               key={area}
               onClick={() => setSelectedArea(area)}
-              className={`px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-2 ${
-                selectedArea === area
-                  ? 'text-white'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }`}
+              className="px-3 py-1.5 rounded-lg text-sm transition-colors text-white"
               style={{
-                backgroundColor: selectedArea === area ? AREA_COLORS[area] : undefined,
+                backgroundColor: AREA_COLORS[area],
+                opacity: selectedArea === area ? 1 : 0.6,
               }}
             >
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: AREA_COLORS[area] }}
-              />
               {area}
             </button>
           ))}
         </div>
       </div>
 
+      {/* Date Filter */}
+      <div className="mb-4">
+        <div className="flex gap-2">
+          {(['All Tasks', 'Due Today', 'Due This Week', 'Due This Month'] as DateFilter[]).map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setSelectedDateFilter(filter)}
+              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                selectedDateFilter === filter
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Schedule Status Filter */}
+      <div className="mb-6">
+        <div className="flex gap-2">
+          {(['All Tasks', 'Scheduled', 'Unscheduled'] as ScheduleFilter[]).map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setSelectedScheduleFilter(filter)}
+              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                selectedScheduleFilter === filter
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Unscheduled Tasks List */}
-      {unscheduledTasks.length === 0 ? (
+      {filteredTasks.length === 0 ? (
         <div className="text-center py-12">
           <Clock className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">All tasks are scheduled!</p>
+          <p className="text-gray-400">
+            {selectedDateFilter === 'All Tasks' && selectedArea === 'All Areas'
+              ? 'All tasks are scheduled!'
+              : 'No tasks match the selected filters'}
+          </p>
           <p className="text-sm text-gray-500 mt-2">
-            Great job staying organized. New tasks will appear here.
+            {selectedDateFilter === 'All Tasks' && selectedArea === 'All Areas'
+              ? 'Great job staying organized. New tasks will appear here.'
+              : 'Try adjusting your filters to see more tasks.'}
           </p>
         </div>
       ) : (
         <div className="space-y-3 mb-6">
-          {unscheduledTasks.map((task) => <DraggableTaskCard key={task.task_id} task={task} isSelected={selectedTask?.task_id === task.task_id} onQuickSchedule={handleQuickSchedule} onClearSelection={() => setSelectedTask(null)} />)}
+          {filteredTasks.map((task) => (
+            <DraggableTaskCard
+              key={task.task_id}
+              task={task}
+              isSelected={selectedTask?.task_id === task.task_id}
+              onQuickSchedule={handleQuickSchedule}
+              onClearSelection={() => setSelectedTask(null)}
+              onScheduleStatusChange={handleScheduleStatusChange}
+            />
+          ))}
         </div>
       )}
 
