@@ -89,6 +89,12 @@ function App() {
   const [showEditTaskDropdown, setShowEditTaskDropdown] = useState<boolean>(false)
   const [_editingTaskField, setEditingTaskField] = useState<{taskId: string, field: string} | null>(null)
   const [hoveredMainPage, setHoveredMainPage] = useState<string | null>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false)
+
+  // Close mobile menu when navigation changes
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [activeMainTab, activeTasksSubTab])
 
   // Load persisted timer state on mount
   useEffect(() => {
@@ -934,38 +940,46 @@ function App() {
   void _top5Tasks;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#1a1a1a', color: '#fff', overflow: 'visible' }}>
+    <div className="flex min-h-screen bg-[#1a1a1a] text-white overflow-visible">
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sticky Sidebar */}
-      <div style={{
-        width: '264px',
-        backgroundColor: '#0f0f0f',
-        borderRight: '1px solid #2a2a2a',
-        position: 'sticky',
-        top: 0,
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        overflowY: 'auto',
-        overflowX: 'visible',
-        zIndex: 100
-      }}>
+      <div className={`
+        fixed lg:sticky top-0 h-screen
+        w-[264px] bg-[#0f0f0f] border-r border-[#2a2a2a]
+        flex flex-col overflow-y-auto overflow-x-visible
+        z-50 lg:z-[100]
+        transition-transform duration-300 ease-in-out
+        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
         {/* Logo/Header */}
-        <div style={{ padding: '24px', borderBottom: '1px solid #2a2a2a' }}>
-          <h1 style={{
-            fontSize: '24px',
-            fontWeight: 'bold',
-            background: 'linear-gradient(to right, #f97316, #eab308)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            marginBottom: '4px'
-          }}>
-            TG Dashboard
-          </h1>
-          <p style={{ fontSize: '12px', color: '#6b7280' }}>Personal Performance Center</p>
+        <div className="p-6 border-b border-[#2a2a2a]">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-yellow-500 bg-clip-text text-transparent">
+              TG Dashboard
+            </h1>
+            {/* Mobile Close Button */}
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="lg:hidden p-1 hover:bg-[#2a2a2a] rounded transition-colors"
+              aria-label="Close menu"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <p className="text-xs text-gray-500">Personal Performance Center</p>
         </div>
 
         {/* Navigation */}
-        <div style={{ flex: 1, padding: '16px', position: 'relative', overflow: 'visible' }}>
+        <div className="flex-1 p-4 relative overflow-visible">
           {/* Daily Main Page */}
           <div
             style={{ marginBottom: '8px', position: 'relative' }}
@@ -1447,7 +1461,24 @@ function App() {
       </div>
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="flex-1 flex flex-col w-full lg:w-auto">
+
+        {/* Mobile Header with Menu Button */}
+        <div className="lg:hidden bg-[#0f0f0f] border-b border-[#2a2a2a] p-4 flex items-center justify-between sticky top-0 z-30">
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="p-2 hover:bg-[#2a2a2a] rounded-lg transition-colors"
+            aria-label="Open menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <h2 className="text-lg font-bold bg-gradient-to-r from-orange-500 to-yellow-500 bg-clip-text text-transparent">
+            TG Dashboard
+          </h2>
+          <div className="w-10"></div> {/* Spacer for centering */}
+        </div>
 
         {/* Tasks Hub Tab */}
         {activeMainTab === 'tasks' && (

@@ -467,54 +467,56 @@ const ContentLibrary = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Content Library</h1>
-          <p className="text-gray-400 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Content Library</h1>
+          <p className="text-sm sm:text-base text-gray-400 mt-1">
             Your personal knowledge base of learning resources
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={() => setShowQuickAddModal(true)}
-            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
           >
-            <ExternalLink className="w-5 h-5" />
-            Quick Add URL
+            <ExternalLink className="w-4 sm:w-5 h-4 sm:h-5" />
+            <span className="hidden sm:inline">Quick Add URL</span>
+            <span className="sm:hidden">Quick Add</span>
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
           >
-            <Plus className="w-5 h-5" />
-            Add Content
+            <Plus className="w-4 sm:w-5 h-4 sm:h-5" />
+            <span className="hidden sm:inline">Add Content</span>
+            <span className="sm:hidden">Add</span>
           </button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-5 gap-4">
-        <div className="bg-gray-800 rounded-lg shadow-lg p-4 border border-gray-700">
-          <div className="text-2xl font-bold text-white">{stats.total}</div>
-          <div className="text-sm text-gray-400">Total Items</div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="bg-gray-800 rounded-lg shadow-lg p-3 sm:p-4 border border-gray-700">
+          <div className="text-xl sm:text-2xl font-bold text-white">{stats.total}</div>
+          <div className="text-xs sm:text-sm text-gray-400">Total Items</div>
         </div>
-        <div className="bg-gray-800 rounded-lg shadow-lg p-4 border border-blue-600">
-          <div className="text-2xl font-bold text-blue-400">{stats.toWatch}</div>
-          <div className="text-sm text-blue-300">To Watch</div>
+        <div className="bg-gray-800 rounded-lg shadow-lg p-3 sm:p-4 border border-blue-600">
+          <div className="text-xl sm:text-2xl font-bold text-blue-400">{stats.toWatch}</div>
+          <div className="text-xs sm:text-sm text-blue-300">To Watch</div>
         </div>
-        <div className="bg-gray-800 rounded-lg shadow-lg p-4 border border-purple-600">
-          <div className="text-2xl font-bold text-purple-400">{stats.inProgress}</div>
-          <div className="text-sm text-purple-300">In Progress</div>
+        <div className="bg-gray-800 rounded-lg shadow-lg p-3 sm:p-4 border border-purple-600">
+          <div className="text-xl sm:text-2xl font-bold text-purple-400">{stats.inProgress}</div>
+          <div className="text-xs sm:text-sm text-purple-300">In Progress</div>
         </div>
-        <div className="bg-gray-800 rounded-lg shadow-lg p-4 border border-green-600">
-          <div className="text-2xl font-bold text-green-400">{stats.completed}</div>
-          <div className="text-sm text-green-300">Completed</div>
+        <div className="bg-gray-800 rounded-lg shadow-lg p-3 sm:p-4 border border-green-600">
+          <div className="text-xl sm:text-2xl font-bold text-green-400">{stats.completed}</div>
+          <div className="text-xs sm:text-sm text-green-300">Completed</div>
         </div>
-        <div className="bg-gray-800 rounded-lg shadow-lg p-4 border border-yellow-600">
-          <div className="text-2xl font-bold text-yellow-400">{stats.favorites}</div>
-          <div className="text-sm text-yellow-300">Favorites</div>
+        <div className="bg-gray-800 rounded-lg shadow-lg p-3 sm:p-4 border border-yellow-600 col-span-2 sm:col-span-1">
+          <div className="text-xl sm:text-2xl font-bold text-yellow-400">{stats.favorites}</div>
+          <div className="text-xs sm:text-sm text-yellow-300">Favorites</div>
         </div>
       </div>
 
