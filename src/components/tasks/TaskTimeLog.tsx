@@ -220,7 +220,7 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
         updates: { hours_worked: newTotalHours }
       });
 
-      alert('Time logs saved successfully!');
+      // Notification removed per user request
     } catch (error) {
       console.error('Failed to save time logs:', error);
       alert('Failed to save time logs');
@@ -290,11 +290,11 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
       </div>
 
       {/* Header Row */}
-      <div className="grid grid-cols-[90px_85px_85px_70px_1fr_30px] sm:grid-cols-[100px_95px_95px_80px_1fr_30px] gap-1 sm:gap-2 mb-2 text-xs font-semibold text-gray-300 uppercase tracking-wide">
+      <div className="grid grid-cols-[70px_70px_70px_50px_1fr_25px] sm:grid-cols-[80px_75px_75px_55px_1fr_28px] gap-1 mb-2 text-[10px] sm:text-xs font-semibold text-gray-300 uppercase tracking-wide">
         <div>Date</div>
         <div>Start</div>
         <div>End</div>
-        <div className="text-center">Hours</div>
+        <div className="text-center">Hrs</div>
         <div>Notes</div>
         <div></div>
       </div>
@@ -315,7 +315,7 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
           }
 
           return (
-            <div key={row.id || `row-${index}`} className="grid grid-cols-[90px_85px_85px_70px_1fr_30px] sm:grid-cols-[100px_95px_95px_80px_1fr_30px] gap-1 sm:gap-2 items-center">
+            <div key={row.id || `row-${index}`} className="grid grid-cols-[70px_70px_70px_50px_1fr_25px] sm:grid-cols-[80px_75px_75px_55px_1fr_28px] gap-1 items-center">
               {/* Date Button with Calendar Popup */}
               <Popover>
                 <PopoverTrigger asChild>
