@@ -68,9 +68,9 @@ export const NewProjectModal: FC<NewProjectModalProps> = ({
       />
 
       {/* Modal */}
-      <div className="relative bg-gray-900 border border-gray-700 rounded-lg p-6 w-full max-w-md shadow-xl">
+      <div className="relative bg-gray-900 border border-gray-700 rounded-lg p-6 w-full max-w-2xl shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-gray-100">Create New Project</h2>
           <Button
             variant="ghost"

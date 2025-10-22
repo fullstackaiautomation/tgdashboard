@@ -613,10 +613,10 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
                   <div
                     onClick={() => setIsEditingNotes(true)}
                     className={`text-sm cursor-pointer hover:bg-gray-800/30 transition-all px-4 py-3 rounded-lg border border-gray-700/30 flex-1 leading-relaxed ${
-                      task.description ? 'text-gray-100' : 'text-gray-500 italic'
+                      task.description ? 'text-gray-100' : 'text-white'
                     }`}
                   >
-                    {task.description || 'Click to add notes, thoughts, or details...'}
+                    {task.description || 'Add Notes...'}
                   </div>
                 )}
               </div>
