@@ -1343,6 +1343,113 @@ function App() {
             )}
           </div>
 
+          {/* Resources Main Page */}
+          <div
+            style={{ marginBottom: '8px', position: 'relative' }}
+            onMouseEnter={() => setHoveredMainPage('resources')}
+            onMouseLeave={() => setHoveredMainPage(null)}
+          >
+            <button
+              onClick={() => setActiveMainTab('content')}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                backgroundColor: activeMainTab === 'content' || activeMainTab === 'notes' ? '#eab308' : 'transparent',
+                color: activeMainTab === 'content' || activeMainTab === 'notes' ? 'white' : '#eab308',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '20.25px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M2 3h12M2 8h12M2 13h12" />
+                  <circle cx="5" cy="3" r="1" fill="currentColor" />
+                  <circle cx="5" cy="8" r="1" fill="currentColor" />
+                  <circle cx="5" cy="13" r="1" fill="currentColor" />
+                </svg>
+                Resources
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+
+            {/* Submenu on hover or when active */}
+            {(hoveredMainPage === 'resources' || activeMainTab === 'content' || activeMainTab === 'notes') && (
+              <div
+                style={{
+                  marginTop: '4px',
+                  marginLeft: '16px',
+                  backgroundColor: '#1a1a1a',
+                  border: '1px solid #2a2a2a',
+                  borderRadius: '8px',
+                  padding: '8px'
+                }}
+                onMouseEnter={() => setHoveredMainPage('resources')}
+                onMouseLeave={() => setHoveredMainPage(null)}
+              >
+                <button
+                  onClick={() => setActiveMainTab('content')}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: activeMainTab === 'content' ? '#2a2a2a' : 'transparent',
+                    color: activeMainTab === 'content' ? '#FFC61A' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '18.9px',
+                    fontWeight: activeMainTab === 'content' ? '600' : '500',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '4px'
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M2 3h12M2 8h12M2 13h12" />
+                    <circle cx="5" cy="3" r="1" fill="currentColor" />
+                    <circle cx="5" cy="8" r="1" fill="currentColor" />
+                    <circle cx="5" cy="13" r="1" fill="currentColor" />
+                  </svg>
+                  Content Library
+                </button>
+                <button
+                  onClick={() => setActiveMainTab('notes')}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: activeMainTab === 'notes' ? '#2a2a2a' : 'transparent',
+                    color: activeMainTab === 'notes' ? '#D4A004' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '18.9px',
+                    fontWeight: activeMainTab === 'notes' ? '600' : '500',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="2" width="10" height="12" rx="1" />
+                    <path d="M6 6h4M6 9h4M6 12h2" />
+                  </svg>
+                  Notes
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Finance Main Page */}
           <div style={{ marginBottom: '8px' }}>
             <button
@@ -1522,113 +1629,6 @@ function App() {
                     <path d="M5 2v4M11 2v4" />
                   </svg>
                   Planning
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Resources Main Page */}
-          <div
-            style={{ marginBottom: '8px', position: 'relative' }}
-            onMouseEnter={() => setHoveredMainPage('resources')}
-            onMouseLeave={() => setHoveredMainPage(null)}
-          >
-            <button
-              onClick={() => setActiveMainTab('content')}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                backgroundColor: activeMainTab === 'content' || activeMainTab === 'notes' ? '#eab308' : 'transparent',
-                color: activeMainTab === 'content' || activeMainTab === 'notes' ? 'white' : '#eab308',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '20.25px',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M2 3h12M2 8h12M2 13h12" />
-                  <circle cx="5" cy="3" r="1" fill="currentColor" />
-                  <circle cx="5" cy="8" r="1" fill="currentColor" />
-                  <circle cx="5" cy="13" r="1" fill="currentColor" />
-                </svg>
-                Resources
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-
-            {/* Submenu on hover or when active */}
-            {(hoveredMainPage === 'resources' || activeMainTab === 'content' || activeMainTab === 'notes') && (
-              <div
-                style={{
-                  marginTop: '4px',
-                  marginLeft: '16px',
-                  backgroundColor: '#1a1a1a',
-                  border: '1px solid #2a2a2a',
-                  borderRadius: '8px',
-                  padding: '8px'
-                }}
-                onMouseEnter={() => setHoveredMainPage('resources')}
-                onMouseLeave={() => setHoveredMainPage(null)}
-              >
-                <button
-                  onClick={() => setActiveMainTab('content')}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    backgroundColor: activeMainTab === 'content' ? '#2a2a2a' : 'transparent',
-                    color: activeMainTab === 'content' ? '#FFC61A' : '#9ca3af',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '18.9px',
-                    fontWeight: activeMainTab === 'content' ? '600' : '500',
-                    textAlign: 'left',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '4px'
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M2 3h12M2 8h12M2 13h12" />
-                    <circle cx="5" cy="3" r="1" fill="currentColor" />
-                    <circle cx="5" cy="8" r="1" fill="currentColor" />
-                    <circle cx="5" cy="13" r="1" fill="currentColor" />
-                  </svg>
-                  Content Library
-                </button>
-                <button
-                  onClick={() => setActiveMainTab('notes')}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    backgroundColor: activeMainTab === 'notes' ? '#2a2a2a' : 'transparent',
-                    color: activeMainTab === 'notes' ? '#D4A004' : '#9ca3af',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '18.9px',
-                    fontWeight: activeMainTab === 'notes' ? '600' : '500',
-                    textAlign: 'left',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="2" width="10" height="12" rx="1" />
-                    <path d="M6 6h4M6 9h4M6 12h2" />
-                  </svg>
-                  Notes
                 </button>
               </div>
             )}

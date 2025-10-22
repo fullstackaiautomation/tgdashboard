@@ -56,6 +56,16 @@ const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
       subPages: []
     },
     {
+      id: 'resources',
+      label: 'Resources',
+      icon: BookMarked,
+      color: '#10b981', // green
+      subPages: [
+        { id: 'content', label: 'Content Library', icon: BookMarked },
+        { id: 'notes', label: 'Notes', icon: FileText }
+      ]
+    },
+    {
       id: 'finance',
       label: 'Finance',
       icon: DollarSign,
@@ -79,16 +89,6 @@ const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
         { id: 'analytics', label: 'Deep Work Sessions', icon: Clock },
         { id: 'insights', label: 'Insights', icon: TrendingUp },
         { id: 'planning', label: 'Time Allocation Planning', icon: Target }
-      ]
-    },
-    {
-      id: 'resources',
-      label: 'Resources',
-      icon: BookMarked,
-      color: '#10b981', // green
-      subPages: [
-        { id: 'content', label: 'Content Library', icon: BookMarked },
-        { id: 'notes', label: 'Notes', icon: FileText }
       ]
     }
   ]

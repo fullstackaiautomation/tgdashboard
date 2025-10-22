@@ -8,14 +8,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/',
+  base: process.env.NODE_ENV === 'production' ? '/tgdashboard/' : '/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
   server: {
-    port: 5000,
-    strictPort: false, // If 5000 is taken, will try 5001, 5002, etc.
+    port: 5001,
+    strictPort: false, // If 5001 is taken, will try 5002, 5003, etc.
   },
 })
