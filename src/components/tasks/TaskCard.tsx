@@ -362,7 +362,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
 
   return (
     <Card
-      className={`border-gray-700 group hover:border-gray-600 transition-all duration-200 ${
+      className={`border-gray-700 group hover:border-gray-600 transition-all duration-200 max-w-full overflow-hidden ${
         isCompleted ? 'opacity-60' : ''
       } ${className}`}
       style={{ backgroundColor: getCardBackground() }}
@@ -593,9 +593,9 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
       {isExpanded && (
         <>
           <div className="border-t border-gray-700/30" />
-          <div className="p-3 sm:p-4 lg:p-6" style={{ backgroundColor: getExpandedBackground() }}>
+          <div className="p-3 sm:p-4 lg:p-6 max-w-full overflow-hidden" style={{ backgroundColor: getExpandedBackground() }}>
             {/* Three-column layout - responsive: stacks on mobile, side-by-side on larger screens */}
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(200px,1fr)_280px_2fr] gap-4 sm:gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(200px,300px)_280px_minmax(0,600px)] gap-4 sm:gap-6 lg:gap-8 max-w-full">
               {/* Left Column - Notes Panel */}
               <div className="flex flex-col">
                 <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Notes</label>
