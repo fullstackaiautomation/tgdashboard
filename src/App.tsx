@@ -58,6 +58,7 @@ function App() {
   const [selectedArea, _setSelectedArea] = useState<Area | 'All Areas'>('All Areas')
   const [activeMainTab, setActiveMainTab] = useState<'tasks' | 'business' | 'content' | 'finance' | 'notes' | 'review' | 'analytics' | 'health' | 'planning' | 'calendar' | 'dailytime' | 'insights'>('tasks')
   const [activeTasksSubTab, setActiveTasksSubTab] = useState<'tasks-list' | 'deepwork'>('tasks-list') // NEW: Tasks Hub subtabs
+  const [selectedBusinessArea, setSelectedBusinessArea] = useState<string | null>(null) // For Projects sub-pages
   const [selectedTimePeriod, _setSelectedTimePeriod] = useState<'All Time' | 'Today' | 'This Week' | 'This Month'>('All Time')
   const [selectedDWArea, _setSelectedDWArea] = useState<Area | 'All Areas'>('All Areas')
   const [selectedEffortLevel, _setSelectedEffortLevel] = useState<string>('All Levels')
@@ -977,8 +978,8 @@ function App() {
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                backgroundColor: activeMainTab === 'tasks' || activeMainTab === 'calendar' || activeMainTab === 'dailytime' ? '#10b981' : 'transparent',
-                color: activeMainTab === 'tasks' || activeMainTab === 'calendar' || activeMainTab === 'dailytime' ? 'white' : '#10b981',
+                backgroundColor: activeMainTab === 'tasks' || activeMainTab === 'calendar' || activeMainTab === 'dailytime' || activeMainTab === 'analytics' ? '#10b981' : 'transparent',
+                color: activeMainTab === 'tasks' || activeMainTab === 'calendar' || activeMainTab === 'dailytime' || activeMainTab === 'analytics' ? 'white' : '#10b981',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
@@ -1003,7 +1004,7 @@ function App() {
             </button>
 
             {/* Submenu on hover or when active */}
-            {(hoveredMainPage === 'tasks' || activeMainTab === 'tasks' || activeMainTab === 'calendar' || activeMainTab === 'dailytime') && (
+            {(hoveredMainPage === 'tasks' || activeMainTab === 'tasks' || activeMainTab === 'calendar' || activeMainTab === 'dailytime' || activeMainTab === 'analytics') && (
               <div
                 style={{
                   marginTop: '4px',
@@ -1081,7 +1082,8 @@ function App() {
                     textAlign: 'left',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    gap: '8px',
+                    marginBottom: '4px'
                   }}
                 >
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1090,14 +1092,44 @@ function App() {
                   </svg>
                   Daily Time
                 </button>
+                <button
+                  onClick={() => setActiveMainTab('analytics')}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: activeMainTab === 'analytics' ? '#2a2a2a' : 'transparent',
+                    color: activeMainTab === 'analytics' ? '#14d399' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '18.9px',
+                    fontWeight: activeMainTab === 'analytics' ? '600' : '500',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                  Deep Work
+                </button>
               </div>
             )}
           </div>
 
           {/* Projects Main Page */}
-          <div style={{ marginBottom: '8px' }}>
+          <div
+            style={{ marginBottom: '8px', position: 'relative' }}
+            onMouseEnter={() => setHoveredMainPage('business')}
+            onMouseLeave={() => setHoveredMainPage(null)}
+          >
             <button
-              onClick={() => setActiveMainTab('business')}
+              onClick={() => {
+                setActiveMainTab('business');
+                setSelectedBusinessArea(null);
+              }}
               style={{
                 width: '100%',
                 padding: '12px 16px',
@@ -1111,15 +1143,204 @@ function App() {
                 textAlign: 'left',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                justifyContent: 'space-between'
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="2" width="12" height="12" rx="2" />
-                <path d="M2 6h12M6 2v12" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="2" width="12" height="12" rx="2" />
+                  <path d="M2 6h12M6 2v12" />
+                </svg>
+                Projects
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
-              Projects
             </button>
+
+            {/* Submenu on hover or when active */}
+            {(hoveredMainPage === 'business' || activeMainTab === 'business') && (
+              <div
+                style={{
+                  marginTop: '4px',
+                  marginLeft: '16px',
+                  backgroundColor: '#1a1a1a',
+                  border: '1px solid #2a2a2a',
+                  borderRadius: '8px',
+                  padding: '8px'
+                }}
+                onMouseEnter={() => setHoveredMainPage('business')}
+                onMouseLeave={() => setHoveredMainPage(null)}
+              >
+                <button
+                  onClick={() => {
+                    setActiveMainTab('business');
+                    setSelectedBusinessArea('Full Stack');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: selectedBusinessArea === 'Full Stack' ? '#2a2a2a' : 'transparent',
+                    color: selectedBusinessArea === 'Full Stack' ? '#a855f7' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '18.9px',
+                    fontWeight: selectedBusinessArea === 'Full Stack' ? '600' : '500',
+                    textAlign: 'left',
+                    marginBottom: '4px'
+                  }}
+                >
+                  Full Stack
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveMainTab('business');
+                    setSelectedBusinessArea('Huge Capital');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: selectedBusinessArea === 'Huge Capital' ? '#2a2a2a' : 'transparent',
+                    color: selectedBusinessArea === 'Huge Capital' ? '#a855f7' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '18.9px',
+                    fontWeight: selectedBusinessArea === 'Huge Capital' ? '600' : '500',
+                    textAlign: 'left',
+                    marginBottom: '4px'
+                  }}
+                >
+                  Huge Capital
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveMainTab('business');
+                    setSelectedBusinessArea('S4');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: selectedBusinessArea === 'S4' ? '#2a2a2a' : 'transparent',
+                    color: selectedBusinessArea === 'S4' ? '#a855f7' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '18.9px',
+                    fontWeight: selectedBusinessArea === 'S4' ? '600' : '500',
+                    textAlign: 'left',
+                    marginBottom: '4px'
+                  }}
+                >
+                  S4
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveMainTab('business');
+                    setSelectedBusinessArea('808');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: selectedBusinessArea === '808' ? '#2a2a2a' : 'transparent',
+                    color: selectedBusinessArea === '808' ? '#a855f7' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '18.9px',
+                    fontWeight: selectedBusinessArea === '808' ? '600' : '500',
+                    textAlign: 'left',
+                    marginBottom: '4px'
+                  }}
+                >
+                  808
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveMainTab('business');
+                    setSelectedBusinessArea('Personal');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: selectedBusinessArea === 'Personal' ? '#2a2a2a' : 'transparent',
+                    color: selectedBusinessArea === 'Personal' ? '#a855f7' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '18.9px',
+                    fontWeight: selectedBusinessArea === 'Personal' ? '600' : '500',
+                    textAlign: 'left',
+                    marginBottom: '4px'
+                  }}
+                >
+                  Personal
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveMainTab('business');
+                    setSelectedBusinessArea('Health');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: selectedBusinessArea === 'Health' ? '#2a2a2a' : 'transparent',
+                    color: selectedBusinessArea === 'Health' ? '#a855f7' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '18.9px',
+                    fontWeight: selectedBusinessArea === 'Health' ? '600' : '500',
+                    textAlign: 'left',
+                    marginBottom: '4px'
+                  }}
+                >
+                  Health
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveMainTab('business');
+                    setSelectedBusinessArea('Golf');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: selectedBusinessArea === 'Golf' ? '#2a2a2a' : 'transparent',
+                    color: selectedBusinessArea === 'Golf' ? '#a855f7' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '18.9px',
+                    fontWeight: selectedBusinessArea === 'Golf' ? '600' : '500',
+                    textAlign: 'left',
+                    marginBottom: '4px'
+                  }}
+                >
+                  Golf
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveMainTab('business');
+                    setSelectedBusinessArea('Service SaaS');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: selectedBusinessArea === 'Service SaaS' ? '#2a2a2a' : 'transparent',
+                    color: selectedBusinessArea === 'Service SaaS' ? '#a855f7' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '18.9px',
+                    fontWeight: selectedBusinessArea === 'Service SaaS' ? '600' : '500',
+                    textAlign: 'left'
+                  }}
+                >
+                  Service SaaS
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Finance Main Page */}
@@ -1188,8 +1409,8 @@ function App() {
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                backgroundColor: activeMainTab === 'review' || activeMainTab === 'analytics' || activeMainTab === 'insights' || activeMainTab === 'planning' ? '#ec4899' : 'transparent',
-                color: activeMainTab === 'review' || activeMainTab === 'analytics' || activeMainTab === 'insights' || activeMainTab === 'planning' ? 'white' : '#ec4899',
+                backgroundColor: activeMainTab === 'review' || activeMainTab === 'insights' || activeMainTab === 'planning' ? '#ec4899' : 'transparent',
+                color: activeMainTab === 'review' || activeMainTab === 'insights' || activeMainTab === 'planning' ? 'white' : '#ec4899',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
@@ -1215,7 +1436,7 @@ function App() {
             </button>
 
             {/* Submenu on hover or when active */}
-            {(hoveredMainPage === 'review' || activeMainTab === 'review' || activeMainTab === 'analytics' || activeMainTab === 'insights' || activeMainTab === 'planning') && (
+            {(hoveredMainPage === 'review' || activeMainTab === 'review' || activeMainTab === 'insights' || activeMainTab === 'planning') && (
               <div
                 style={{
                   marginTop: '4px',
@@ -1253,31 +1474,6 @@ function App() {
                     <rect x="5" y="9" width="4" height="2" fill="currentColor" />
                   </svg>
                   Dashboard
-                </button>
-                <button
-                  onClick={() => setActiveMainTab('analytics')}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    backgroundColor: activeMainTab === 'analytics' ? '#2a2a2a' : 'transparent',
-                    color: activeMainTab === 'analytics' ? '#FF6BB8' : '#9ca3af',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '18.9px',
-                    fontWeight: activeMainTab === 'analytics' ? '600' : '500',
-                    textAlign: 'left',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '4px'
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="8" cy="8" r="6" />
-                    <path d="M8 4v4l3 2" />
-                  </svg>
-                  Deep Work
                 </button>
                 <button
                   onClick={() => setActiveMainTab('insights')}
@@ -1439,11 +1635,6 @@ function App() {
           </div>
         </div>
 
-        {/* Deep Work Timer */}
-        <div style={{ padding: '16px', borderTop: '1px solid #2a2a2a', borderBottom: '1px solid #2a2a2a' }}>
-          <DeepWorkSidebar tasks={tasks} />
-        </div>
-
       </div>
 
       {/* Main Content Area */}
@@ -1473,7 +1664,7 @@ function App() {
         {/* Business Tab */}
         {activeMainTab === 'business' && (
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            <BusinessDashboard />
+            <BusinessDashboard preselectedBusinessArea={selectedBusinessArea} />
           </div>
         )}
 
