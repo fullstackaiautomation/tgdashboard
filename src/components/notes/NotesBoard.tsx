@@ -5,7 +5,7 @@ import { Input } from '../ui/input'
 import { Textarea } from '../ui/textarea'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
-import { Search, Plus, Trash2, Palette, Bold, Underline, List, ListOrdered, Link as LinkIcon } from 'lucide-react'
+import { Search, Plus, Trash2, Palette, Bold, Underline, Strikethrough, List, ListOrdered, Link as LinkIcon } from 'lucide-react'
 
 interface Note {
   id: string
@@ -34,13 +34,13 @@ export default function NotesBoard() {
   const [editingNote, setEditingNote] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [showColorPicker, setShowColorPicker] = useState<string | null>(null)
+  const [expandedNote, setExpandedNote] = useState<string | null>(null)
 
   // Debounce timers for auto-save
   const saveTimersRef = useRef<{ [key: string]: NodeJS.Timeout }>({})
 
   // Refs for contentEditable divs
   const contentRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
-  const contentInitialized = useRef<{ [key: string]: boolean }>({})
 
   useEffect(() => {
     fetchNotes()
@@ -51,18 +51,22 @@ export default function NotesBoard() {
     }
   }, [])
 
-  // Sync content to contentEditable div only when note changes externally
+  // Sync content to contentEditable div when notes change or divs are mounted
   useEffect(() => {
     notes.forEach(note => {
       const div = contentRefs.current[note.id]
       if (div && editingNote !== note.id) {
-        // Only update if the content has changed and we're not editing
-        if (div.innerHTML !== note.content) {
-          div.innerHTML = note.content || '<span style="color: #6b7280;">Click to write...</span>'
+        // Always sync content if it doesn't match
+        const currentContent = div.innerHTML
+        const expectedContent = note.content || '<span style="color: #6b7280;">Click to write...</span>'
+
+        // Only update if different to avoid unnecessary re-renders
+        if (currentContent !== expectedContent) {
+          div.innerHTML = expectedContent
         }
       }
     })
-  }, [notes, editingNote])
+  }, [notes, editingNote, searchTerm])
 
   const fetchNotes = async () => {
     try {
@@ -222,8 +226,37 @@ export default function NotesBoard() {
     }
   }
 
+  // Handle paste events - strip formatting except links
+  const handlePaste = (noteId: string, e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault()
+
+    // Get plain text from clipboard
+    const text = e.clipboardData.getData('text/plain')
+    if (!text) return
+
+    // Insert as plain text
+    const selection = window.getSelection()
+    if (!selection || !selection.rangeCount) return
+
+    const range = selection.getRangeAt(0)
+    range.deleteContents()
+
+    const textNode = document.createTextNode(text)
+    range.insertNode(textNode)
+
+    // Move cursor to end of inserted text
+    range.setStartAfter(textNode)
+    range.setEndAfter(textNode)
+    selection.removeAllRanges()
+    selection.addRange(range)
+
+    // Trigger the input handler to save the content
+    const div = e.currentTarget
+    handleContentEditableInput(noteId, { currentTarget: div } as React.FormEvent<HTMLDivElement>)
+  }
+
   // Text formatting functions for contentEditable
-  const applyFormatting = (noteId: string, formatType: 'bold' | 'underline' | 'bullet' | 'numbered' | 'link') => {
+  const applyFormatting = (noteId: string, formatType: 'bold' | 'underline' | 'strikethrough' | 'bullet' | 'numbered' | 'link') => {
     // Focus the contentEditable div
     const editableDiv = document.querySelector(`[data-note-id="${noteId}"]`) as HTMLDivElement
     if (!editableDiv) return
@@ -234,6 +267,8 @@ export default function NotesBoard() {
       document.execCommand('bold', false)
     } else if (formatType === 'underline') {
       document.execCommand('underline', false)
+    } else if (formatType === 'strikethrough') {
+      document.execCommand('strikeThrough', false)
     } else if (formatType === 'bullet') {
       document.execCommand('insertUnorderedList', false)
     } else if (formatType === 'numbered') {
@@ -346,95 +381,45 @@ export default function NotesBoard() {
                 return (
                   <Card
                     key={note.id}
-                    className="group relative overflow-hidden transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 border-gray-800 backdrop-blur-sm"
+                    className="group relative overflow-hidden transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 border-gray-800 backdrop-blur-sm flex flex-col"
                     style={{
                       backgroundColor: colorObj.value,
-                      boxShadow: `0 0 20px ${colorObj.solid}20`
+                      boxShadow: `0 0 20px ${colorObj.solid}20`,
+                      height: expandedNote === note.id ? '600px' : '450px'
                     }}
                   >
 
-                    <CardHeader className="pb-4 space-y-0 pt-6 px-6">
-                      <div className="flex items-start justify-between gap-3">
+                    <CardHeader className="pb-4 pt-6 px-6">
+                      {/* Title Row with Date */}
+                      <div className="flex items-center justify-between gap-3 pb-3 border-b border-gray-800/50">
+                        {/* Title */}
                         <Input
                           type="text"
                           value={note.title}
                           onChange={(e) => updateNoteLocal(note.id, { title: e.target.value })}
                           onFocus={() => setEditingNote(note.id)}
                           onBlur={() => setEditingNote(null)}
-                          className="font-bold text-xl border-none shadow-none p-0 h-auto focus-visible:ring-0 bg-transparent text-white placeholder:text-gray-600"
+                          className="flex-1 font-bold border-none shadow-none p-0 h-auto focus-visible:ring-0 bg-transparent text-white placeholder:text-gray-600"
+                          style={{ fontSize: '24px' }}
                           placeholder="Note title..."
                         />
-                        <Badge variant="outline" className="text-xs shrink-0 bg-gray-800/50 border-gray-700 text-gray-400">
+
+                        {/* Date Badge */}
+                        <Badge variant="outline" className="text-xs bg-gray-800/50 border-gray-700 text-gray-400 shrink-0">
                           {new Date(note.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </Badge>
                       </div>
                     </CardHeader>
 
-                    <CardContent className="space-y-4 px-6 pb-6">
-                      {/* Formatting Toolbar */}
-                      {editingNote === note.id && (
-                        <div
-                          className="flex items-center gap-1 pb-2 border-b border-gray-800/50 animate-in fade-in slide-in-from-top-2 duration-200"
-                          onMouseDown={(e) => e.preventDefault()} // Prevent textarea from losing focus
-                        >
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => applyFormatting(note.id, 'bold')}
-                            className="h-8 w-8 p-0 hover:bg-gray-800 text-gray-400 hover:text-white"
-                            title="Bold (wrap with **text**)"
-                          >
-                            <Bold className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => applyFormatting(note.id, 'underline')}
-                            className="h-8 w-8 p-0 hover:bg-gray-800 text-gray-400 hover:text-white"
-                            title="Underline (wrap with <u>text</u>)"
-                          >
-                            <Underline className="h-4 w-4" />
-                          </Button>
-                          <div className="w-px h-6 bg-gray-800 mx-1" />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => applyFormatting(note.id, 'bullet')}
-                            className="h-8 w-8 p-0 hover:bg-gray-800 text-gray-400 hover:text-white"
-                            title="Bullet list (add • )"
-                          >
-                            <List className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => applyFormatting(note.id, 'numbered')}
-                            className="h-8 w-8 p-0 hover:bg-gray-800 text-gray-400 hover:text-white"
-                            title="Numbered list (add 1. )"
-                          >
-                            <ListOrdered className="h-4 w-4" />
-                          </Button>
-                          <div className="w-px h-6 bg-gray-800 mx-1" />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => applyFormatting(note.id, 'link')}
-                            className="h-8 w-8 p-0 hover:bg-gray-800 text-gray-400 hover:text-white"
-                            title="Add link"
-                          >
-                            <LinkIcon className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
+                    <CardContent className="px-6 pb-6 flex flex-col flex-1 overflow-hidden">
 
                       {/* Note Content - WYSIWYG Editor */}
                       <div
                         ref={(el) => {
                           contentRefs.current[note.id] = el
-                          // Set initial content only once
-                          if (el && !contentInitialized.current[note.id]) {
+                          // Set initial content when element is mounted
+                          if (el && !el.innerHTML) {
                             el.innerHTML = note.content || '<span style="color: #6b7280;">Click to write...</span>'
-                            contentInitialized.current[note.id] = true
                           }
                         }}
                         data-note-id={note.id}
@@ -442,6 +427,7 @@ export default function NotesBoard() {
                         suppressContentEditableWarning
                         onInput={(e) => handleContentEditableInput(note.id, e)}
                         onKeyDown={(e) => handleContentEditableKeyDown(note.id, e)}
+                        onPaste={(e) => handlePaste(note.id, e)}
                         onClick={(e) => {
                           // Check if clicking on a link
                           const target = e.target as HTMLElement
@@ -453,6 +439,7 @@ export default function NotesBoard() {
                             }
                           } else {
                             setEditingNote(note.id)
+                            setExpandedNote(note.id)
                           }
                         }}
                         onBlur={(e) => {
@@ -460,42 +447,78 @@ export default function NotesBoard() {
                           setTimeout(() => {
                             if (!e.currentTarget.contains(document.activeElement)) {
                               setEditingNote(null);
+                              setExpandedNote(null);
                             }
                           }, 0);
                         }}
-                        className="min-h-[400px] max-h-[600px] overflow-auto cursor-text p-0 text-gray-300 text-base leading-relaxed font-sans focus:outline-none"
+                        className="flex-1 overflow-auto cursor-text p-0 text-white leading-relaxed font-sans focus:outline-none custom-scrollbar"
                         style={{
-                          wordBreak: 'break-word'
+                          wordBreak: 'break-word',
+                          fontSize: '18px'
                         }}
                       />
                       {/* Add custom CSS for contentEditable formatting */}
                       <style>{`
+                        /* Custom discrete scrollbar */
+                        .custom-scrollbar::-webkit-scrollbar {
+                          width: 6px;
+                        }
+                        .custom-scrollbar::-webkit-scrollbar-track {
+                          background: transparent;
+                        }
+                        .custom-scrollbar::-webkit-scrollbar-thumb {
+                          background: rgba(255, 255, 255, 0.1);
+                          border-radius: 3px;
+                        }
+                        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                          background: rgba(255, 255, 255, 0.2);
+                        }
+
+                        [data-note-id] {
+                          color: #ffffff !important;
+                        }
+                        [data-note-id] *,
+                        [data-note-id] span,
+                        [data-note-id] div,
+                        [data-note-id] p {
+                          color: #ffffff !important;
+                        }
                         [data-note-id] b, [data-note-id] strong {
                           font-weight: 700;
-                          color: #f3f4f6;
+                          color: #ffffff !important;
                         }
                         [data-note-id] u {
                           text-decoration: underline;
+                          color: #ffffff !important;
+                        }
+                        [data-note-id] s,
+                        [data-note-id] strike,
+                        [data-note-id] del {
+                          text-decoration: line-through;
+                          color: #ffffff !important;
                         }
                         [data-note-id] a {
-                          color: #60a5fa;
+                          color: #60a5fa !important;
                           text-decoration: underline;
                           cursor: pointer;
                         }
                         [data-note-id] a:hover {
-                          color: #93c5fd;
+                          color: #93c5fd !important;
                         }
                         [data-note-id] ul, [data-note-id] ol {
                           margin: 0.5rem 0;
                           padding-left: 1.5rem;
+                          color: #ffffff !important;
                         }
                         [data-note-id] ul li {
                           list-style-type: disc;
                           margin: 0.25rem 0;
+                          color: #ffffff !important;
                         }
                         [data-note-id] ol li {
                           list-style-type: decimal;
                           margin: 0.25rem 0;
+                          color: #ffffff !important;
                         }
                         [data-note-id]:empty:before {
                           content: attr(data-placeholder);
@@ -504,59 +527,115 @@ export default function NotesBoard() {
                         }
                       `}</style>
 
-                      {/* Footer Actions */}
+                      {/* Footer - Formatting Controls and Delete */}
                       <div
-                        className={`flex items-center justify-between gap-2 pt-4 border-t border-gray-800/50 transition-opacity duration-200 ${
-                          editingNote === note.id || showColorPicker === note.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                        }`}
+                        className="flex items-center justify-between gap-2 mt-4 pt-4 border-t border-gray-800/50"
+                        onMouseDown={(e) => e.preventDefault()} // Prevent textarea from losing focus
                       >
-                        {/* Color Picker */}
-                        <div className="flex items-center gap-1.5">
+                        {/* Left side - Formatting Controls */}
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => applyFormatting(note.id, 'bold')}
+                            className="h-8 w-8 p-0 hover:bg-gray-800 text-gray-400 hover:text-white"
+                            title="Bold"
+                          >
+                            <Bold className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => applyFormatting(note.id, 'underline')}
+                            className="h-8 w-8 p-0 hover:bg-gray-800 text-gray-400 hover:text-white"
+                            title="Underline"
+                          >
+                            <Underline className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => applyFormatting(note.id, 'strikethrough')}
+                            className="h-8 w-8 p-0 hover:bg-gray-800 text-gray-400 hover:text-white"
+                            title="Strikethrough"
+                          >
+                            <Strikethrough className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => applyFormatting(note.id, 'bullet')}
+                            className="h-8 w-8 p-0 hover:bg-gray-800 text-gray-400 hover:text-white"
+                            title="Bullet list"
+                          >
+                            <List className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => applyFormatting(note.id, 'numbered')}
+                            className="h-8 w-8 p-0 hover:bg-gray-800 text-gray-400 hover:text-white"
+                            title="Numbered list"
+                          >
+                            <ListOrdered className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => applyFormatting(note.id, 'link')}
+                            className="h-8 w-8 p-0 hover:bg-gray-800 text-gray-400 hover:text-white"
+                            title="Add link"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setShowColorPicker(showColorPicker === note.id ? null : note.id)}
-                            className="h-9 w-9 p-0 hover:bg-gray-800 text-gray-400 hover:text-white"
+                            className="h-8 w-8 p-0 hover:bg-gray-800 text-gray-400 hover:text-white"
+                            title="Change color"
                           >
                             <Palette className="h-4 w-4" />
                           </Button>
-
-                          {showColorPicker === note.id && (
-                            <div className="flex gap-1.5 animate-in fade-in slide-in-from-left-2 duration-200">
-                              {COLORS.map((color) => (
-                                <button
-                                  key={color.value}
-                                  onClick={() => {
-                                    updateNote(note.id, { color: color.value })
-                                    setShowColorPicker(null)
-                                  }}
-                                  className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 flex items-center justify-center shadow-lg ${
-                                    note.color === color.value ? 'ring-2 ring-offset-2 ring-offset-gray-900 scale-110' : ''
-                                  }`}
-                                  style={{
-                                    backgroundColor: color.solid,
-                                    borderColor: note.color === color.value ? color.solid : '#374151',
-                                    boxShadow: `0 0 20px ${color.solid}40`
-                                  }}
-                                  title={color.name}
-                                >
-                                  <span className="text-sm drop-shadow-lg">{note.color === color.value ? color.emoji : ''}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
                         </div>
 
-                        {/* Delete Button */}
+                        {/* Right side - Delete Button */}
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => deleteNote(note.id)}
-                          className="h-9 w-9 p-0 text-red-400 hover:text-red-300 hover:bg-red-950/30"
+                          className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-950/30"
+                          title="Delete note"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
+
+                      {/* Color Picker Dropdown */}
+                      {showColorPicker === note.id && (
+                        <div className="flex gap-1.5 pt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                          {COLORS.map((color) => (
+                            <button
+                              key={color.value}
+                              onClick={() => {
+                                updateNote(note.id, { color: color.value })
+                                setShowColorPicker(null)
+                              }}
+                              className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 flex items-center justify-center shadow-lg ${
+                                note.color === color.value ? 'ring-2 ring-offset-2 ring-offset-gray-900 scale-110' : ''
+                              }`}
+                              style={{
+                                backgroundColor: color.solid,
+                                borderColor: note.color === color.value ? color.solid : '#374151',
+                                boxShadow: `0 0 20px ${color.solid}40`
+                              }}
+                              title={color.name}
+                            >
+                              <span className="text-sm drop-shadow-lg">{note.color === color.value ? color.emoji : ''}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )
