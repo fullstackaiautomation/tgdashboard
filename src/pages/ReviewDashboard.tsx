@@ -175,9 +175,7 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
       )}
 
       {/* Area Filter Bar - Matches TaskFilters styling with all filters */}
-      <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/30 shadow-lg mb-8">
-        <CardContent className="pt-4 pb-4">
-          <div className="grid grid-cols-8 gap-2">
+      <div className="grid grid-cols-7 gap-2 mb-8">
             {/* All Areas Button */}
             <Badge
               variant="outline"
@@ -253,9 +251,7 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
                 </Badge>
               );
             })}
-          </div>
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Overall Goal Summary Box - Overarching goal statement */}
       <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/50 rounded-lg p-6 mb-8">
