@@ -16,6 +16,8 @@ import { FinancesAreaCard } from '../components/review/FinancesAreaCard';
 import { ReviewDashboardSkeleton } from '../components/review/ReviewDashboardSkeleton';
 import { SimpleAreaCard } from '../components/review/SimpleAreaCard';
 import { NeedsAttentionSection } from '../components/review/NeedsAttentionSection';
+import { Card, CardContent } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
 import { REVIEW_AREAS } from '../config/reviewNavigation';
 import { GOAL_AREA_CONFIG } from '../config/goalAreas';
 import { GoalProgressBar } from '../components/goals/GoalProgressBar';
@@ -145,47 +147,65 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
         />
       )}
 
-      {/* Area Filter Bar - First thing after header */}
-      <div className="flex gap-2 mb-8 flex-wrap">
-        <button
-          onClick={() => setSelectedArea('All')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            selectedArea === 'All'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-          }`}
-        >
-          All Areas
-        </button>
-        {GOAL_AREAS.map(area => {
-          const config = GOAL_AREA_CONFIG[area as GoalAreaType];
-          const isSelected = selectedArea === area;
-
-          // Color mapping for selected state
-          const selectedColorMap: Record<GoalAreaType, string> = {
-            'Health': 'bg-emerald-600 border-emerald-500',
-            'Relationships': 'bg-pink-600 border-pink-500',
-            'Finance': 'bg-amber-600 border-amber-500',
-            'Full Stack': 'bg-purple-600 border-purple-500',
-            'Huge Capital': 'bg-violet-600 border-violet-500',
-            'S4': 'bg-cyan-600 border-cyan-500',
-          };
-
-          return (
-            <button
-              key={area}
-              onClick={() => setSelectedArea(area)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors border ${
-                isSelected
-                  ? `${selectedColorMap[area as GoalAreaType]} text-white`
-                  : `${config.bgColor} ${config.borderColor} text-gray-300 ${config.hoverBg}`
+      {/* Area Filter Bar - Matches TaskFilters styling */}
+      <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/30 shadow-lg mb-8">
+        <CardContent className="pt-4 pb-4">
+          <div className="grid grid-cols-7 gap-2">
+            {/* All Areas Button */}
+            <Badge
+              variant="outline"
+              className={`cursor-pointer px-3 py-2 font-semibold text-white transition-all duration-150 flex flex-col items-center justify-center ${
+                selectedArea === 'All'
+                  ? 'border-2 border-white shadow-lg'
+                  : 'border-0 hover:shadow-md'
               }`}
+              style={{
+                backgroundColor: '#4b5563',
+                minHeight: '80px',
+              }}
+              onClick={() => setSelectedArea('All')}
             >
-              {area}
-            </button>
-          );
-        })}
-      </div>
+              <span className="text-sm">All Areas</span>
+              <span className="text-lg font-bold mt-1">{areaProgress?.total_goals || 0}</span>
+            </Badge>
+
+            {/* Individual Area Badges */}
+            {GOAL_AREAS.map(area => {
+              const isSelected = selectedArea === area;
+              const gradientMap: Record<GoalAreaType, string> = {
+                'Health': 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                'Relationships': 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
+                'Finance': 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)',
+                'Full Stack': 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                'Huge Capital': 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
+                'S4': 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+              };
+
+              const areaGoalsCount = allGoals?.filter(g => g.area === area).length || 0;
+
+              return (
+                <Badge
+                  key={area}
+                  variant="outline"
+                  className={`cursor-pointer px-3 py-2 font-semibold text-white transition-all duration-150 flex flex-col items-center justify-center ${
+                    isSelected
+                      ? 'border-2 border-white shadow-lg'
+                      : 'border-0 hover:shadow-md'
+                  }`}
+                  style={{
+                    background: gradientMap[area as GoalAreaType],
+                    minHeight: '80px',
+                  }}
+                  onClick={() => setSelectedArea(area)}
+                >
+                  <span className="text-sm">{area}</span>
+                  <span className="text-lg font-bold mt-1">{areaGoalsCount}</span>
+                </Badge>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Overall Goal Summary Box - Overarching goal statement */}
       <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/50 rounded-lg p-6 mb-8">
