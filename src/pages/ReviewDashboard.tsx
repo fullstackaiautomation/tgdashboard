@@ -43,21 +43,49 @@ interface ReviewDashboardProps {
  * - Task 8: READ-ONLY enforcement
  * - Task 9: Last sync timestamp and manual refresh
  */
-const GOAL_AREAS = ['Health', 'Relationships', 'Finance', 'Full Stack', 'Huge Capital', 'S4'];
+// Filters matching Tasks page order exactly
+const BUSINESSES = [
+  { id: 'full-stack', label: 'Full Stack', gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' },
+  { id: 'huge-capital', label: 'Huge Capital', gradient: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)' },
+  { id: 's4', label: 'S4', gradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' },
+  { id: '808', label: '808', gradient: 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)' },
+];
+
+const LIFE_AREAS = [
+  { id: 'personal', label: 'Personal', gradient: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)' },
+  { id: 'health', label: 'Health', gradient: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)' },
+  { id: 'golf', label: 'Golf', gradient: 'linear-gradient(135deg, #f97316 0%, #c2410c 100%)' },
+];
 
 export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
   const { data: areas, isLoading, refetch, dataUpdatedAt, isFetching } = useReviewDashboard();
   const { totalCritical, totalWarning, hasAttentionNeeded, allClear } = useReviewSummary();
-  const [selectedArea, setSelectedArea] = useState<string | 'All'>('All');
+  const [selectedArea, setSelectedArea] = useState<string | null>(null); // null = All Areas
   const [showCreateGoalModal, setShowCreateGoalModal] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [checkInGoalId, setCheckInGoalId] = useState<string | null>(null);
+
+  // Map filter IDs to goal areas for filtering
+  const mapFilterToGoalArea = (filterId: string | null): GoalArea | undefined => {
+    if (!filterId) return undefined;
+
+    const mapping: Record<string, GoalArea> = {
+      'full-stack': 'Full Stack',
+      'huge-capital': 'Huge Capital',
+      's4': 'S4',
+      'personal': 'Relationships',
+      'health': 'Health',
+      'finance': 'Finance',
+    };
+    return mapping[filterId] as GoalArea;
+  };
+
   const { data: allGoals, isLoading: goalsLoading, refetch: refetchGoals } = useGoals(
-    selectedArea === 'All' ? undefined : (selectedArea as GoalArea),
+    selectedArea ? mapFilterToGoalArea(selectedArea) : undefined,
     'active'
   );
   const { data: areaProgress } = useAreaGoalsProgress(
-    selectedArea === 'All' ? undefined : (selectedArea as GoalArea)
+    selectedArea ? mapFilterToGoalArea(selectedArea) : undefined
   );
   const { data: checkInData } = useGoalsNeedingCheckIn();
 
@@ -147,15 +175,15 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
         />
       )}
 
-      {/* Area Filter Bar - Matches TaskFilters styling */}
+      {/* Area Filter Bar - Matches TaskFilters styling with all filters */}
       <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/30 shadow-lg mb-8">
         <CardContent className="pt-4 pb-4">
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-8 gap-2">
             {/* All Areas Button */}
             <Badge
               variant="outline"
               className={`cursor-pointer px-3 py-2 font-semibold text-white transition-all duration-150 flex flex-col items-center justify-center ${
-                selectedArea === 'All'
+                selectedArea === null
                   ? 'border-2 border-white shadow-lg'
                   : 'border-0 hover:shadow-md'
               }`}
@@ -163,29 +191,23 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
                 backgroundColor: '#4b5563',
                 minHeight: '80px',
               }}
-              onClick={() => setSelectedArea('All')}
+              onClick={() => setSelectedArea(null)}
             >
               <span className="text-sm">All Areas</span>
               <span className="text-lg font-bold mt-1">{areaProgress?.total_goals || 0}</span>
             </Badge>
 
-            {/* Individual Area Badges */}
-            {GOAL_AREAS.map(area => {
-              const isSelected = selectedArea === area;
-              const gradientMap: Record<GoalAreaType, string> = {
-                'Health': 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                'Relationships': 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
-                'Finance': 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)',
-                'Full Stack': 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                'Huge Capital': 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)',
-                'S4': 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-              };
-
-              const areaGoalsCount = allGoals?.filter(g => g.area === area).length || 0;
+            {/* Business Badges */}
+            {BUSINESSES.map(business => {
+              const isSelected = selectedArea === business.id;
+              const businessGoalsCount = allGoals?.filter(g => {
+                const goalArea = mapFilterToGoalArea(business.id);
+                return g.area === goalArea;
+              }).length || 0;
 
               return (
                 <Badge
-                  key={area}
+                  key={business.id}
                   variant="outline"
                   className={`cursor-pointer px-3 py-2 font-semibold text-white transition-all duration-150 flex flex-col items-center justify-center ${
                     isSelected
@@ -193,12 +215,41 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
                       : 'border-0 hover:shadow-md'
                   }`}
                   style={{
-                    background: gradientMap[area as GoalAreaType],
+                    background: business.gradient,
                     minHeight: '80px',
                   }}
-                  onClick={() => setSelectedArea(area)}
+                  onClick={() => setSelectedArea(business.id)}
                 >
-                  <span className="text-sm">{area}</span>
+                  <span className="text-sm">{business.label}</span>
+                  <span className="text-lg font-bold mt-1">{businessGoalsCount}</span>
+                </Badge>
+              );
+            })}
+
+            {/* Life Areas Badges */}
+            {LIFE_AREAS.map(area => {
+              const isSelected = selectedArea === area.id;
+              const areaGoalsCount = allGoals?.filter(g => {
+                const goalArea = mapFilterToGoalArea(area.id);
+                return g.area === goalArea;
+              }).length || 0;
+
+              return (
+                <Badge
+                  key={area.id}
+                  variant="outline"
+                  className={`cursor-pointer px-3 py-2 font-semibold text-white transition-all duration-150 flex flex-col items-center justify-center ${
+                    isSelected
+                      ? 'border-2 border-white shadow-lg'
+                      : 'border-0 hover:shadow-md'
+                  }`}
+                  style={{
+                    background: area.gradient,
+                    minHeight: '80px',
+                  }}
+                  onClick={() => setSelectedArea(area.id)}
+                >
+                  <span className="text-sm">{area.label}</span>
                   <span className="text-lg font-bold mt-1">{areaGoalsCount}</span>
                 </Badge>
               );
@@ -226,8 +277,8 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Sub-Goals Section - Show when All or matching area selected */}
-      {(selectedArea === 'All' || GOAL_AREAS.includes(selectedArea)) && (
+      {/* Sub-Goals Section - Show when Any filter selected */}
+      {(selectedArea === null || selectedArea !== null) && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -257,7 +308,7 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
             </div>
           ) : (
             <div className="bg-gray-800 rounded-lg p-8 border border-gray-700 text-center">
-              <p className="text-gray-400 mb-4">No sub-goals yet for {selectedArea === 'All' ? 'all areas' : selectedArea}</p>
+              <p className="text-gray-400 mb-4">No sub-goals yet for {selectedArea === null ? 'all areas' : selectedArea}</p>
               <button
                 onClick={() => setShowCreateGoalModal(true)}
                 className="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
@@ -273,21 +324,22 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
       {/* Area Cards Grid - Responsive Layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-        {/* Show other cards based on area filter or all if "All" selected */}
+        {/* Show other cards based on area filter or all if no filter selected */}
         {areas?.map((areaSummary) => {
           const config = REVIEW_AREAS.find(a => a.area === areaSummary.area);
           if (!config) return null;
 
-          // Filter by selected area (skip if not matching and not "All")
-          if (selectedArea !== 'All') {
-            const areaMatch = {
-              'Health': 'HEALTH',
-              'Relationships': 'LIFE',
-              'Finance': 'FINANCES',
-              'Full Stack': 'BIZNESS',
-              'Huge Capital': 'BIZNESS',
-              'S4': 'BIZNESS',
-            } as Record<string, string>;
+          // Filter by selected area (skip if not matching and selectedArea is not null)
+          if (selectedArea !== null) {
+            const areaMatch: Record<string, string> = {
+              'full-stack': 'BIZNESS',
+              'huge-capital': 'BIZNESS',
+              's4': 'BIZNESS',
+              '808': 'BIZNESS',
+              'personal': 'LIFE',
+              'health': 'HEALTH',
+              'golf': 'HEALTH',
+            };
 
             if (areaMatch[selectedArea] && areaMatch[selectedArea] !== areaSummary.area) {
               return null;
@@ -296,7 +348,7 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
 
           // Use enhanced DailyAreaCard for DAILY area
           if (areaSummary.area === 'DAILY') {
-            if (selectedArea !== 'All' && selectedArea !== 'Health') return null;
+            if (selectedArea !== null && selectedArea !== 'health') return null;
             return (
               <DailyAreaCard
                 key={areaSummary.area}
@@ -307,7 +359,7 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
 
           // Use enhanced BusinessAreaCard for BIZNESS area
           if (areaSummary.area === 'BIZNESS') {
-            if (selectedArea !== 'All' && !['Full Stack', 'Huge Capital', 'S4'].includes(selectedArea)) return null;
+            if (selectedArea !== null && !['full-stack', 'huge-capital', 's4', '808'].includes(selectedArea)) return null;
             return (
               <BusinessAreaCard
                 key={areaSummary.area}
@@ -318,7 +370,7 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
 
           // Use enhanced FinancesAreaCard for FINANCES area
           if (areaSummary.area === 'FINANCES') {
-            if (selectedArea !== 'All' && selectedArea !== 'Finance') return null;
+            if (selectedArea !== null && selectedArea !== 'finance') return null;
             return (
               <FinancesAreaCard
                 key={areaSummary.area}
