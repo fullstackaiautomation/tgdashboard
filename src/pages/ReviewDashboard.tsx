@@ -8,7 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useReviewDashboard, useReviewSummary } from '../hooks/useReviewDashboard';
 import { useGoals } from '../hooks/useGoals';
 import { useAreaGoalsProgress } from '../hooks/useGoalProgress';
-import { useGoalsNeedingCheckIn } from '../hooks/useWeeklyCheckIns';
+import { useAreaVision, useUpsertAreaVision } from '../hooks/useAreaVisions';
 import { ReviewAreaCard } from '../components/review/ReviewAreaCard';
 import { DailyAreaCard } from '../components/review/DailyAreaCard';
 import { BusinessAreaCard } from '../components/review/BusinessAreaCard';
@@ -23,7 +23,6 @@ import { GOAL_AREA_CONFIG } from '../config/goalAreas';
 import { GoalProgressBar } from '../components/goals/GoalProgressBar';
 import { GoalProgressCard } from '../components/goals/GoalProgressCard';
 import { GoalForm } from '../components/goals/GoalForm';
-import { CheckInBanner } from '../components/goals/CheckInBanner';
 import { CheckInModal } from '../components/goals/CheckInModal';
 import type { GoalArea } from '../types/goals';
 import type { GoalAreaType } from '../config/goalAreas';
@@ -53,8 +52,23 @@ const BUSINESSES = [
 const LIFE_AREAS = [
   { id: 'personal', label: 'Personal', gradient: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)' },
   { id: 'health', label: 'Health', gradient: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)' },
-  { id: 'golf', label: 'Golf', gradient: 'linear-gradient(135deg, #f97316 0%, #c2410c 100%)' },
+  { id: 'finance', label: 'Finance', gradient: 'linear-gradient(135deg, #f97316 0%, #c2410c 100%)' },
+  { id: 'golf', label: 'Golf', gradient: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)' },
 ];
+
+// Helper function to convert filter IDs to proper goal area display names
+const getGoalAreaDisplayName = (filterId: string): string => {
+  const mapping: Record<string, string> = {
+    'full-stack': 'Full Stack',
+    'huge-capital': 'Huge Capital',
+    's4': 'S4',
+    'personal': 'Personal',
+    'health': 'Health',
+    'finance': 'Finance',
+    'golf': 'Golf',
+  };
+  return mapping[filterId] || filterId;
+};
 
 export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
   const { data: areas, isLoading, refetch, dataUpdatedAt, isFetching } = useReviewDashboard();
@@ -63,6 +77,8 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
   const [showCreateGoalModal, setShowCreateGoalModal] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [checkInGoalId, setCheckInGoalId] = useState<string | null>(null);
+  const [editingVisionStatement, setEditingVisionStatement] = useState<string>('');
+  const [isEditingMode, setIsEditingMode] = useState(false);
 
   // Map filter IDs to goal areas for filtering
   const mapFilterToGoalArea = (filterId: string | null): GoalArea | undefined => {
@@ -79,6 +95,11 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
     return mapping[filterId] as GoalArea;
   };
 
+  // Hooks for area vision
+  const goalAreaForVision = selectedArea ? mapFilterToGoalArea(selectedArea) : undefined;
+  const { data: areaVision } = useAreaVision(goalAreaForVision);
+  const upsertAreaVision = useUpsertAreaVision();
+
   const { data: allGoals, isLoading: goalsLoading, refetch: refetchGoals } = useGoals(
     selectedArea ? mapFilterToGoalArea(selectedArea) : undefined,
     'active'
@@ -86,7 +107,6 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
   const { data: areaProgress } = useAreaGoalsProgress(
     selectedArea ? mapFilterToGoalArea(selectedArea) : undefined
   );
-  const { data: checkInData } = useGoalsNeedingCheckIn();
 
   const [lastSyncFormatted, setLastSyncFormatted] = useState<string>('');
 
@@ -127,6 +147,27 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
     }
   };
 
+  const handleSaveVisionStatement = async () => {
+    if (!selectedArea || !editingVisionStatement.trim()) return;
+
+    try {
+      const goalArea = mapFilterToGoalArea(selectedArea);
+
+      if (!goalArea) return;
+
+      await upsertAreaVision.mutateAsync({
+        area: goalArea,
+        vision_statement: editingVisionStatement.trim(),
+      });
+
+      setIsEditingMode(false);
+      setEditingVisionStatement('');
+    } catch (error) {
+      console.error('Error saving vision statement:', error);
+      alert('Failed to save vision statement. Please try again.');
+    }
+  };
+
   if (isLoading) {
     return <ReviewDashboardSkeleton />;
   }
@@ -163,19 +204,8 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Check-In Banner - Show on Sundays when goals need check-in */}
-      {checkInData?.isCheckInDay && checkInData?.goals?.length > 0 && (
-        <CheckInBanner
-          goalsCount={checkInData.goals.length}
-          onClick={() => {
-            setCheckInGoalId(checkInData.goals[0].id);
-            setShowCheckInModal(true);
-          }}
-        />
-      )}
-
       {/* Area Filter Bar - Matches TaskFilters styling with all filters */}
-      <div className="grid grid-cols-7 gap-2 mb-8">
+      <div className="grid grid-cols-8 gap-2 mb-8">
             {/* All Areas Button */}
             <Badge
               variant="outline"
@@ -264,35 +294,81 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
           </div>
         </div>
       ) : (
-        <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/50 rounded-lg p-6 mb-8 cursor-pointer hover:from-blue-900/40 hover:to-purple-900/40 transition-colors">
-          <div onClick={() => setShowCreateGoalModal(true)}>
+        <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/50 rounded-lg p-6 mb-8">
+          <div>
             <h2 className="text-2xl font-bold text-white mb-2">
-              🎯 {selectedArea ? selectedArea.charAt(0).toUpperCase() + selectedArea.slice(1) : ''} Goal
+              🎯 {selectedArea ? getGoalAreaDisplayName(selectedArea) : ''} Vision
             </h2>
-            <p className="text-gray-300 text-lg mb-3 hover:text-gray-200">
-              Click to define your {selectedArea} goal statement...
-            </p>
-            <p className="text-gray-400 text-sm">
-              {`${areaProgress?.total_goals || 0} sub-goal${areaProgress?.total_goals === 1 ? '' : 's'} for this area`}
+            {isEditingMode ? (
+              <div className="space-y-3">
+                <textarea
+                  autoFocus
+                  value={editingVisionStatement}
+                  onChange={(e) => setEditingVisionStatement(e.target.value)}
+                  placeholder={`Define your ${selectedArea} vision...`}
+                  className="w-full px-3 py-2 bg-gray-800 border border-blue-500/50 rounded text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                  rows={3}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveVisionStatement}
+                    disabled={upsertAreaVision.isPending || !editingVisionStatement.trim()}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
+                  >
+                    {upsertAreaVision.isPending ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsEditingMode(false);
+                      setEditingVisionStatement('');
+                    }}
+                    disabled={upsertAreaVision.isPending}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-700/50 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => {
+                  setIsEditingMode(true);
+                  setEditingVisionStatement(areaVision?.vision_statement || '');
+                }}
+                className="cursor-pointer hover:bg-blue-900/20 transition-colors rounded px-3 py-2 -mx-3 -my-2"
+              >
+                {areaVision?.vision_statement ? (
+                  <p className="text-gray-300 text-lg hover:text-gray-200">
+                    {areaVision.vision_statement}
+                  </p>
+                ) : (
+                  <p className="text-gray-400 text-lg italic hover:text-gray-300">
+                    Click to define your {getGoalAreaDisplayName(selectedArea)} vision...
+                  </p>
+                )}
+              </div>
+            )}
+            <p className="text-gray-400 text-sm mt-3">
+              {`${areaProgress?.total_goals || 0} goal${areaProgress?.total_goals === 1 ? '' : 's'} for this area`}
             </p>
           </div>
         </div>
       )}
 
-      {/* Sub-Goals Section - Show when Any filter selected */}
+      {/* Goals Section - Show when Any filter selected */}
       {(selectedArea === null || selectedArea !== null) && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-xl font-bold text-white">Sub-Goals</h3>
-              <p className="text-sm text-gray-400">Measurable milestones contributing to your overarching goal</p>
+              <h3 className="text-xl font-bold text-white">Goals</h3>
+              <p className="text-sm text-gray-400">Measurable milestones contributing to your vision</p>
             </div>
             <button
               onClick={() => setShowCreateGoalModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
             >
               <Plus size={18} />
-              Add Sub-Goal
+              Add Goal
             </button>
           </div>
 
@@ -305,18 +381,25 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
           ) : allGoals && allGoals.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {allGoals.map(goal => (
-                <GoalProgressCard key={goal.id} goal={goal} />
+                <GoalProgressCard
+                  key={goal.id}
+                  goal={goal}
+                  onCheckIn={(goalId) => {
+                    setCheckInGoalId(goalId);
+                    setShowCheckInModal(true);
+                  }}
+                />
               ))}
             </div>
           ) : (
             <div className="bg-gray-800 rounded-lg p-8 border border-gray-700 text-center">
-              <p className="text-gray-400 mb-4">No sub-goals yet for {selectedArea === null ? 'all areas' : selectedArea}</p>
+              <p className="text-gray-400 mb-4">No goals yet for {selectedArea === null ? 'all areas' : getGoalAreaDisplayName(selectedArea)}</p>
               <button
                 onClick={() => setShowCreateGoalModal(true)}
                 className="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
               >
                 <Plus size={18} />
-                Create First Sub-Goal
+                Create First Goal
               </button>
             </div>
           )}

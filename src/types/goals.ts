@@ -21,6 +21,9 @@ export interface Goal {
   metric_unit?: string // e.g., "%", "lbs", "$"
   metric_type: MetricType
   status: GoalStatus
+  started_metric_value?: string // Starting value of the metric
+  check_in_value?: string // Current/latest check-in value
+  check_in_date?: string // DATE format YYYY-MM-DD
   created_at: string
   updated_at: string
 }
@@ -127,4 +130,19 @@ export interface LinkTaskToGoalInput {
   task_id: string
   target_id?: string
   contribution_type: ContributionType
+}
+
+// Area Vision (overarching vision statement for each area)
+export interface AreaVision {
+  id: string
+  user_id: string
+  area: GoalArea
+  vision_statement?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateAreaVisionInput {
+  area: GoalArea
+  vision_statement?: string
 }

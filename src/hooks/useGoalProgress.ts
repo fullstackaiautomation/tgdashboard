@@ -9,7 +9,7 @@ export interface GoalProgressData {
   completion_percentage: number
 }
 
-// Calculate progress for a single goal based on linked tasks
+// Calculate progress for a single goal based on linked tasks or metric values
 export const useGoalProgress = (goal: Goal | null | undefined) => {
   return useQuery({
     queryKey: ['goal_progress', goal?.id],
@@ -19,6 +19,50 @@ export const useGoalProgress = (goal: Goal | null | undefined) => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
+      // First, try to calculate progress based on metric values (for metric-based goals)
+      if (goal.started_metric_value && goal.check_in_value && goal.primary_metric) {
+        try {
+          // Parse numeric values, removing any non-numeric characters
+          const startValue = parseFloat(goal.started_metric_value.toString().replace(/[^0-9.-]/g, ''))
+          const currentValue = parseFloat(goal.check_in_value.toString().replace(/[^0-9.-]/g, ''))
+          const goalValue = parseFloat(goal.primary_metric.replace(/[^0-9.-]/g, ''))
+
+          if (!isNaN(startValue) && !isNaN(currentValue) && !isNaN(goalValue)) {
+            // For payoff/reduction style goals (where goal is less than start)
+            // Progress = (start - current) / (start - goal) * 100
+            // For regular goals (where goal is more than start)
+            // Progress = (current - start) / (goal - start) * 100
+
+            let progress = 0
+            if (goalValue < startValue) {
+              // Payoff style: reducing from start toward goal (e.g., $20k -> $0)
+              const totalReduction = startValue - goalValue
+              const amountPaidOff = startValue - currentValue
+              progress = totalReduction > 0 ? (amountPaidOff / totalReduction) * 100 : 0
+            } else if (goalValue > startValue) {
+              // Growth style: increasing from start toward goal
+              const range = goalValue - startValue
+              progress = (currentValue - startValue) / range * 100
+            } else {
+              // Goal equals start, 0% progress
+              progress = 0
+            }
+
+            const clampedProgress = Math.max(0, Math.min(100, progress)) // Clamp between 0-100
+
+            return {
+              goal_id: goal.id,
+              targets_hit: Math.round(currentValue),
+              targets_total: Math.round(goalValue),
+              completion_percentage: Math.round(clampedProgress),
+            } as GoalProgressData
+          }
+        } catch (error) {
+          console.error('Error calculating metric-based progress:', error)
+        }
+      }
+
+      // Fall back to task-based progress calculation
       // Fetch all targets for this goal
       const { data: targets, error: targetsError } = await supabase
         .from('goal_targets')
