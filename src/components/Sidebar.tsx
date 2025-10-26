@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   ListTodo,
   FolderKanban,
@@ -35,6 +35,16 @@ interface SidebarProps {
 
 const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
   const [hoveredPage, setHoveredPage] = useState<string | null>(null)
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Hover delay management
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const mainPages: MainPage[] = [
     {
@@ -93,6 +103,30 @@ const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
     }
   ]
 
+  const handleMouseEnter = (pageId: string) => {
+    // Clear any existing timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+    }
+
+    // Set a delay before showing the submenu (1000ms = 1 second for very deliberate hovering)
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredPage(pageId)
+    }, 1000)
+  }
+
+  const handleMouseLeave = () => {
+    // Clear the timeout if we leave before it triggers
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+    }
+
+    // Add a small delay before hiding to prevent flickering when moving to submenu
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredPage(null)
+    }, 300)
+  }
+
   const handleMainPageClick = (page: MainPage) => {
     // If page has subpages, navigate to first subpage, otherwise navigate to page itself
     if (page.subPages && page.subPages.length > 0) {
@@ -130,8 +164,8 @@ const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
             <div
               key={page.id}
               className="relative"
-              onMouseEnter={() => setHoveredPage(page.id)}
-              onMouseLeave={() => setHoveredPage(null)}
+              onMouseEnter={() => handleMouseEnter(page.id)}
+              onMouseLeave={handleMouseLeave}
             >
               <button
                 onClick={() => handleMainPageClick(page)}
@@ -158,8 +192,14 @@ const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
               {page.subPages && page.subPages.length > 0 && hoveredPage === page.id && (
                 <div
                   className="absolute left-full top-0 ml-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50 min-w-[200px]"
-                  onMouseEnter={() => setHoveredPage(page.id)}
-                  onMouseLeave={() => setHoveredPage(null)}
+                  onMouseEnter={() => {
+                    // Keep the submenu open when hovering over it
+                    if (hoverTimeoutRef.current) {
+                      clearTimeout(hoverTimeoutRef.current)
+                    }
+                    setHoveredPage(page.id)
+                  }}
+                  onMouseLeave={handleMouseLeave}
                 >
                   {page.subPages.map((subPage) => {
                     const SubIcon = subPage.icon

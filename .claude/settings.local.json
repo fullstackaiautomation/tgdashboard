@@ -52,7 +52,11 @@
       "Bash(cmd /c \"move fix-dates.js scripts\\migrations\\fix-dates.js\")",
       "Bash(tasklist)",
       "Bash(echo \"Exit code: $?\")",
-      "Bash([ -f \".env.example\" ])"
+      "Bash([ -f \".env.example\" ])",
+      "Bash(git restore:*)",
+      "Bash(set PORT=5001)",
+      "Bash(node -e:*)",
+      "Bash(lsof:*)"
     ],
     "deny": [],
     "ask": []

@@ -41,6 +41,9 @@ export const FinancesAreaCard: FC<FinancesAreaCardProps> = ({ onClick }) => {
 
   if (!summary) return <FinancesAreaCardSkeleton />;
 
+  // Debug: Log the actual net worth value
+  console.log('Net Worth from API:', summary.netWorth);
+
   const borderColorClass = {
     gray: 'border-gray-500',
     green: 'border-green-500',
