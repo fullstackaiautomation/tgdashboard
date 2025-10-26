@@ -17,12 +17,14 @@ import { ReviewDashboardSkeleton } from '../components/review/ReviewDashboardSke
 import { SimpleAreaCard } from '../components/review/SimpleAreaCard';
 import { NeedsAttentionSection } from '../components/review/NeedsAttentionSection';
 import { REVIEW_AREAS } from '../config/reviewNavigation';
+import { GOAL_AREA_CONFIG } from '../config/goalAreas';
 import { GoalProgressBar } from '../components/goals/GoalProgressBar';
 import { GoalProgressCard } from '../components/goals/GoalProgressCard';
 import { GoalForm } from '../components/goals/GoalForm';
 import { CheckInBanner } from '../components/goals/CheckInBanner';
 import { CheckInModal } from '../components/goals/CheckInModal';
 import type { GoalArea } from '../types/goals';
+import type { GoalAreaType } from '../config/goalAreas';
 
 interface ReviewDashboardProps {
   onNavigate: (tab: 'review' | 'tasks' | 'dailytime' | 'business' | 'content' | 'health' | 'finance' | 'notes' | 'analytics' | 'planning' | 'calendar' | 'insights') => void;
@@ -155,58 +157,69 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
         >
           All Areas
         </button>
-        {GOAL_AREAS.map(area => (
-          <button
-            key={area}
-            onClick={() => setSelectedArea(area)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              selectedArea === area
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            {area}
-          </button>
-        ))}
+        {GOAL_AREAS.map(area => {
+          const config = GOAL_AREA_CONFIG[area as GoalAreaType];
+          const isSelected = selectedArea === area;
+
+          // Color mapping for selected state
+          const selectedColorMap: Record<GoalAreaType, string> = {
+            'Health': 'bg-emerald-600 border-emerald-500',
+            'Relationships': 'bg-pink-600 border-pink-500',
+            'Finance': 'bg-amber-600 border-amber-500',
+            'Full Stack': 'bg-purple-600 border-purple-500',
+            'Huge Capital': 'bg-violet-600 border-violet-500',
+            'S4': 'bg-cyan-600 border-cyan-500',
+          };
+
+          return (
+            <button
+              key={area}
+              onClick={() => setSelectedArea(area)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors border ${
+                isSelected
+                  ? `${selectedColorMap[area as GoalAreaType]} text-white`
+                  : `${config.bgColor} ${config.borderColor} text-gray-300 ${config.hoverBg}`
+              }`}
+            >
+              {area}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Overall Goal Summary Box */}
+      {/* Overall Goal Summary Box - Overarching goal statement */}
       <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/50 rounded-lg p-6 mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-1">
-              {selectedArea === 'All' ? '🎯 All Areas' : `🎯 ${selectedArea}`}
-            </h2>
-            <p className="text-gray-400 text-sm">
-              {selectedArea === 'All'
-                ? `Track your progress across all life areas • ${areaProgress?.total_goals || 0} active goals`
-                : `Track your progress in ${selectedArea} • ${areaProgress?.total_goals || 0} active goal${areaProgress?.total_goals === 1 ? '' : 's'}`}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold text-blue-400">{areaProgress?.average_progress || 0}%</div>
-            <p className="text-xs text-gray-400">overall progress</p>
-          </div>
-        </div>
-        <div className="w-full bg-gray-700 rounded-full overflow-hidden h-2">
-          <div
-            className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${areaProgress?.average_progress || 0}%` }}
-          />
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-2">
+            {selectedArea === 'All' ? '🎯 Overarching Vision' : `🎯 ${selectedArea} Goal`}
+          </h2>
+          <p className="text-gray-300 text-lg mb-3">
+            {selectedArea === 'All'
+              ? 'Balance and excellence across all life areas • Build sustainable progress in every domain'
+              : `Master ${selectedArea} through consistent, measurable sub-goals`}
+          </p>
+          <p className="text-gray-400 text-sm">
+            {selectedArea === 'All'
+              ? `${areaProgress?.total_goals || 0} active goals across all areas`
+              : `${areaProgress?.total_goals || 0} sub-goal${areaProgress?.total_goals === 1 ? '' : 's'} for this area`}
+          </p>
         </div>
       </div>
 
-      {/* Goals Section - Show when All or matching area selected */}
+      {/* Sub-Goals Section - Show when All or matching area selected */}
       {(selectedArea === 'All' || GOAL_AREAS.includes(selectedArea)) && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-white">Goals</h3>
+            <div>
+              <h3 className="text-xl font-bold text-white">Sub-Goals</h3>
+              <p className="text-sm text-gray-400">Measurable milestones contributing to your overarching goal</p>
+            </div>
             <button
               onClick={() => setShowCreateGoalModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
             >
               <Plus size={18} />
-              Add Goal
+              Add Sub-Goal
             </button>
           </div>
 
@@ -224,10 +237,13 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
             </div>
           ) : (
             <div className="bg-gray-800 rounded-lg p-8 border border-gray-700 text-center">
-              <p className="text-gray-400 mb-4">No goals yet for {selectedArea === 'All' ? 'all areas' : selectedArea}</p>
-              <button className="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+              <p className="text-gray-400 mb-4">No sub-goals yet for {selectedArea === 'All' ? 'all areas' : selectedArea}</p>
+              <button
+                onClick={() => setShowCreateGoalModal(true)}
+                className="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              >
                 <Plus size={18} />
-                Create First Goal
+                Create First Sub-Goal
               </button>
             </div>
           )}
