@@ -251,23 +251,33 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
       </div>
 
       {/* Overall Goal Summary Box - Overarching goal statement */}
-      <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/50 rounded-lg p-6 mb-8">
-        <div>
-          <h2 className="text-2xl font-bold text-white mb-2">
-            {selectedArea === 'All' ? '🎯 Overarching Vision' : `🎯 ${selectedArea} Goal`}
-          </h2>
-          <p className="text-gray-300 text-lg mb-3">
-            {selectedArea === 'All'
-              ? 'Balance and excellence across all life areas • Build sustainable progress in every domain'
-              : `Master ${selectedArea} through consistent, measurable sub-goals`}
-          </p>
-          <p className="text-gray-400 text-sm">
-            {selectedArea === 'All'
-              ? `${areaProgress?.total_goals || 0} active goals across all areas`
-              : `${areaProgress?.total_goals || 0} sub-goal${areaProgress?.total_goals === 1 ? '' : 's'} for this area`}
-          </p>
+      {selectedArea === null ? (
+        <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/50 rounded-lg p-6 mb-8">
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-2">🎯 Overarching Vision</h2>
+            <p className="text-gray-300 text-lg mb-3">
+              Balance and excellence across all life areas • Build sustainable progress in every domain
+            </p>
+            <p className="text-gray-400 text-sm">
+              {`${areaProgress?.total_goals || 0} active goals across all areas`}
+            </p>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/50 rounded-lg p-6 mb-8 cursor-pointer hover:from-blue-900/40 hover:to-purple-900/40 transition-colors">
+          <div onClick={() => setShowCreateGoalModal(true)}>
+            <h2 className="text-2xl font-bold text-white mb-2">
+              🎯 {selectedArea ? selectedArea.charAt(0).toUpperCase() + selectedArea.slice(1) : ''} Goal
+            </h2>
+            <p className="text-gray-300 text-lg mb-3 hover:text-gray-200">
+              Click to define your {selectedArea} goal statement...
+            </p>
+            <p className="text-gray-400 text-sm">
+              {`${areaProgress?.total_goals || 0} sub-goal${areaProgress?.total_goals === 1 ? '' : 's'} for this area`}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Sub-Goals Section - Show when Any filter selected */}
       {(selectedArea === null || selectedArea !== null) && (
