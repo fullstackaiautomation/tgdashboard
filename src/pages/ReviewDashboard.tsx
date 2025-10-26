@@ -48,7 +48,6 @@ const BUSINESSES = [
   { id: 'full-stack', label: 'Full Stack', gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' },
   { id: 'huge-capital', label: 'Huge Capital', gradient: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)' },
   { id: 's4', label: 'S4', gradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' },
-  { id: '808', label: '808', gradient: 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)' },
 ];
 
 const LIFE_AREAS = [
@@ -335,7 +334,6 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
               'full-stack': 'BIZNESS',
               'huge-capital': 'BIZNESS',
               's4': 'BIZNESS',
-              '808': 'BIZNESS',
               'personal': 'LIFE',
               'health': 'HEALTH',
               'golf': 'HEALTH',
@@ -359,7 +357,7 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
 
           // Use enhanced BusinessAreaCard for BIZNESS area
           if (areaSummary.area === 'BIZNESS') {
-            if (selectedArea !== null && !['full-stack', 'huge-capital', 's4', '808'].includes(selectedArea)) return null;
+            if (selectedArea !== null && !['full-stack', 'huge-capital', 's4'].includes(selectedArea)) return null;
             return (
               <BusinessAreaCard
                 key={areaSummary.area}
