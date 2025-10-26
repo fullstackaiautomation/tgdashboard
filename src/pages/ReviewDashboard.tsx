@@ -190,7 +190,7 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
               }}
               onClick={() => setSelectedArea(null)}
             >
-              <span className="text-sm">All Areas</span>
+              <span className="text-base font-semibold">All Areas</span>
             </Badge>
 
             {/* Business Badges */}
@@ -216,7 +216,7 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
                   }}
                   onClick={() => setSelectedArea(business.id)}
                 >
-                  <span className="text-sm">{business.label}</span>
+                  <span className="text-base font-semibold">{business.label}</span>
                 </Badge>
               );
             })}
@@ -244,7 +244,7 @@ export const ReviewDashboard: FC<ReviewDashboardProps> = ({ onNavigate }) => {
                   }}
                   onClick={() => setSelectedArea(area.id)}
                 >
-                  <span className="text-sm">{area.label}</span>
+                  <span className="text-base font-semibold">{area.label}</span>
                 </Badge>
               );
             })}
