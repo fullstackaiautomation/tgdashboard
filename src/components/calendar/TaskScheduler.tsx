@@ -9,7 +9,7 @@
  */
 
 import { type FC, useState, useMemo, useEffect } from 'react';
-import { format, addMinutes, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { format, addMinutes, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, addDays } from 'date-fns';
 import { Clock, AlertTriangle, Plus, X, Filter, GripVertical } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import {
@@ -161,7 +161,7 @@ const DraggableTaskCard: FC<DraggableTaskCardProps> = ({ task, isSelected, onQui
   );
 };
 
-type DateFilter = 'All Tasks' | 'Due Today' | 'Due This Week' | 'Due This Month';
+type DateFilter = 'All Tasks' | 'Due Today' | 'Due This Week' | 'Due Next Week' | 'Due This Month';
 type ScheduleFilter = 'All Tasks' | 'Scheduled' | 'Unscheduled';
 
 export const TaskScheduler: FC<TaskSchedulerProps> = ({ onScheduleComplete }) => {
@@ -204,6 +204,13 @@ export const TaskScheduler: FC<TaskSchedulerProps> = ({ onScheduleComplete }) =>
           return isWithinInterval(dueDate, {
             start: startOfWeek(now, { weekStartsOn: 1 }),
             end: endOfWeek(now, { weekStartsOn: 1 }),
+          });
+        case 'Due Next Week':
+          const nextWeekStart = startOfWeek(addDays(now, 7), { weekStartsOn: 1 });
+          const nextWeekEnd = endOfWeek(addDays(now, 7), { weekStartsOn: 1 });
+          return isWithinInterval(dueDate, {
+            start: nextWeekStart,
+            end: nextWeekEnd,
           });
         case 'Due This Month':
           return isWithinInterval(dueDate, {
@@ -328,7 +335,7 @@ export const TaskScheduler: FC<TaskSchedulerProps> = ({ onScheduleComplete }) =>
       {/* Date Filter */}
       <div className="mb-4">
         <div className="flex gap-2">
-          {(['All Tasks', 'Due Today', 'Due This Week', 'Due This Month'] as DateFilter[]).map((filter) => (
+          {(['All Tasks', 'Due Today', 'Due This Week', 'Due Next Week', 'Due This Month'] as DateFilter[]).map((filter) => (
             <button
               key={filter}
               onClick={() => setSelectedDateFilter(filter)}

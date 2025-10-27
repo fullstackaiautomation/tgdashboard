@@ -10,6 +10,8 @@ interface RecurringTaskConfig {
   recurringType: 'weekdays' | 'weekly' | 'biweekly' | 'monthly';
   startDate: Date; // Sunday of target week
   taskTemplate: CreateTaskDTO;
+  dayOfWeek?: number; // 0-6 (Sunday-Saturday) for weekly/biweekly tasks
+  monthlyDayOfMonth?: number; // 1-31 for monthly tasks (day of month)
 }
 
 export interface GeneratedRecurringTasks {
@@ -54,24 +56,23 @@ export const getCurrentWeekSunday = (date: Date = new Date()): Date => {
  * @returns Parent template task and child instances
  */
 export function generateRecurringTaskWithChildren(config: RecurringTaskConfig): GeneratedRecurringTasks {
-  const { baseName, recurringType, startDate, taskTemplate } = config;
+  const { baseName, recurringType, startDate, taskTemplate, dayOfWeek = 1, monthlyDayOfMonth = 15 } = config;
   const childTasks: CreateTaskDTO[] = [];
 
   // Ensure startDate is a Sunday
   const weekStart = new Date(startDate);
-  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setUTCHours(0, 0, 0, 0);
 
   // Create parent task WITHOUT date suffix (this is the template)
+  // Explicitly exclude due_date so parent template has no specific date
+  const { due_date: _ignoredDueDate, ...parentBase } = taskTemplate;
   const parentTask: CreateTaskDTO = {
-    ...taskTemplate,
+    ...parentBase,
     task_name: baseName,
     recurring_type: recurringType as 'weekly' | 'monthly' | 'daily_weekdays',
     recurring_interval: recurringType === 'biweekly' ? 2 : 1,
     is_recurring_template: true,
   };
-
-  // Remove due_date for parent - it's a template with no specific date
-  delete parentTask.due_date;
 
   // Generate child instances with dates
   if (recurringType === 'weekdays') {
@@ -82,8 +83,9 @@ export function generateRecurringTaskWithChildren(config: RecurringTaskConfig): 
 
       const taskName = `${baseName} ${formatDateForTask(taskDate)}`;
 
+      const { due_date: _ignored, ...childBase } = taskTemplate;
       childTasks.push({
-        ...taskTemplate,
+        ...childBase,
         task_name: taskName,
         due_date: taskDate.toISOString(),
         recurring_type: 'daily_weekdays',
@@ -93,14 +95,15 @@ export function generateRecurringTaskWithChildren(config: RecurringTaskConfig): 
       });
     }
   } else if (recurringType === 'weekly') {
-    // Create task for Monday of the week
+    // Create task for selected day of week
     const taskDate = new Date(weekStart);
-    taskDate.setDate(taskDate.getDate() + 1);
+    taskDate.setDate(taskDate.getDate() + dayOfWeek);
 
     const taskName = `${baseName} ${formatDateForTask(taskDate)}`;
 
+    const { due_date: _ignored2, ...childBase2 } = taskTemplate;
     childTasks.push({
-      ...taskTemplate,
+      ...childBase2,
       task_name: taskName,
       due_date: taskDate.toISOString(),
       recurring_type: 'weekly',
@@ -109,14 +112,15 @@ export function generateRecurringTaskWithChildren(config: RecurringTaskConfig): 
       recurring_parent_id: undefined,
     });
   } else if (recurringType === 'biweekly') {
-    // Create task for Monday of the week
+    // Create task for selected day of week
     const taskDate = new Date(weekStart);
-    taskDate.setDate(taskDate.getDate() + 1);
+    taskDate.setDate(taskDate.getDate() + dayOfWeek);
 
     const taskName = `${baseName} ${formatDateForTask(taskDate)}`;
 
+    const { due_date: _ignored3, ...childBase3 } = taskTemplate;
     childTasks.push({
-      ...taskTemplate,
+      ...childBase3,
       task_name: taskName,
       due_date: taskDate.toISOString(),
       recurring_type: 'weekly',
@@ -125,16 +129,24 @@ export function generateRecurringTaskWithChildren(config: RecurringTaskConfig): 
       recurring_parent_id: undefined,
     });
   } else if (recurringType === 'monthly') {
-    // Create task for Monday of the week
+    // Create task for selected day of month (1-31)
+    // Use the provided monthlyDayOfMonth, or fall back to current date's day of month
     const taskDate = new Date(weekStart);
-    taskDate.setDate(taskDate.getDate() + 1);
+    const currentMonth = taskDate.getMonth();
+    const currentYear = taskDate.getFullYear();
 
-    const taskName = `${baseName} ${formatDateForTask(taskDate)}`;
+    // Set the task date to the specified day of month
+    // If the day doesn't exist in this month (e.g., Feb 31), use the last day of month
+    const targetDate = new Date(currentYear, currentMonth, Math.min(monthlyDayOfMonth, new Date(currentYear, currentMonth + 1, 0).getDate()));
+    targetDate.setUTCHours(0, 0, 0, 0);
 
+    const taskName = `${baseName} ${formatDateForTask(targetDate)}`;
+
+    const { due_date: _ignored4, ...childBase4 } = taskTemplate;
     childTasks.push({
-      ...taskTemplate,
+      ...childBase4,
       task_name: taskName,
-      due_date: taskDate.toISOString(),
+      due_date: targetDate.toISOString(),
       recurring_type: 'monthly',
       recurring_interval: 1,
       is_recurring_template: false,

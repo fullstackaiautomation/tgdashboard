@@ -27,22 +27,27 @@ interface AddTaskModalProps {
  * Supports both standalone tasks and tasks linked to businesses/projects/phases
  */
 export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  // Task type toggle
+  const [taskType, setTaskType] = useState<'single' | 'recurring'>('single');
+
+  // Common fields (both single and recurring)
   const [taskName, setTaskName] = useState('');
   const [description, setDescription] = useState('');
-  const [dueDate, setDueDate] = useState('');
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [effortLevel, setEffortLevel] = useState<EffortLevel>('8) JusVibin');
+  const [effortLevel, setEffortLevel] = useState<EffortLevel>('8) Vibing (8');
   const [automation, setAutomation] = useState<Automation>('Manual');
   const [hoursProjected, setHoursProjected] = useState('');
-
-  // Recurring task fields
-  const [recurringType, setRecurringType] = useState<'none' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly'>('none');
-  const [isRecurring, setIsRecurring] = useState(false);
-
-  // Business/Project/Phase linking
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [selectedPhaseId, setSelectedPhaseId] = useState<string>('');
+
+  // Single task specific fields
+  const [dueDate, setDueDate] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Recurring task specific fields
+  const [recurringType, setRecurringType] = useState<'weekdays' | 'weekly' | 'biweekly' | 'monthly'>('weekly');
+  const [recurringDayOfWeek, setRecurringDayOfWeek] = useState<number>(1); // 0-6 (Sunday-Saturday), default Monday
+  const [recurringMonthlyDay, setRecurringMonthlyDay] = useState<number>(15); // 1-31, default 15th
 
   const createTask = useCreateTask();
   const { data: businesses } = useBusinesses();
@@ -70,43 +75,32 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
     }
 
     try {
-      // Convert date string to ISO timestamp at noon local time to avoid timezone shifts
-      let dueDateISO: string | undefined = undefined;
-      if (dueDate) {
-        const parsedDate = parseLocalDate(dueDate);
-        if (parsedDate) {
-          dueDateISO = parsedDate.toISOString();
-        }
-      }
+      const baseName = taskName.trim();
+      const templateTask: CreateTaskDTO = {
+        task_name: baseName,
+        description: description.trim() || undefined,
+        status: 'Not started',
+        priority: 'Medium',
+        effort_level: effortLevel || undefined,
+        automation: automation || undefined,
+        hours_projected: hoursProjected ? parseFloat(hoursProjected) : 0,
+        business_id: selectedBusinessId || undefined,
+        project_id: selectedProjectId || undefined,
+        phase_id: selectedPhaseId || undefined,
+      };
 
-      if (isRecurring && recurringType !== 'none') {
-        // Generate recurring tasks with parent template using the generator utility
-        const baseName = taskName.trim();
-
-        // Get the Sunday of the current week
+      if (taskType === 'recurring') {
+        // Create recurring task with parent template and child instances
         const today = new Date();
         const weekSunday = getCurrentWeekSunday(today);
 
-        // Create template task for generator
-        const templateTask: CreateTaskDTO = {
-          task_name: baseName,
-          description: description.trim() || undefined,
-          status: 'Not started',
-          priority: 'Medium',
-          effort_level: effortLevel,
-          automation,
-          hours_projected: hoursProjected ? parseFloat(hoursProjected) : 0,
-          business_id: selectedBusinessId || undefined,
-          project_id: selectedProjectId || undefined,
-          phase_id: selectedPhaseId || undefined,
-        };
-
-        // Generate parent template task and child instances
         const { parentTask, childTasks } = generateRecurringTaskWithChildren({
           baseName,
-          recurringType: recurringType as 'weekdays' | 'weekly' | 'biweekly' | 'monthly',
+          recurringType,
           startDate: weekSunday,
           taskTemplate: templateTask,
+          dayOfWeek: recurringDayOfWeek,
+          monthlyDayOfMonth: recurringType === 'monthly' ? recurringMonthlyDay : undefined,
         });
 
         // Step 1: Create parent template task first
@@ -120,42 +114,43 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
             await createTask.mutateAsync(childTask);
           }
         } else {
-          // Fallback: if parent creation doesn't return ID, still create children without parent link
+          // Fallback: if parent creation doesn't return ID, still create children
           for (const childTask of childTasks) {
             await createTask.mutateAsync(childTask);
           }
         }
       } else {
-        // Create regular (non-recurring) task
-        const newTask: CreateTaskDTO = {
-          task_name: taskName.trim(),
-          description: description.trim() || undefined,
-          status: 'Not started',
-          priority: 'Medium',
+        // Create single task with due date
+        let dueDateISO: string | undefined = undefined;
+        if (dueDate) {
+          const parsedDate = parseLocalDate(dueDate);
+          if (parsedDate) {
+            dueDateISO = parsedDate.toISOString();
+          }
+        }
+
+        const singleTask: CreateTaskDTO = {
+          ...templateTask,
           due_date: dueDateISO,
-          effort_level: effortLevel,
-          automation,
-          hours_projected: hoursProjected ? parseFloat(hoursProjected) : 0,
-          business_id: selectedBusinessId || undefined,
-          project_id: selectedProjectId || undefined,
-          phase_id: selectedPhaseId || undefined,
         };
 
-        await createTask.mutateAsync(newTask);
+        await createTask.mutateAsync(singleTask);
       }
 
       // Reset form
       setTaskName('');
       setDescription('');
       setDueDate('');
-      setEffortLevel('8) JusVibin');
+      setEffortLevel('8) Vibing (8');
       setAutomation('Manual');
       setHoursProjected('');
       setSelectedBusinessId('');
       setSelectedProjectId('');
       setSelectedPhaseId('');
-      setIsRecurring(false);
-      setRecurringType('none');
+      setTaskType('single');
+      setRecurringType('weekly');
+      setRecurringDayOfWeek(1);
+      setRecurringMonthlyDay(15);
 
       onSuccess?.();
       onClose();
@@ -181,6 +176,32 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Task Type Toggle */}
+          <div className="flex gap-2 mb-4">
+            <button
+              type="button"
+              onClick={() => setTaskType('single')}
+              className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                taskType === 'single'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700'
+              }`}
+            >
+              Single Task
+            </button>
+            <button
+              type="button"
+              onClick={() => setTaskType('recurring')}
+              className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                taskType === 'recurring'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700'
+              }`}
+            >
+              Recurring Task
+            </button>
+          </div>
+
           {/* Task Name */}
           <div>
             <label htmlFor="task_name" className="block text-sm font-medium text-gray-300 mb-1">
@@ -217,7 +238,7 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label htmlFor="business" className="block text-sm font-medium text-gray-300 mb-1">
-                Business
+                Area
               </label>
               <select
                 id="business"
@@ -275,8 +296,63 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
             </div>
           </div>
 
-          {/* Due Date, Effort Level, Automation */}
+          {/* Effort Level, Automation, Hours Projected - Always shown on one line */}
           <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="effort_level" className="block text-sm font-medium text-gray-300 mb-1">
+                Effort Level
+              </label>
+              <select
+                id="effort_level"
+                value={effortLevel}
+                onChange={(e) => setEffortLevel(e.target.value as EffortLevel)}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">None</option>
+                <option value="$$$ Printer $$$" style={{ color: '#22c55e' }}>$$$ Printer $$$</option>
+                <option value="$ Makes Money $" style={{ color: '#84cc16' }}>$ Makes Money $</option>
+                <option value="-$ Save Dat $-" style={{ color: '#f97316' }}>-$ Save Dat $-</option>
+                <option value=":( No Money ):" style={{ color: '#ef4444' }}>:( No Money ):</option>
+                <option value="8) Vibing (8" style={{ color: '#a855f7' }}>8) Vibing (8</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="automation" className="block text-sm font-medium text-gray-300 mb-1">
+                Automation
+              </label>
+              <select
+                id="automation"
+                value={automation}
+                onChange={(e) => setAutomation(e.target.value as Automation)}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">None</option>
+                <option value="Automate" style={{ color: '#a855f7' }}>🤖 Automate</option>
+                <option value="Delegate" style={{ color: '#8b5cf6' }}>👥 Delegate</option>
+                <option value="Manual" style={{ color: '#f59e0b' }}>✋ Manual</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="hours_projected" className="block text-sm font-medium text-gray-300 mb-1">
+                Hours Projected
+              </label>
+              <input
+                type="number"
+                id="hours_projected"
+                value={hoursProjected}
+                onChange={(e) => setHoursProjected(e.target.value)}
+                min="0"
+                step="0.5"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="0"
+              />
+            </div>
+          </div>
+
+          {/* Single Task: Due Date */}
+          {taskType === 'single' && (
             <div>
               <label htmlFor="due_date" className="block text-sm font-medium text-gray-300 mb-1">
                 Due Date
@@ -299,134 +375,103 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
                 />
               )}
             </div>
+          )}
 
-            <div>
-              <label htmlFor="effort_level" className="block text-sm font-medium text-gray-300 mb-1">
-                Effort Level
-              </label>
-              <select
-                id="effort_level"
-                value={effortLevel}
-                onChange={(e) => setEffortLevel(e.target.value as EffortLevel)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="$$$ MoneyMaker">$$$ MoneyMaker</option>
-                <option value="$ Lil Money">$ Lil Money</option>
-                <option value="$$ Some Money">$$ Some Money</option>
-                <option value="$$$ Big Money">$$$ Big Money</option>
-                <option value="$$$$ Huge Money">$$$$ Huge Money</option>
-                <option value="-$ Save Dat Money">-$ Save Dat Money</option>
-                <option value=":( Pointless">:( Pointless</option>
-                <option value="8) JusVibin">8) JusVibin</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="automation" className="block text-sm font-medium text-gray-300 mb-1">
-                Automation
-              </label>
-              <select
-                id="automation"
-                value={automation}
-                onChange={(e) => setAutomation(e.target.value as Automation)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Manual">Manual</option>
-                <option value="Automate">Automate</option>
-                <option value="Delegate">Delegate</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Hours Projected & Recurring */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="flex flex-col justify-end">
-              <div className="flex items-center gap-3 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg h-10">
-                <input
-                  type="checkbox"
-                  id="is_recurring"
-                  checked={isRecurring}
-                  onChange={(e) => setIsRecurring(e.target.checked)}
-                  className="w-6 h-6 cursor-pointer accent-blue-600"
-                />
-                <label htmlFor="is_recurring" className="text-sm font-medium text-gray-300 cursor-pointer">
-                  Make recurring
+          {/* Recurring Task: Frequency & Day Selection */}
+          {taskType === 'recurring' && (
+            <div className="border-t border-gray-700 pt-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-3">
+                  Frequency
                 </label>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="hours_projected" className="block text-sm font-medium text-gray-300 mb-1">
-                Hours Projected
-              </label>
-              <input
-                type="number"
-                id="hours_projected"
-                value={hoursProjected}
-                onChange={(e) => setHoursProjected(e.target.value)}
-                min="0"
-                step="0.5"
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="0"
-              />
-            </div>
-          </div>
-
-          {/* Recurring Task Types */}
-          {isRecurring && (
-            <div className="border-t border-gray-700 pt-4">
-              <div className="grid grid-cols-4 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRecurringType('weekdays')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    recurringType === 'weekdays'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700'
-                  }`}
-                >
-                  Weekdays (M-F)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRecurringType('weekly')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    recurringType === 'weekly'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700'
-                  }`}
-                >
-                  Weekly
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRecurringType('biweekly')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    recurringType === 'biweekly'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700'
-                  }`}
-                >
-                  Bi-Weekly
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRecurringType('monthly')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    recurringType === 'monthly'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700'
-                  }`}
-                >
-                  Monthly
-                </button>
+                <div className="grid grid-cols-4 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setRecurringType('weekdays')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      recurringType === 'weekdays'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700'
+                    }`}
+                  >
+                    Weekdays
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRecurringType('weekly')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      recurringType === 'weekly'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700'
+                    }`}
+                  >
+                    Weekly
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRecurringType('biweekly')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      recurringType === 'biweekly'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700'
+                    }`}
+                  >
+                    Bi-Weekly
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRecurringType('monthly')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      recurringType === 'monthly'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700'
+                    }`}
+                  >
+                    Monthly
+                  </button>
+                </div>
               </div>
 
-              {recurringType !== 'none' && (
-                <div className="mt-3 p-3 bg-blue-900/20 border border-blue-700/50 rounded-lg">
-                  <p className="text-sm text-blue-300">
-                    <strong>Note:</strong> Task will be created with today's date in the name. Example: "{taskName || 'Task Name'} {new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).replace(/\//g, '/')}"
-                  </p>
+              {/* Day of Week Picker for Weekly/Bi-Weekly */}
+              {(recurringType === 'weekly' || recurringType === 'biweekly') && (
+                <div className="p-3 bg-gray-800/50 border border-gray-700 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Day of Week
+                  </label>
+                  <div className="grid grid-cols-7 gap-2">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => setRecurringDayOfWeek(index)}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                          recurringDayOfWeek === index
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Day of Month Input for Monthly */}
+              {recurringType === 'monthly' && (
+                <div className="p-3 bg-gray-800/50 border border-gray-700 rounded-lg">
+                  <label htmlFor="recurring_monthly_day" className="block text-sm font-medium text-gray-300 mb-2">
+                    Day of Month
+                  </label>
+                  <input
+                    type="number"
+                    id="recurring_monthly_day"
+                    value={recurringMonthlyDay}
+                    onChange={(e) => setRecurringMonthlyDay(Math.max(1, Math.min(31, parseInt(e.target.value) || 1)))}
+                    min="1"
+                    max="31"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
                 </div>
               )}
             </div>

@@ -79,8 +79,8 @@ const filterTasks = (
       if (statusFilter === 'completed' && task.status !== 'Done') return false;
 
       if (statusFilter === 'recurring') {
-        // Show only parent recurring tasks (templates), not instances
-        const isRecurringParent = task.recurring_type && task.recurring_type !== 'none' && !task.recurrence_parent_id;
+        // Show only parent recurring tasks (templates) - no due_date and no parent link
+        const isRecurringParent = !task.due_date && !task.recurring_parent_id;
         if (!isRecurringParent) return false;
       }
     }

@@ -143,6 +143,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
   const sourceName = getSourceName(task);
   const overdue = isOverdue(task);
   const dueToday = isDueToday(task);
+  const isRecurringTemplate = !task.due_date && !task.recurring_parent_id;
 
   // Calculate progress based on hours worked vs hours projected
   const calculateProgress = (): number => {
@@ -596,7 +597,8 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
           <div className="p-3 sm:p-4 lg:p-6 max-w-full overflow-x-auto" style={{ backgroundColor: getExpandedBackground() }}>
             {/* Three-column layout - responsive: stacks on mobile, side-by-side on larger screens */}
             <div className="grid grid-cols-1 2xl:grid-cols-[1fr_1.5fr_280px] gap-4 sm:gap-6 min-w-0">
-              {/* Left Column - Notes Panel */}
+              {/* Left Column - Notes Panel (hidden for recurring templates) */}
+              {!isRecurringTemplate && (
               <div className="flex flex-col">
                 <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Notes</label>
                 {isEditingNotes ? (
@@ -620,6 +622,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
                   </div>
                 )}
               </div>
+              )}
 
               {/* Middle Column - Time Tracking Log */}
               <div>

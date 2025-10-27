@@ -55,6 +55,9 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
     }
   };
 
+    // Helper: Check if task is a recurring template (parent with no due date AND no parent link)
+  const isRecurringTemplate = (task: TaskHub): boolean => !task.due_date && !task.recurring_parent_id;
+
   const getBusinessCount = (businessId: string | null) => {
     return tasks.filter(task => {
       // Apply business/area filter
@@ -94,7 +97,7 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
             if (task.status !== 'Done') return false;
             break;
           case 'recurring':
-            if (!task.is_recurring_template) return false;
+            if (!isRecurringTemplate(task)) return false;
             break;
         }
       }
@@ -135,7 +138,7 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
         case 'completed':
           return task.status === 'Done';
         case 'recurring':
-          return task.is_recurring_template; // Show only tasks marked as recurring templates
+          return isRecurringTemplate(task);
         default:
           return false;
       }
