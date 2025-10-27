@@ -18,7 +18,6 @@ export const useTasks = () => {
           phases(id, name, description),
           life_areas(id, name, color, category)
         `)
-        .is('recurring_parent_id', null)  // Exclude child recurring tasks - show only parent templates
         .order('created_at', { ascending: false });
 
       if (error) throw error;
