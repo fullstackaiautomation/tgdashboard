@@ -27,8 +27,13 @@ const AREA_COLORS: Record<Area, string> = {
 export const DailyScheduleView: FC<DailyScheduleViewProps> = ({ selectedDate }) => {
   const { data: schedule = [], isLoading } = useDailySchedule(selectedDate);
 
+  // Sort schedule by start time
+  const sortedSchedule = [...schedule].sort((a, b) => {
+    return a.start_time.localeCompare(b.start_time);
+  });
+
   // Calculate total planned time
-  const totalPlannedMinutes = schedule.reduce((sum, block) => sum + block.planned_duration_minutes, 0);
+  const totalPlannedMinutes = sortedSchedule.reduce((sum, block) => sum + block.planned_duration_minutes, 0);
   const totalPlannedHours = (totalPlannedMinutes / 60).toFixed(1);
 
   if (isLoading) {
@@ -47,11 +52,11 @@ export const DailyScheduleView: FC<DailyScheduleViewProps> = ({ selectedDate }) 
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-gray-100">📅 Planned Schedule</h2>
         <div className="text-sm text-gray-400">
-          {schedule.length} {schedule.length === 1 ? 'block' : 'blocks'} · {totalPlannedHours}h planned
+          {sortedSchedule.length} {sortedSchedule.length === 1 ? 'block' : 'blocks'} · {totalPlannedHours}h planned
         </div>
       </div>
 
-      {schedule.length === 0 ? (
+      {sortedSchedule.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 text-gray-500">
           <Clock className="w-12 h-12 mb-3 opacity-50" />
           <p>No scheduled time blocks for this day</p>
@@ -59,7 +64,7 @@ export const DailyScheduleView: FC<DailyScheduleViewProps> = ({ selectedDate }) 
         </div>
       ) : (
         <div className="space-y-3">
-          {schedule.map((block) => {
+          {sortedSchedule.map((block) => {
             const color = AREA_COLORS[block.area];
             const isCompleted = block.status === 'completed';
 
