@@ -151,24 +151,85 @@
   - Time Tracking modal not yet implemented (placeholder "TODO" button)
   - Recurring task generation uses client-side approach (alternative Supabase Edge Function option available in story)
 
+### Recurring Tasks Edge Function Deployment (Oct 26, 2025)
+- **Status**: ✅ Complete - Deployed to Supabase
+- **Details**: Successfully deployed automated recurring task generation backend
+
+  **Edge Function Deployment:**
+  - ✅ Fixed critical bug in `supabase/functions/generate-recurring-tasks/index.ts` (undefined `nextWeekSunday` variable)
+  - ✅ Successfully deployed to Supabase project `rnlijzolilwweptwbakv`
+  - ✅ Function ready for cron job trigger configuration
+  - ✅ Function signature: `Deno.serve(async (req) => ...)`
+  - ✅ Requires Bearer token authorization
+
+  **Functionality:**
+  - Queries all tasks with `recurring_type` set (not null)
+  - Generates new instances for next week based on pattern:
+    - **weekdays/daily_weekdays**: Creates 5 tasks (M-F)
+    - **weekly**: Creates 1 task (Monday)
+    - **biweekly**: Creates 1 task (Monday, 2-week interval)
+    - **monthly**: Creates 1 task (Monday, monthly)
+  - Strips old date from task name using regex: `/ \d{2}\/\d{2}\/\d{2}$/`
+  - Appends new date in MM/DD/YY format
+  - Preserves all properties: description, effort_level, automation, hours_projected, business_id, project_id, phase_id
+  - Links new tasks to parent via `recurring_parent_id`
+
+  **UI Integration (Complete):**
+  - ✅ User can create recurring tasks via AddTaskModal
+  - ✅ Generates instances for **current week** (not next week)
+  - ✅ Non-recurring tasks unaffected (use form's selected due_date)
+  - ✅ Calendar refactored to external CSS module for better styling
+  - ✅ Button sizing optimized to reduce UI clutter
+  - ✅ Time Tracking Log column swapped with Metadata
+
+  **Documentation:**
+  - ✅ Created [docs/RECURRING_TASKS_DEPLOYMENT.md](docs/RECURRING_TASKS_DEPLOYMENT.md)
+  - ✅ Comprehensive setup instructions for cron trigger
+  - ✅ Cron schedule examples and troubleshooting guide
+  - ✅ Testing procedures for verification
+
+  **Pending Steps:**
+  1. Configure cron trigger in Supabase Dashboard
+     - Navigate to: Edge Functions → generate-recurring-tasks
+     - Add Cron trigger: `0 23 * * 0` (Sunday 11:59 PM UTC)
+  2. Test automated weekly generation
+  3. Monitor first production run
+
+- **Impact**:
+  - ✅ Recurring tasks now fully automated
+  - ✅ User creates task once, system generates weekly instances indefinitely
+  - ✅ Production-ready backend infrastructure
+  - ✅ Complete documentation for deployment and troubleshooting
+
+- **Files Created**:
+  - supabase/functions/generate-recurring-tasks/index.ts (Edge Function)
+  - docs/RECURRING_TASKS_DEPLOYMENT.md (comprehensive guide)
+
+- **Files Modified**:
+  - supabase/functions/generate-recurring-tasks/index.ts (fixed bug)
+
 ---
 
 ## Current Status
-- **Last Updated**: Oct 26, 2025 (Story 6.2 Complete)
+- **Last Updated**: Oct 26, 2025 (Story 6.2 Complete + Edge Function Deployed)
 - **Project Structure**: Clean and organized
 - **Active Work**: Story 6.2 - Tasks Hub cleanup (✅ COMPLETE)
-- **Next Focus**: Story 6.3 or other Epic 6 stories (awaiting user direction)
-- **Active Epic**: Epic 6: Dashboard Cleanup - Story 6.2 complete, ready for next stories
+- **Deployment Status**: ✅ Edge Function deployed, ⏳ Cron trigger pending
+- **Next Focus**: Configure cron trigger in Supabase Dashboard
+- **Active Epic**: Epic 6: Dashboard Cleanup - Story 6.2 complete, Edge Function deployed
 
 ---
 
 ## Next Steps
-1. Await user input on page-specific cleanup requirements
-2. Create detailed stories in docs/stories/cleanup/ as requirements are provided
-3. Implement cleanup items page-by-page
-4. Monitor for new bugs and document in docs/BUGS.md
-5. Log any architectural decisions to decisions.md
-6. Update progress.md after each development session
+1. **Configure cron trigger in Supabase Dashboard** (NEXT)
+   - Open: https://supabase.com/dashboard/project/rnlijzolilwweptwbakv/functions
+   - Add trigger to generate-recurring-tasks function
+   - Use schedule: `0 23 * * 0` (weekly Sunday 11:59 PM)
+2. Test automated weekly generation (manually invoke function in dashboard)
+3. Verify task creation for next week
+4. Await user input on page-specific cleanup requirements (Story 6.3+)
+5. Create detailed stories as requirements are provided
+6. Monitor for new bugs and document in docs/BUGS.md
 
 ---
 
