@@ -59,7 +59,7 @@ const TodoList = () => {
         status: row.status || 'Not started',
         automation: row.automation || 'Manual',
         priority: row.priority || 'Medium',
-        effort_level: row.effort_level || '$ Lil Money',
+        effort_level: row.effort_level || '$ Makes Money $',
         due_date: row.due_date ? new Date(row.due_date) : null,
         completed_at: row.completed_at ? new Date(row.completed_at) : null,
         past_due: row.past_due || false,
@@ -226,7 +226,7 @@ const TodoList = () => {
           status: 'Not started',
           automation: 'Manual',
           priority: editFormData.priority || 'Medium',
-          effort_level: editFormData.effort_level || '$ Lil Money',
+          effort_level: editFormData.effort_level || '$ Makes Money $',
           due_date: editFormData.due_date ? new Date(editFormData.due_date).toISOString() : null,
           user_id: userId,
           recurring_type: editFormData.recurring_type || 'None',
@@ -274,7 +274,7 @@ const TodoList = () => {
       area: 'Personal',
       task_type: '',
       priority: 'Medium',
-      effort_level: '$ Lil Money',
+      effort_level: '$ Makes Money $',
       due_date: null,
       recurring_type: 'none',
       hours_projected: 0,
@@ -896,14 +896,16 @@ const TodoList = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Money Maker</label>
                 <select
-                  value={editFormData.effort_level || '$ Lil Money'}
+                  value={editFormData.effort_level || '$ Makes Money $'}
                   onChange={(e) => setEditFormData({...editFormData, effort_level: e.target.value as EffortLevel})}
                   className="w-full px-3 py-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="$ Lil Money">$ Lil Money</option>
-                  <option value="$$ Some Money">$$ Some Money</option>
-                  <option value="$$$ Big Money">$$$ Big Money</option>
-                  <option value="$$$$ Huge Money">$$$$ Huge Money</option>
+                  <option value="">None</option>
+                  <option value="$$$ Printer $$$">$$$ Printer $$$</option>
+                  <option value="$ Makes Money $">$ Makes Money $</option>
+                  <option value="-$ Save Dat $-">-$ Save Dat $-</option>
+                  <option value=":( No Money ):">:( No Money ):</option>
+                  <option value="8) Vibing (8">8) Vibing (8</option>
                 </select>
               </div>
             </div>
