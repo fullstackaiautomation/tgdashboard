@@ -65,12 +65,13 @@ export function generateRecurringTaskWithChildren(config: RecurringTaskConfig): 
   const parentTask: CreateTaskDTO = {
     ...taskTemplate,
     task_name: baseName,
-    // Parent task has no due date - it's the template
-    due_date: undefined,
     recurring_type: recurringType as 'weekly' | 'monthly' | 'daily_weekdays',
     recurring_interval: recurringType === 'biweekly' ? 2 : 1,
     is_recurring_template: true,
   };
+
+  // Remove due_date for parent - it's a template with no specific date
+  delete parentTask.due_date;
 
   // Generate child instances with dates
   if (recurringType === 'weekdays') {

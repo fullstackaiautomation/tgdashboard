@@ -110,19 +110,35 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
         });
 
         // Step 1: Create parent template task first
+        console.log('Creating parent task:', parentTask);
         const parentResult = await createTask.mutateAsync(parentTask);
         const parentId = parentResult?.id;
+        console.log('Parent task created with ID:', parentId);
 
         // Step 2: Create child instances, linking them to parent
         if (parentId) {
+          console.log('Creating', childTasks.length, 'child tasks for parent', parentId);
           for (const childTask of childTasks) {
             childTask.recurring_parent_id = parentId;
-            await createTask.mutateAsync(childTask);
+            console.log('Creating child task:', childTask);
+            try {
+              const childResult = await createTask.mutateAsync(childTask);
+              console.log('Child task created:', childResult.task_name);
+            } catch (error) {
+              console.error('Error creating child task:', error);
+              alert('Error creating child task: ' + (error instanceof Error ? error.message : 'Unknown error'));
+            }
           }
+          console.log('All child tasks created');
         } else {
           // Fallback: if parent creation doesn't return ID, still create children without parent link
+          console.log('No parent ID returned! Creating children without parent link');
           for (const childTask of childTasks) {
-            await createTask.mutateAsync(childTask);
+            try {
+              await createTask.mutateAsync(childTask);
+            } catch (error) {
+              console.error('Error creating fallback child task:', error);
+            }
           }
         }
       } else {
