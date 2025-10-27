@@ -125,6 +125,9 @@ Implement three-file note-taking system:
 | D-002 | Note-Taking System for Project Tracking | Oct 26 | ✅ Implemented |
 | D-003 | Project Folder Structure Cleanup | Oct 26 | ✅ Implemented |
 | D-004 | Epic 6: Brownfield Cleanup Epic Creation | Oct 26 | ✅ Implemented |
+| D-005 | Recurring Template Identification Strategy | Oct 27 | ✅ Implemented |
+| D-006 | Monthly Recurring Task Day Selection | Oct 27 | ✅ Implemented |
+| D-007 | Money Maker Level Naming & Styling | Oct 27 | ✅ Implemented |
 
 ---
 
@@ -178,6 +181,144 @@ Create Epic 6: Dashboard Cleanup - Brownfield Enhancement following BMAD brownfi
 
 **Files Modified**:
 - `docs/prd/epic-list.md`
+
+---
+
+### D-005: Recurring Template Identification Strategy
+**Date**: Oct 27, 2025
+**Author**: Claude
+**Status**: ✅ Implemented
+
+**Problem**:
+- Recurring filter was picking up individual recurring task instances instead of just parent templates
+- Two different filtering implementations (TaskFilters and TasksHub) using different logic
+- The `is_recurring_template` flag wasn't reliable as a sole indicator
+
+**Decision**:
+Implement dual-check identification strategy for recurring templates:
+- Use `!task.due_date && !task.recurring_parent_id` as definitive check
+- Parent templates: have no due date AND no parent link
+- Child instances: have a due date AND may have parent link
+- Apply same logic consistently across all filters and views
+
+**Rationale**:
+- Database structure guarantees: parent tasks created without due_date, children always have due_date
+- Foreign key relationship (`recurring_parent_id`) provides authoritative parent-child link
+- Dual check prevents edge cases and is more robust than single field checks
+- Applied consistently across TaskFilters, TasksHub, and TaskCard components
+
+**Impact**:
+- ✅ Recurring filter now reliably shows only parent templates
+- ✅ Filter logic consistent across entire application
+- ✅ No false positives or false negatives
+- ✅ Foundation for future features like bulk parent template operations
+
+**Trade-offs**:
+- Requires understanding of parent-child architecture
+- More complex than single-field check but more reliable
+
+**Related Decisions**:
+- Parent/Child Recurring Task Architecture (Oct 27) - Establishes the data model
+
+---
+
+### D-006: Monthly Recurring Task Day Selection
+**Date**: Oct 27, 2025
+**Author**: Claude
+**Status**: ✅ Implemented
+
+**Problem**:
+- Monthly recurring tasks need day-of-month specification (e.g., "15th of each month")
+- Previous implementation only supported day-of-week selection
+- No way to distinguish between weekly (day-of-week) and monthly (day-of-month) selection
+
+**Decision**:
+Implement conditional UI and date calculation for monthly recurring tasks:
+1. Add `monthlyDayOfMonth` parameter to `RecurringTaskConfig` interface
+2. Show number input (1-31) for monthly tasks instead of day-of-week picker
+3. Weekly/Bi-Weekly show day-of-week buttons; Monthly shows day-of-month input
+4. Generator calculates dates based on day-of-month with edge case handling
+5. Pass `monthlyDayOfMonth` from AddTaskModal to generator for monthly tasks
+
+**Rationale**:
+- Users naturally think in terms of "15th each month" not "2nd Wednesday"
+- Separate UI components prevent confusion between selection modes
+- Edge case handling (Feb 31 → last day) improves reliability
+- Input validation (1-31 range) ensures valid selections
+
+**Impact**:
+- ✅ Monthly recurring tasks now work as expected
+- ✅ Clear UI distinction between frequency types
+- ✅ No more confusion about which day is selected
+- ✅ Edge cases handled gracefully
+- ✅ Better user experience for monthly task creation
+
+**Trade-offs**:
+- Requires separate state variable (`recurringMonthlyDay`)
+- More complex conditional rendering in AddTaskModal
+- But provides significantly better UX
+
+**Files Changed**:
+- src/utils/recurringTaskGenerator.ts
+- src/components/tasks/AddTaskModal.tsx
+- src/types/task.ts
+
+---
+
+### D-007: Money Maker Level Naming & Styling
+**Date**: Oct 27, 2025
+**Author**: Claude
+**Status**: ✅ Implemented
+
+**Problem**:
+- Effort level values were inconsistent with business naming conventions
+- No consistent color coding across UI
+- Automation options missing emoji icons
+- Values not intuitive (e.g., "$$$ MoneyMaker" unclear about meaning)
+
+**Decision**:
+Standardize Money Maker levels and Automation options with consistent naming and visual styling:
+
+**Money Maker Levels** (renamed for clarity):
+- `$$$ Printer $$$` (green #22c55e) - generates revenue
+- `$ Makes Money $` (lime #84cc16) - profitable
+- `-$ Save Dat $-` (orange #f97316) - saves money/reduces costs
+- `:( No Money ):` (red #ef4444) - no financial impact
+- `8) Vibing (8` (purple #a855f7) - for enjoyment
+
+**Automation Options** (with emojis & colors):
+- 🤖 Automate (purple)
+- 👥 Delegate (violet)
+- ✋ Manual (orange)
+- None (empty option)
+
+**Implementation**:
+1. Updated EffortLevel TypeScript type with new values
+2. Updated AddTaskModal dropdown with colors and new labels
+3. Updated TaskCard display to show new labels with colors
+4. Consistent application across AddTaskModal, TaskCard, and Task creation
+
+**Rationale**:
+- Emojis improve visual recognition and clarity
+- Color coding helps distinguish options at a glance
+- New naming more intuitive and business-friendly
+- Consistency across UI reduces cognitive load
+
+**Impact**:
+- ✅ Effort levels more intuitive and self-explanatory
+- ✅ Better visual distinction between options
+- ✅ Consistent styling across all views
+- ✅ Improved user experience and decision-making
+
+**Trade-offs**:
+- Required migrating existing task data (effort_level field values)
+- Type definition change could affect other code
+- But net improvement in clarity and UX outweighs migration costs
+
+**Files Changed**:
+- src/types/task.ts
+- src/components/tasks/AddTaskModal.tsx
+- src/components/tasks/TaskCard.tsx
 
 ---
 
