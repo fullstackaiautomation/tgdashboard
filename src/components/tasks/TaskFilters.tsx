@@ -135,7 +135,7 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
         case 'completed':
           return task.status === 'Done';
         case 'recurring':
-          return task.is_recurring_template && !task.due_date; // Show recurring tasks without a due date (parent templates)
+          return task.is_recurring_template; // Show only tasks marked as recurring templates
         default:
           return false;
       }
