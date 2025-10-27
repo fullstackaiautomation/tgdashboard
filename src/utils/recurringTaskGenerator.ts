@@ -12,6 +12,11 @@ interface RecurringTaskConfig {
   taskTemplate: CreateTaskDTO;
 }
 
+export interface GeneratedRecurringTasks {
+  parentTask: CreateTaskDTO;
+  childTasks: CreateTaskDTO[];
+}
+
 /**
  * Format date as MM/DD/YY
  */
@@ -42,6 +47,102 @@ export const getCurrentWeekSunday = (date: Date = new Date()): Date => {
   const diff = d.getDate() - day;
   return new Date(d.setDate(diff));
 };
+
+/**
+ * Generate recurring tasks for the week with parent template
+ * @param config Recurring task configuration
+ * @returns Parent template task and child instances
+ */
+export function generateRecurringTaskWithChildren(config: RecurringTaskConfig): GeneratedRecurringTasks {
+  const { baseName, recurringType, startDate, taskTemplate } = config;
+  const childTasks: CreateTaskDTO[] = [];
+
+  // Ensure startDate is a Sunday
+  const weekStart = new Date(startDate);
+  weekStart.setHours(0, 0, 0, 0);
+
+  // Create parent task WITHOUT date suffix (this is the template)
+  const parentTask: CreateTaskDTO = {
+    ...taskTemplate,
+    task_name: baseName,
+    // Parent task has no due date - it's the template
+    due_date: undefined,
+    recurring_type: recurringType as 'weekly' | 'monthly' | 'daily_weekdays',
+    recurring_interval: recurringType === 'biweekly' ? 2 : 1,
+    is_recurring_template: true,
+  };
+
+  // Generate child instances with dates
+  if (recurringType === 'weekdays') {
+    // Create tasks for Monday-Friday (indices 1-5)
+    for (let i = 1; i <= 5; i++) {
+      const taskDate = new Date(weekStart);
+      taskDate.setDate(taskDate.getDate() + i);
+
+      const taskName = `${baseName} ${formatDateForTask(taskDate)}`;
+
+      childTasks.push({
+        ...taskTemplate,
+        task_name: taskName,
+        due_date: taskDate.toISOString(),
+        recurring_type: 'daily_weekdays',
+        recurring_interval: 1,
+        is_recurring_template: false,
+        recurring_parent_id: undefined, // Will be set after parent is created
+      });
+    }
+  } else if (recurringType === 'weekly') {
+    // Create task for Monday of the week
+    const taskDate = new Date(weekStart);
+    taskDate.setDate(taskDate.getDate() + 1);
+
+    const taskName = `${baseName} ${formatDateForTask(taskDate)}`;
+
+    childTasks.push({
+      ...taskTemplate,
+      task_name: taskName,
+      due_date: taskDate.toISOString(),
+      recurring_type: 'weekly',
+      recurring_interval: 1,
+      is_recurring_template: false,
+      recurring_parent_id: undefined,
+    });
+  } else if (recurringType === 'biweekly') {
+    // Create task for Monday of the week
+    const taskDate = new Date(weekStart);
+    taskDate.setDate(taskDate.getDate() + 1);
+
+    const taskName = `${baseName} ${formatDateForTask(taskDate)}`;
+
+    childTasks.push({
+      ...taskTemplate,
+      task_name: taskName,
+      due_date: taskDate.toISOString(),
+      recurring_type: 'weekly',
+      recurring_interval: 2,
+      is_recurring_template: false,
+      recurring_parent_id: undefined,
+    });
+  } else if (recurringType === 'monthly') {
+    // Create task for Monday of the week
+    const taskDate = new Date(weekStart);
+    taskDate.setDate(taskDate.getDate() + 1);
+
+    const taskName = `${baseName} ${formatDateForTask(taskDate)}`;
+
+    childTasks.push({
+      ...taskTemplate,
+      task_name: taskName,
+      due_date: taskDate.toISOString(),
+      recurring_type: 'monthly',
+      recurring_interval: 1,
+      is_recurring_template: false,
+      recurring_parent_id: undefined,
+    });
+  }
+
+  return { parentTask, childTasks };
+}
 
 /**
  * Generate recurring tasks for the week

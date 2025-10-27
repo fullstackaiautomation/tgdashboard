@@ -158,6 +158,7 @@ export interface CreateTaskDTO {
   recurring_interval?: number
   recurring_days?: number[]
   is_recurring_template?: boolean
+  recurring_parent_id?: string
 }
 
 export interface UpdateTaskDTO {

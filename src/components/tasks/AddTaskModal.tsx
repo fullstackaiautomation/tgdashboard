@@ -5,7 +5,7 @@ import { useBusinesses } from '../../hooks/useBusinesses';
 import { useProjects, usePhases } from '../../hooks/useProjects';
 import { DateTimePicker } from './DateTimePicker';
 import { parseLocalDate } from '../../utils/dateHelpers';
-import { generateWeekTasks, getCurrentWeekSunday } from '../../utils/recurringTaskGenerator';
+import { generateRecurringTaskWithChildren, getCurrentWeekSunday } from '../../utils/recurringTaskGenerator';
 import type {
   CreateTaskDTO,
   TaskStatus,
@@ -80,7 +80,7 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
       }
 
       if (isRecurring && recurringType !== 'none') {
-        // Generate recurring tasks for the week using the generator utility
+        // Generate recurring tasks with parent template using the generator utility
         const baseName = taskName.trim();
 
         // Get the Sunday of the current week
@@ -88,9 +88,8 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
         const weekSunday = getCurrentWeekSunday(today);
 
         // Create template task for generator
-        // Note: due_date will be set by generateWeekTasks() for each instance
         const templateTask: CreateTaskDTO = {
-          task_name: baseName, // Will be overridden by generator
+          task_name: baseName,
           description: description.trim() || undefined,
           status: 'Not started',
           priority: 'Medium',
@@ -102,17 +101,29 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
           phase_id: selectedPhaseId || undefined,
         };
 
-        // Generate tasks for the current week
-        const generatedTasks = generateWeekTasks({
+        // Generate parent template task and child instances
+        const { parentTask, childTasks } = generateRecurringTaskWithChildren({
           baseName,
           recurringType: recurringType as 'weekdays' | 'weekly' | 'biweekly' | 'monthly',
           startDate: weekSunday,
           taskTemplate: templateTask,
         });
 
-        // Create each generated task
-        for (const task of generatedTasks) {
-          await createTask.mutateAsync(task);
+        // Step 1: Create parent template task first
+        const parentResult = await createTask.mutateAsync(parentTask);
+        const parentId = parentResult?.id;
+
+        // Step 2: Create child instances, linking them to parent
+        if (parentId) {
+          for (const childTask of childTasks) {
+            childTask.recurring_parent_id = parentId;
+            await createTask.mutateAsync(childTask);
+          }
+        } else {
+          // Fallback: if parent creation doesn't return ID, still create children without parent link
+          for (const childTask of childTasks) {
+            await createTask.mutateAsync(childTask);
+          }
         }
       } else {
         // Create regular (non-recurring) task
