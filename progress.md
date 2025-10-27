@@ -208,15 +208,68 @@
 - **Files Modified**:
   - supabase/functions/generate-recurring-tasks/index.ts (fixed bug)
 
+### Parent/Child Recurring Task Architecture (Oct 27, 2025)
+- **Status**: ✅ Complete - Live in production
+- **Details**: Restructured recurring tasks to show only parent templates in UI
+
+  **Architecture:**
+  - ✅ Parent template task created WITHOUT due date, marked `is_recurring_template: true`
+  - ✅ Child instances created WITH dates, marked `is_recurring_template: false`
+  - ✅ Child instances linked to parent via `recurring_parent_id` foreign key
+  - ✅ Database column added: `recurring_parent_id` with cascade delete
+  - ✅ Task query filter excludes child instances: `.is('recurring_parent_id', null)`
+
+  **Implementation:**
+  - Created `GeneratedRecurringTasks` interface (parent + children structure)
+  - Created `generateRecurringTaskWithChildren()` function
+  - Updated AddTaskModal to create parent first, then children linked to parent
+  - Modified useTasks() hook to filter out child tasks from main view
+  - Added recurring_parent_id field to CreateTaskDTO type
+
+  **Cleanup:**
+  - ✅ Deleted 7 old dated recurring task instances from before new system
+  - ✅ Preserved all non-recurring tasks and new parent/child tasks
+  - ✅ Cleaned up task list from 189 to 182 total tasks
+
+  **Result:**
+  - Recurring filter now shows parent templates (e.g., "S4 Follow Ups") instead of all dated instances
+  - Child tasks hidden from main UI but stored in database for future use
+  - Parent-child relationships preserved for organization and monthly generation
+
+- **Files Created**:
+  - src/utils/recurringTaskGenerator.ts - New function `generateRecurringTaskWithChildren()`
+  - supabase/migrations/20251027000000_add_recurring_parent_id.sql - Add column to tasks table
+  - supabase/migrations/20251027000001_delete_old_recurring_task_instances.sql - Clean up old tasks
+  - scripts/sql-diagnostics/cleanup-old-recurring-tasks.sql - Diagnostic query
+
+- **Files Modified**:
+  - src/types/task.ts - Added recurring_parent_id and is_recurring_template fields
+  - src/components/tasks/AddTaskModal.tsx - Use new generator, create parent then children
+  - src/hooks/useTasks.ts - Filter to hide child instances from main task list
+
+- **Database Changes**:
+  - ✅ Migration applied to add recurring_parent_id UUID column
+  - ✅ Index created on recurring_parent_id for filtering performance
+  - ✅ 7 old recurring task instances deleted
+
+- **Impact**:
+  - ✅ Much cleaner Recurring filter view
+  - ✅ Parent template tasks represent all their instances
+  - ✅ Child instances organized under parent for future features
+  - ✅ Foundation for monthly task regeneration from parent
+  - ✅ Production-ready implementation
+
 ---
 
 ## Current Status
-- **Last Updated**: Oct 26, 2025 (Story 6.2 Complete + Edge Function Deployed)
+- **Last Updated**: Oct 27, 2025 (Parent/Child Recurring Task Architecture Complete)
 - **Project Structure**: Clean and organized
 - **Active Work**: Story 6.2 - Tasks Hub cleanup (✅ COMPLETE)
-- **Deployment Status**: ✅ Edge Function deployed, ⏳ Cron trigger pending
-- **Next Focus**: Configure cron trigger in Supabase Dashboard
-- **Active Epic**: Epic 6: Dashboard Cleanup - Story 6.2 complete, Edge Function deployed
+- **Task Count**: 182 tasks (cleaned up from 189)
+- **Recurring Filter**: Ready to use - shows parent templates only
+- **Deployment Status**: ✅ Edge Function deployed, ✅ Parent/child system live, ⏳ Cron trigger pending
+- **Next Focus**: Configure cron trigger in Supabase Dashboard OR next story
+- **Active Epic**: Epic 6: Dashboard Cleanup - Story 6.2 complete, recurring system fully functional
 
 ---
 
