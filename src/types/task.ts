@@ -109,6 +109,7 @@ export interface TaskHub {
   recurring_type: RecurringType
   recurring_interval: number
   recurring_days: number[] | null
+  recurring_parent_id: string | null
   last_recurring_date: string | null
   is_recurring_template: boolean
   original_recurring_task_id: string | null

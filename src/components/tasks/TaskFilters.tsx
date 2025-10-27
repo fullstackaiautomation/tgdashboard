@@ -135,7 +135,7 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
         case 'completed':
           return task.status === 'Done';
         case 'recurring':
-          return task.is_recurring_template;
+          return task.is_recurring_template && !task.recurring_parent_id; // Only show parent templates, not child instances
         default:
           return false;
       }
