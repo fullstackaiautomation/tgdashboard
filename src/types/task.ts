@@ -157,6 +157,7 @@ export interface CreateTaskDTO {
   recurring_type?: RecurringType
   recurring_interval?: number
   recurring_days?: number[]
+  is_recurring_template?: boolean
 }
 
 export interface UpdateTaskDTO {

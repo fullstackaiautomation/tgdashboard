@@ -72,6 +72,7 @@ export function generateWeekTasks(config: RecurringTaskConfig): CreateTaskDTO[] 
         due_date: taskDate.toISOString(),
         recurring_type: 'daily_weekdays',
         recurring_interval: 1,
+        is_recurring_template: true,
       });
     }
   } else if (recurringType === 'weekly') {
@@ -89,6 +90,7 @@ export function generateWeekTasks(config: RecurringTaskConfig): CreateTaskDTO[] 
       due_date: taskDate.toISOString(),
       recurring_type: 'weekly',
       recurring_interval: 1,
+      is_recurring_template: true,
     });
   } else if (recurringType === 'biweekly') {
     // Create task if it falls within this week
@@ -103,6 +105,7 @@ export function generateWeekTasks(config: RecurringTaskConfig): CreateTaskDTO[] 
       due_date: taskDate.toISOString(),
       recurring_type: 'weekly',
       recurring_interval: 2,
+      is_recurring_template: true,
     });
   } else if (recurringType === 'monthly') {
     // Create task for the same date of the month if it falls within the week
@@ -117,6 +120,7 @@ export function generateWeekTasks(config: RecurringTaskConfig): CreateTaskDTO[] 
       due_date: taskDate.toISOString(),
       recurring_type: 'monthly',
       recurring_interval: 1,
+      is_recurring_template: true,
     });
   }
 
