@@ -18,6 +18,7 @@ export const useTasks = () => {
           phases(id, name, description),
           life_areas(id, name, color, category)
         `)
+        .is('recurring_parent_id', null)  // Hide child recurring task instances - show only parents and non-recurring tasks
         .order('created_at', { ascending: false });
 
       if (error) throw error;
