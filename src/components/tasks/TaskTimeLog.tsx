@@ -1,7 +1,7 @@
 import type { FC } from 'react';
 import { useState, useEffect } from 'react';
 import { differenceInMinutes, parse, format } from 'date-fns';
-import { X, CalendarIcon, Trash2 } from 'lucide-react';
+import { X, CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,8 +15,6 @@ interface TaskTimeLogProps {
   taskId: string;
   hoursProjected?: number;
   hoursWorked?: number;
-  onDelete?: () => void;
-  deleteClickCount?: number;
 }
 
 interface LogRow {
@@ -70,7 +68,7 @@ const generateTimeOptions = (): string[] => {
 
 const TIME_OPTIONS = generateTimeOptions();
 
-export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, hoursWorked = 0, onDelete, deleteClickCount = 0 }) => {
+export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, hoursWorked = 0 }) => {
   const { data: timeLogs = [] } = useTaskTimeLogs(taskId);
   const createTimeLog = useCreateTimeLog();
   const updateTimeLog = useUpdateTimeLog();
@@ -290,13 +288,11 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
       </div>
 
       {/* Header Row */}
-      <div className="grid grid-cols-[95px_90px_90px_65px_1fr_32px] gap-2 mb-2 text-xs font-semibold text-gray-300 uppercase tracking-wide">
+      <div className="grid grid-cols-[95px_90px_90px_65px] gap-2 mb-2 text-xs font-semibold text-gray-300 uppercase tracking-wide">
         <div>Date</div>
         <div>Start</div>
         <div>End</div>
         <div className="text-center">Hours</div>
-        <div>Notes</div>
-        <div></div>
       </div>
 
       {/* Data Rows */}
@@ -315,7 +311,7 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
           }
 
           return (
-            <div key={row.id || `row-${index}`} className="grid grid-cols-[95px_90px_90px_65px_1fr_32px] gap-2 items-center">
+            <div key={row.id || `row-${index}`} className="grid grid-cols-[95px_90px_90px_65px] gap-2 items-center">
               {/* Date Button with Calendar Popup */}
               <Popover>
                 <PopoverTrigger asChild>
@@ -391,21 +387,6 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
               <div className="h-8 flex items-center justify-center text-xs sm:text-sm font-semibold text-green-400">
                 {hours > 0 ? hours.toFixed(2) : '—'}
               </div>
-              <Input
-                type="text"
-                value={row.notes}
-                onChange={(e) => handleRowChange(index, 'notes', e.target.value)}
-                placeholder="Notes..."
-                className="h-8 text-[10px] sm:text-xs text-white bg-gray-800/50 border-gray-700/50 placeholder:text-gray-400 px-1 sm:px-2"
-              />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDeleteRow(index)}
-                className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/20"
-              >
-                <X className="w-4 h-4" />
-              </Button>
             </div>
           );
         })}
@@ -426,40 +407,23 @@ export const TaskTimeLog: FC<TaskTimeLogProps> = ({ taskId, hoursProjected = 0, 
         </Button>
       </div>
 
-      {/* Summary Row with Delete Button */}
-      <div className="border-t border-gray-700/30 pt-3">
-        <div className="flex items-center gap-4">
-          <div className="flex-1 grid grid-cols-3 gap-4">
-            <div className="bg-gray-800/50 px-4 py-3 rounded-lg border border-gray-700/30">
-              <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">Hours Worked</div>
-              <div className="text-xl font-bold text-green-400">{savedTotalHours.toFixed(2)}h</div>
-            </div>
-            <div className="bg-gray-800/50 px-4 py-3 rounded-lg border border-gray-700/30">
-              <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">Hours Projected</div>
-              <div className="text-xl font-bold text-purple-400">{hoursProjected.toFixed(2)}h</div>
-            </div>
-            <div className="bg-gray-800/50 px-4 py-3 rounded-lg border border-gray-700/30">
-              <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">Hours Remaining</div>
-              <div className={`text-xl font-bold ${hoursProjected - savedTotalHours > 0 ? 'text-orange-400' : 'text-green-400'}`}>
-                {(hoursProjected - savedTotalHours).toFixed(2)}h
-              </div>
+      {/* Summary Row */}
+      <div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-gray-800/50 px-4 py-4 rounded-lg border border-gray-700/30">
+            <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">Worked</div>
+            <div className="text-xl font-bold text-green-400">{savedTotalHours.toFixed(2)}h</div>
+          </div>
+          <div className="bg-gray-800/50 px-4 py-4 rounded-lg border border-gray-700/30">
+            <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">Projected</div>
+            <div className="text-xl font-bold text-purple-400">{hoursProjected.toFixed(2)}h</div>
+          </div>
+          <div className="bg-gray-800/50 px-4 py-4 rounded-lg border border-gray-700/30">
+            <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">Remaining</div>
+            <div className={`text-xl font-bold ${hoursProjected - savedTotalHours > 0 ? 'text-orange-400' : 'text-green-400'}`}>
+              {(hoursProjected - savedTotalHours).toFixed(2)}h
             </div>
           </div>
-          {onDelete && (
-            <div className="bg-gray-200 rounded-lg shadow-lg border border-gray-300 p-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onDelete}
-                className={`w-8 h-8 p-0 text-red-600 hover:bg-red-100 hover:text-red-700 transition-all ${
-                  deleteClickCount === 1 ? 'bg-red-300 animate-pulse' : 'hover:bg-gray-300'
-                }`}
-                title={deleteClickCount === 1 ? 'Click again to confirm' : 'Delete task'}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { useBusinesses } from '../../hooks/useBusinesses';
 import { useProjects, usePhases } from '../../hooks/useProjects';
 import { DateTimePicker } from './DateTimePicker';
 import { parseLocalDate } from '../../utils/dateHelpers';
+import { generateWeekTasks, getCurrentWeekSunday } from '../../utils/recurringTaskGenerator';
 import type {
   CreateTaskDTO,
   TaskStatus,
@@ -30,8 +31,6 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [status, setStatus] = useState<TaskStatus>('Not started');
-  const [priority, setPriority] = useState<Priority>('Medium');
   const [effortLevel, setEffortLevel] = useState<EffortLevel>('8) JusVibin');
   const [automation, setAutomation] = useState<Automation>('Manual');
   const [hoursProjected, setHoursProjected] = useState('');
@@ -81,59 +80,47 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
       }
 
       if (isRecurring && recurringType !== 'none') {
-        // Create recurring task with date in the name
+        // Generate recurring tasks for the week using the generator utility
         const baseName = taskName.trim();
+
+        // Get the Sunday of the current week
         const today = new Date();
+        const weekSunday = getCurrentWeekSunday(today);
 
-        // Format: MM/DD/YY
-        const formatDate = (date: Date) => {
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          const year = String(date.getFullYear()).slice(-2);
-          return `${month}/${day}/${year}`;
-        };
-
-        const taskNameWithDate = `${baseName} ${formatDate(today)}`;
-
-        // Determine recurring_type and recurring_interval for the database
-        let dbRecurringType: RecurringType = 'none';
-        let recurringInterval = 1;
-
-        if (recurringType === 'weekdays') {
-          dbRecurringType = 'daily_weekdays';
-        } else if (recurringType === 'weekly') {
-          dbRecurringType = 'weekly';
-        } else if (recurringType === 'biweekly') {
-          dbRecurringType = 'weekly';
-          recurringInterval = 2;
-        } else if (recurringType === 'monthly') {
-          dbRecurringType = 'monthly';
-        }
-
-        const newTask: CreateTaskDTO = {
-          task_name: taskNameWithDate,
+        // Create template task for generator
+        // Note: due_date will be set by generateWeekTasks() for each instance
+        const templateTask: CreateTaskDTO = {
+          task_name: baseName, // Will be overridden by generator
           description: description.trim() || undefined,
-          status,
-          priority,
-          due_date: dueDateISO,
+          status: 'Not started',
+          priority: 'Medium',
           effort_level: effortLevel,
           automation,
           hours_projected: hoursProjected ? parseFloat(hoursProjected) : 0,
           business_id: selectedBusinessId || undefined,
           project_id: selectedProjectId || undefined,
           phase_id: selectedPhaseId || undefined,
-          recurring_type: dbRecurringType,
-          recurring_interval: recurringInterval,
         };
 
-        await createTask.mutateAsync(newTask);
+        // Generate tasks for the current week
+        const generatedTasks = generateWeekTasks({
+          baseName,
+          recurringType: recurringType as 'weekdays' | 'weekly' | 'biweekly' | 'monthly',
+          startDate: weekSunday,
+          taskTemplate: templateTask,
+        });
+
+        // Create each generated task
+        for (const task of generatedTasks) {
+          await createTask.mutateAsync(task);
+        }
       } else {
         // Create regular (non-recurring) task
         const newTask: CreateTaskDTO = {
           task_name: taskName.trim(),
           description: description.trim() || undefined,
-          status,
-          priority,
+          status: 'Not started',
+          priority: 'Medium',
           due_date: dueDateISO,
           effort_level: effortLevel,
           automation,
@@ -150,8 +137,6 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
       setTaskName('');
       setDescription('');
       setDueDate('');
-      setStatus('Not started');
-      setPriority('Medium');
       setEffortLevel('8) JusVibin');
       setAutomation('Manual');
       setHoursProjected('');
@@ -217,40 +202,70 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
             />
           </div>
 
-          {/* Status, Priority, Due Date */}
+          {/* Business/Project/Phase Linking */}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">
-                Status
+              <label htmlFor="business" className="block text-sm font-medium text-gray-300 mb-1">
+                Business
               </label>
               <select
-                id="status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as TaskStatus)}
+                id="business"
+                value={selectedBusinessId}
+                onChange={(e) => setSelectedBusinessId(e.target.value)}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="Not started">Not started</option>
-                <option value="In progress">In progress</option>
-                <option value="Done">Done</option>
+                <option value="">None</option>
+                {businesses?.map((business) => (
+                  <option key={business.id} value={business.id}>
+                    {business.name}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div>
-              <label htmlFor="priority" className="block text-sm font-medium text-gray-300 mb-1">
-                Priority
+              <label htmlFor="project" className="block text-sm font-medium text-gray-300 mb-1">
+                Project
               </label>
               <select
-                id="priority"
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as Priority)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                id="project"
+                value={selectedProjectId}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+                disabled={!selectedBusinessId}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
+                <option value="">None</option>
+                {projects?.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
               </select>
             </div>
 
+            <div>
+              <label htmlFor="phase" className="block text-sm font-medium text-gray-300 mb-1">
+                Phase
+              </label>
+              <select
+                id="phase"
+                value={selectedPhaseId}
+                onChange={(e) => setSelectedPhaseId(e.target.value)}
+                disabled={!selectedProjectId}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">None</option>
+                {phases.map((phase: any) => (
+                  <option key={phase.id} value={phase.id}>
+                    {phase.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Due Date, Effort Level, Automation */}
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label htmlFor="due_date" className="block text-sm font-medium text-gray-300 mb-1">
                 Due Date
@@ -273,148 +288,82 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
                 />
               )}
             </div>
-          </div>
 
-          {/* Business/Project/Phase Linking */}
-          <div className="border-t border-gray-700 pt-4">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Link to Project (Optional)</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="business" className="block text-sm font-medium text-gray-400 mb-1">
-                  Business
-                </label>
-                <select
-                  id="business"
-                  value={selectedBusinessId}
-                  onChange={(e) => setSelectedBusinessId(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">None</option>
-                  {businesses?.map((business) => (
-                    <option key={business.id} value={business.id}>
-                      {business.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="project" className="block text-sm font-medium text-gray-400 mb-1">
-                  Project
-                </label>
-                <select
-                  id="project"
-                  value={selectedProjectId}
-                  onChange={(e) => setSelectedProjectId(e.target.value)}
-                  disabled={!selectedBusinessId}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option value="">None</option>
-                  {projects?.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="phase" className="block text-sm font-medium text-gray-400 mb-1">
-                  Phase
-                </label>
-                <select
-                  id="phase"
-                  value={selectedPhaseId}
-                  onChange={(e) => setSelectedPhaseId(e.target.value)}
-                  disabled={!selectedProjectId}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option value="">None</option>
-                  {phases.map((phase: any) => (
-                    <option key={phase.id} value={phase.id}>
-                      {phase.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Additional Fields */}
-          <div className="border-t border-gray-700 pt-4">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Additional Details</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="effort_level" className="block text-sm font-medium text-gray-400 mb-1">
-                  Effort Level
-                </label>
-                <select
-                  id="effort_level"
-                  value={effortLevel}
-                  onChange={(e) => setEffortLevel(e.target.value as EffortLevel)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="$$$ MoneyMaker">$$$ MoneyMaker</option>
-                  <option value="$ Lil Money">$ Lil Money</option>
-                  <option value="$$ Some Money">$$ Some Money</option>
-                  <option value="$$$ Big Money">$$$ Big Money</option>
-                  <option value="$$$$ Huge Money">$$$$ Huge Money</option>
-                  <option value="-$ Save Dat Money">-$ Save Dat Money</option>
-                  <option value=":( Pointless">:( Pointless</option>
-                  <option value="8) JusVibin">8) JusVibin</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="automation" className="block text-sm font-medium text-gray-400 mb-1">
-                  Automation
-                </label>
-                <select
-                  id="automation"
-                  value={automation}
-                  onChange={(e) => setAutomation(e.target.value as Automation)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="Manual">Manual</option>
-                  <option value="Automate">Automate</option>
-                  <option value="Delegate">Delegate</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="hours_projected" className="block text-sm font-medium text-gray-400 mb-1">
-                  Hours Projected
-                </label>
-                <input
-                  type="number"
-                  id="hours_projected"
-                  value={hoursProjected}
-                  onChange={(e) => setHoursProjected(e.target.value)}
-                  min="0"
-                  step="0.5"
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Recurring Task Section */}
-          <div className="border-t border-gray-700 pt-4">
-            <div className="flex items-center gap-3 mb-3">
-              <input
-                type="checkbox"
-                id="is_recurring"
-                checked={isRecurring}
-                onChange={(e) => setIsRecurring(e.target.checked)}
-                className="w-4 h-4 bg-gray-800 border-gray-600 rounded text-blue-600 focus:ring-2 focus:ring-blue-500"
-              />
-              <label htmlFor="is_recurring" className="text-sm font-medium text-gray-300">
-                Make this a recurring task
+            <div>
+              <label htmlFor="effort_level" className="block text-sm font-medium text-gray-300 mb-1">
+                Effort Level
               </label>
+              <select
+                id="effort_level"
+                value={effortLevel}
+                onChange={(e) => setEffortLevel(e.target.value as EffortLevel)}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="$$$ MoneyMaker">$$$ MoneyMaker</option>
+                <option value="$ Lil Money">$ Lil Money</option>
+                <option value="$$ Some Money">$$ Some Money</option>
+                <option value="$$$ Big Money">$$$ Big Money</option>
+                <option value="$$$$ Huge Money">$$$$ Huge Money</option>
+                <option value="-$ Save Dat Money">-$ Save Dat Money</option>
+                <option value=":( Pointless">:( Pointless</option>
+                <option value="8) JusVibin">8) JusVibin</option>
+              </select>
             </div>
 
-            {isRecurring && (
+            <div>
+              <label htmlFor="automation" className="block text-sm font-medium text-gray-300 mb-1">
+                Automation
+              </label>
+              <select
+                id="automation"
+                value={automation}
+                onChange={(e) => setAutomation(e.target.value as Automation)}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Manual">Manual</option>
+                <option value="Automate">Automate</option>
+                <option value="Delegate">Delegate</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Hours Projected & Recurring */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="flex flex-col justify-end">
+              <div className="flex items-center gap-3 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg h-10">
+                <input
+                  type="checkbox"
+                  id="is_recurring"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  className="w-6 h-6 cursor-pointer accent-blue-600"
+                />
+                <label htmlFor="is_recurring" className="text-sm font-medium text-gray-300 cursor-pointer">
+                  Make recurring
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="hours_projected" className="block text-sm font-medium text-gray-300 mb-1">
+                Hours Projected
+              </label>
+              <input
+                type="number"
+                id="hours_projected"
+                value={hoursProjected}
+                onChange={(e) => setHoursProjected(e.target.value)}
+                min="0"
+                step="0.5"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="0"
+              />
+            </div>
+          </div>
+
+          {/* Recurring Task Types */}
+          {isRecurring && (
+            <div className="border-t border-gray-700 pt-4">
               <div className="grid grid-cols-4 gap-3">
                 <button
                   type="button"
@@ -461,16 +410,16 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
                   Monthly
                 </button>
               </div>
-            )}
 
-            {isRecurring && recurringType !== 'none' && (
-              <div className="mt-3 p-3 bg-blue-900/20 border border-blue-700/50 rounded-lg">
-                <p className="text-sm text-blue-300">
-                  <strong>Note:</strong> Task will be created with today's date in the name. Example: "{taskName || 'Task Name'} {new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).replace(/\//g, '/')}"
-                </p>
-              </div>
-            )}
-          </div>
+              {recurringType !== 'none' && (
+                <div className="mt-3 p-3 bg-blue-900/20 border border-blue-700/50 rounded-lg">
+                  <p className="text-sm text-blue-300">
+                    <strong>Note:</strong> Task will be created with today's date in the name. Example: "{taskName || 'Task Name'} {new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).replace(/\//g, '/')}"
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Form Actions */}
           <div className="flex justify-end gap-2 pt-4 border-t border-gray-700">

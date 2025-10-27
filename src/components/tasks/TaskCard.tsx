@@ -458,7 +458,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
             {/* Business/Area/Project Badge */}
             {task.projects ? (
               <Badge
-                className="text-white border-0 text-sm sm:text-base px-2 sm:px-4 py-1 sm:py-1.5 font-medium whitespace-nowrap"
+                className="text-white border-0 text-xs sm:text-sm px-2 sm:px-3 py-1 font-medium whitespace-nowrap"
                 style={{ backgroundColor: businessColor }}
               >
                 {sourceName}
@@ -493,7 +493,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
             {/* Phase Badge - appears when project and phase are selected */}
             {task.project_id && task.phase_id && task.phases && (
               <Badge
-                className="text-white border-0 text-sm sm:text-base px-2 sm:px-4 py-1 sm:py-1.5 font-medium whitespace-nowrap"
+                className="text-white border-0 text-xs sm:text-sm px-2 sm:px-3 py-1 font-medium whitespace-nowrap"
                 style={{ backgroundColor: businessColor }}
               >
                 {task.phases.name}
@@ -509,7 +509,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
                   setDatePickerAnchor(e.currentTarget);
                   setShowDateTimePicker(true);
                 }}
-                className={`h-7 sm:h-8 px-2 sm:px-3 text-sm sm:text-base gap-1 w-[90px] sm:w-[117px] justify-center ${
+                className={`h-7 sm:h-8 px-1 sm:px-2 text-xs sm:text-xs gap-0.5 w-auto justify-center ${
                   overdue
                     ? 'text-red-400 hover:bg-red-500/10'
                     : dueToday
@@ -517,9 +517,9 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
                     : 'text-gray-400 hover:bg-gray-700'
                 }`}
               >
-                {overdue && <AlertCircle className="w-3 sm:w-4 h-3 sm:h-4" />}
-                <Calendar className="w-3 sm:w-4 h-3 sm:h-4" />
-                <span className="text-xs sm:text-base">
+                {overdue && <AlertCircle className="w-3 sm:w-3 h-3 sm:h-3" />}
+                <Calendar className="w-3 sm:w-3 h-3 sm:h-3" />
+                <span className="text-xs sm:text-xs">
                   {dueToday
                     ? 'Today'
                     : overdue
@@ -535,16 +535,16 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
                   setDatePickerAnchor(e.currentTarget);
                   setShowDateTimePicker(true);
                 }}
-                className="h-7 sm:h-8 px-2 sm:px-3 text-sm sm:text-base gap-1 w-[90px] sm:w-[117px] justify-center text-gray-500 hover:bg-gray-700 hover:text-gray-300"
+                className="h-7 sm:h-8 px-1 sm:px-2 text-xs sm:text-xs gap-0.5 w-auto justify-center text-gray-500 hover:bg-gray-700 hover:text-gray-300"
               >
-                <Calendar className="w-3 sm:w-4 h-3 sm:h-4" />
-                <span className="text-xs sm:text-base">Set Date</span>
+                <Calendar className="w-3 sm:w-3 h-3 sm:h-3" />
+                <span className="text-xs sm:text-xs">Set Date</span>
               </Button>
             )}
 
             {/* Schedule Status Button */}
             <div
-              className={`h-7 sm:h-8 px-2 sm:px-4 text-sm sm:text-base font-medium rounded-md w-[90px] sm:w-[117px] flex items-center justify-center text-white ${
+              className={`h-7 sm:h-8 px-1 sm:px-2 text-xs sm:text-xs font-medium rounded-md w-auto flex items-center justify-center text-white ${
                 isCompleted
                   ? 'bg-green-600'
                   : hasTimeBlocks
@@ -553,7 +553,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
               }`}
               title={earliestTimeBlock ? `Scheduled for ${earliestTimeBlock.scheduled_date}` : undefined}
             >
-              <span className="text-xs sm:text-base">
+              <span className="text-xs sm:text-xs">
                 {isCompleted
                   ? 'Completed'
                   : hasTimeBlocks && earliestTimeBlock
@@ -595,7 +595,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
           <div className="border-t border-gray-700/30" />
           <div className="p-3 sm:p-4 lg:p-6 max-w-full overflow-x-auto" style={{ backgroundColor: getExpandedBackground() }}>
             {/* Three-column layout - responsive: stacks on mobile, side-by-side on larger screens */}
-            <div className="grid grid-cols-1 2xl:grid-cols-[1fr_280px_1.5fr] gap-4 sm:gap-6 min-w-0">
+            <div className="grid grid-cols-1 2xl:grid-cols-[1fr_1.5fr_280px] gap-4 sm:gap-6 min-w-0">
               {/* Left Column - Notes Panel */}
               <div className="flex flex-col">
                 <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Notes</label>
@@ -621,7 +621,16 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
                 )}
               </div>
 
-              {/* Middle Column - Metadata */}
+              {/* Middle Column - Time Tracking Log */}
+              <div>
+                <TaskTimeLog
+                  taskId={task.id}
+                  hoursProjected={task.hours_projected || 0}
+                  hoursWorked={task.hours_worked || 0}
+                />
+              </div>
+
+              {/* Right Column - Metadata */}
               <div className="space-y-4">
                 {/* Row 1: Created & Automation */}
                 <div className="grid grid-cols-2 gap-3">
@@ -728,73 +737,75 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
                   </div>
                 </div>
 
-                {/* Task Completed Button */}
-                <Button
-                  onClick={() => {
-                    // Toggle completion
-                    if (isCompleted) {
-                      // Uncomplete the task
-                      handleUpdate({
-                        progress_percentage: 0,
-                        status: 'Not started',
-                        completed_at: null,
-                      });
-                    } else {
-                      // Validation checks before marking complete
-                      const missingFields: string[] = [];
+                {/* Task Completed Button & Completed Date & Delete Button */}
+                <div className="space-y-3">
+                  <Button
+                    onClick={() => {
+                      // Toggle completion
+                      if (isCompleted) {
+                        // Uncomplete the task
+                        handleUpdate({
+                          progress_percentage: 0,
+                          status: 'Not started',
+                          completed_at: null,
+                        });
+                      } else {
+                        // Validation checks before marking complete
+                        const missingFields: string[] = [];
 
-                      if (!task.hours_worked || task.hours_worked === 0) {
-                        missingFields.push('Time Tracking Log entries');
-                      }
-                      if (!task.effort_level) {
-                        missingFields.push('Money Maker');
-                      }
-                      if (!task.automation) {
-                        missingFields.push('Automation');
-                      }
-                      if (!task.hours_projected || task.hours_projected === 0) {
-                        missingFields.push('Hours Projected');
-                      }
+                        if (!task.hours_worked || task.hours_worked === 0) {
+                          missingFields.push('Time Tracking Log entries');
+                        }
+                        if (!task.effort_level) {
+                          missingFields.push('Money Maker');
+                        }
+                        if (!task.automation) {
+                          missingFields.push('Automation');
+                        }
+                        if (!task.hours_projected || task.hours_projected === 0) {
+                          missingFields.push('Hours Projected');
+                        }
 
-                      if (missingFields.length > 0) {
-                        alert(`Please fill out the following fields before marking this task as complete:\n\n${missingFields.join('\n')}`);
-                        return;
+                        if (missingFields.length > 0) {
+                          alert(`Please fill out the following fields before marking this task as complete:\n\n${missingFields.join('\n')}`);
+                          return;
+                        }
+
+                        // Mark as complete
+                        handleUpdate({
+                          progress_percentage: 100,
+                          status: 'Done',
+                          completed_at: new Date().toISOString(),
+                        });
                       }
+                    }}
+                    className={`w-full h-12 text-base font-semibold ${
+                      isCompleted
+                        ? 'bg-gray-600 hover:bg-gray-500 text-white'
+                        : 'bg-green-600 hover:bg-green-500 text-white'
+                    }`}
+                  >
+                    {isCompleted ? 'Uncomplete Task' : 'Mark Task Complete'}
+                  </Button>
 
-                      // Mark as complete
-                      handleUpdate({
-                        progress_percentage: 100,
-                        status: 'Done',
-                        completed_at: new Date().toISOString(),
-                      });
-                    }
-                  }}
-                  className={`w-full h-12 text-base font-semibold ${
-                    isCompleted
-                      ? 'bg-gray-600 hover:bg-gray-500 text-white'
-                      : 'bg-green-600 hover:bg-green-500 text-white'
-                  }`}
-                >
-                  {isCompleted ? 'Uncomplete Task' : 'Mark Task Complete'}
-                </Button>
-
-                {/* Completed Date */}
-                <div className="px-4 py-2.5 bg-gray-800/30 rounded-lg text-sm text-gray-100 border border-gray-700/30">
-                  {task.completed_at && task.completed_at !== 'null'
-                    ? `Completed: ${format(new Date(task.completed_at), 'MMM d, yyyy · h:mm a')}`
-                    : 'Completed: —'}
+                  {/* Completed Date & Delete Button Row */}
+                  <div className="grid grid-cols-[1fr_40px] gap-2">
+                    <div className="px-4 py-2.5 bg-gray-800/30 rounded-lg text-sm text-gray-100 border border-gray-700/30">
+                      {task.completed_at && task.completed_at !== 'null'
+                        ? `Completed: ${format(new Date(task.completed_at), 'MMM d, yyyy · h:mm a')}`
+                        : 'Completed: —'}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteClick()}
+                      className="h-10 w-10 p-0 text-red-500 hover:text-red-400 bg-white hover:bg-gray-100 rounded-lg"
+                      title="Delete task"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-
-              {/* Right Column - Time Tracking Log */}
-              <div>
-                <TaskTimeLog
-                  taskId={task.id}
-                  hoursProjected={task.hours_projected || 0}
-                  hoursWorked={task.hours_worked || 0}
-                  onDelete={handleDeleteClick}
-                  deleteClickCount={deleteClickCount}
-                />
               </div>
             </div>
           </div>

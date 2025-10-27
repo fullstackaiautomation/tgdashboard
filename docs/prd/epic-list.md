@@ -14,4 +14,7 @@ Enhance Deep Work log integration to calculate time allocation across businesses
 
 **Epic 5: Review Dashboard & Aggregated Views**
 Create unified Review page aggregating read-only activity across all 7 main areas, providing the "what's up" snapshot for 1-2 click visibility into entire life ecosystem.
+
+**Epic 6: Dashboard Cleanup - Brownfield Enhancement**
+Systematically refine and clean up all dashboard pages to improve user experience, fix UI inconsistencies, enhance visual polish, and improve usability across the entire application through incremental page-specific improvements.
 

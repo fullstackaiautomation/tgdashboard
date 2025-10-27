@@ -364,6 +364,7 @@ export const EnhancedTaskCard: FC<EnhancedTaskCardProps> = ({ task, className = 
                 {task.priority}
               </span>
             )}
+
           </div>
         </div>
       </div>

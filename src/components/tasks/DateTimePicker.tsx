@@ -4,6 +4,7 @@ import type { FC } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { formatDateString, parseLocalDateForDisplay } from '@/utils/dateHelpers';
+import styles from './DateTimePicker.module.css';
 
 interface DateTimePickerProps {
   scheduledDate?: string | null;
@@ -93,27 +94,16 @@ export const DateTimePicker: FC<DateTimePickerProps> = ({
       onClick={onClose}
     >
       <div
-        className="absolute bg-gray-800 rounded-lg shadow-2xl border border-gray-700 p-3"
+        className={styles.calendarContainer}
         onClick={(e) => e.stopPropagation()}
         style={position}
       >
-        <Calendar
-          mode="single"
-          selected={selectedDate}
-          onSelect={handleSelect}
-          className="rounded-md"
-        />
-
-        {/* Clear button at bottom */}
-        <div className="pt-2 border-t border-gray-700 mt-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClear}
-            className="w-full text-gray-400 hover:text-gray-200"
-          >
-            Clear Date
-          </Button>
+        <div className={styles.calendarWrapper}>
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={handleSelect}
+          />
         </div>
       </div>
     </div>
