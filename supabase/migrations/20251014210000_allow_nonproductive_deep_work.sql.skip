@@ -1,0 +1,16 @@
+-- Migration: Allow non-productive deep work sessions
+-- Purpose: Enable logging of non-productive activities (normal life stuff) without requiring area/business/life_area
+
+-- Drop the constraint that requires area info
+ALTER TABLE deep_work_sessions
+DROP CONSTRAINT IF EXISTS check_has_area_info;
+
+-- Add is_productive flag to distinguish between productive and non-productive activities
+ALTER TABLE deep_work_sessions
+ADD COLUMN IF NOT EXISTS is_productive BOOLEAN DEFAULT TRUE;
+
+-- Create index for filtering
+CREATE INDEX IF NOT EXISTS idx_deep_work_is_productive ON deep_work_sessions(is_productive);
+
+-- Add comment
+COMMENT ON COLUMN deep_work_sessions.is_productive IS 'TRUE for productive work, FALSE for non-productive activities (normal life stuff)';

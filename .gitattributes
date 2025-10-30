@@ -1,0 +1,17 @@
+# Force LF line endings for shell scripts and env files
+*.sh text eol=lf
+.env.example text eol=lf
+
+# Auto normalize line endings for text files
+* text=auto
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

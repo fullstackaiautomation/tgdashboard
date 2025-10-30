@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run build:*)",
+      "Bash(timeout 10 npm run dev:*)",
+      "Read(//c/Users/blkw/OneDrive/Documents/**)",
+      "Bash(curl:*)",
+      "Bash(supabase functions deploy:*)",
+      "Bash(npm run:*)",
+      "Bash(npx supabase:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(sqlite3:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git push:*)",
+      "Bash(supabase db push:*)",
+      "Bash(git restore:*)",
+      "Bash(git clone:*)",
+      "Bash(pnpm install)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npx shadcn@latest search:*)",
+      "Bash(npx shadcn-ui@latest add scroll-area:*)",
+      "Bash(npm ls:*)",
+      "Bash(git checkout:*)",
+      "Bash(git revert:*)",
+      "Bash(timeout 15 npm run dev)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
