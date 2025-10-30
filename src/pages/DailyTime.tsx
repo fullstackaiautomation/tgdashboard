@@ -47,15 +47,15 @@ export const DailyTime: FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 p-6">
+    <div className="min-h-screen bg-gray-950 text-gray-100 p-4 sm:p-6 md:p-8 lg:p-10">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <CalendarIcon className="w-8 h-8 text-blue-400" />
             <div>
-              <h1 className="text-3xl font-bold">Daily Time Tracker</h1>
-              <p className="text-gray-400">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">Daily Time Tracker</h1>
+              <p className="text-gray-400 text-sm sm:text-base">
                 {format(selectedDate, 'EEEE, MMMM d, yyyy')}
               </p>
             </div>
@@ -70,7 +70,7 @@ export const DailyTime: FC = () => {
             </button>
             <button
               onClick={handleToday}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
             >
               Today
             </button>
@@ -90,21 +90,21 @@ export const DailyTime: FC = () => {
       </div>
 
       {/* Top Row: Due Today Card + Deep Work Progress */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
         {/* Due Today Card */}
         <DueTodayCard date={selectedDate} />
 
         {/* Deep Work Progress Card */}
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-          <h3 className="text-xl font-bold text-white mb-4">Deep Work Progress</h3>
+        <div className="bg-gray-800 rounded-lg p-4 md:p-6 border border-gray-700">
+          <h3 className="text-lg md:text-xl font-bold text-white mb-4">Deep Work Progress</h3>
 
           {deepWorkProgress && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-400">
+                <span className="text-xs sm:text-sm text-gray-400">
                   {deepWorkProgress.hoursWorked.toFixed(1)}h of {deepWorkProgress.hoursGoal.toFixed(1)}h goal
                 </span>
-                <span className={`text-sm font-semibold ${
+                <span className={`text-xs sm:text-sm font-semibold ${
                   deepWorkProgress.deepWorkProgress < 33 ? 'text-red-400' :
                   deepWorkProgress.deepWorkProgress < 67 ? 'text-yellow-400' :
                   'text-green-400'
@@ -114,7 +114,7 @@ export const DailyTime: FC = () => {
               </div>
               <ProgressBar progress={deepWorkProgress.deepWorkProgress} size="md" showLabel={false} />
 
-              <div className="mt-4 text-sm text-gray-500">
+              <div className="mt-4 text-xs sm:text-sm text-gray-500">
                 {deepWorkProgress.deepWorkProgress >= 100 ? (
                   <p className="text-green-400">✅ Goal achieved! Great work!</p>
                 ) : deepWorkProgress.deepWorkProgress >= 80 ? (
@@ -133,13 +133,22 @@ export const DailyTime: FC = () => {
         <TimeAllocation date={selectedDate} />
       </div>
 
-      {/* Side-by-side layout: Planned Schedule vs Deep Work Log */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Left: Planned Schedule */}
-        <DailyScheduleView selectedDate={selectedDate} />
+      {/* Side-by-side layout: Planned Schedule vs Deep Work Log
+          Grid maintains proportional columns across all breakpoints:
+          - Mobile (default): single column
+          - Desktop (lg+): two equal columns with responsive gap
+          - 4K (4xl): max-width prevents infinite expansion
+      */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 lg:gap-8 mb-6">
+        {/* Left: Planned Schedule - constrained to prevent overflow */}
+        <div className="min-w-0">
+          <DailyScheduleView selectedDate={selectedDate} />
+        </div>
 
-        {/* Right: Deep Work Log (Actual) */}
-        <DeepWorkLogView selectedDate={selectedDate} />
+        {/* Right: Deep Work Log (Actual) - constrained to prevent overflow */}
+        <div className="min-w-0">
+          <DeepWorkLogView selectedDate={selectedDate} />
+        </div>
       </div>
 
       {/* End of Day Summary (only visible after 6pm) */}

@@ -38,8 +38,8 @@ export const DailyScheduleView: FC<DailyScheduleViewProps> = ({ selectedDate }) 
 
   if (isLoading) {
     return (
-      <div className="bg-gray-900 rounded-lg p-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-100">📅 Planned Schedule</h2>
+      <div className="bg-gray-900 rounded-lg p-4 md:p-6">
+        <h2 className="text-lg md:text-xl font-bold mb-4 text-gray-100">📅 Planned Schedule</h2>
         <div className="flex items-center justify-center h-64">
           <div className="text-gray-400">Loading schedule...</div>
         </div>
@@ -48,10 +48,10 @@ export const DailyScheduleView: FC<DailyScheduleViewProps> = ({ selectedDate }) 
   }
 
   return (
-    <div className="bg-gray-900 rounded-lg p-6">
+    <div className="bg-gray-900 rounded-lg p-4 md:p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-100">📅 Planned Schedule</h2>
-        <div className="text-sm text-gray-400">
+        <h2 className="text-lg md:text-xl font-bold text-gray-100">📅 Planned Schedule</h2>
+        <div className="text-xs md:text-sm text-gray-400">
           {sortedSchedule.length} {sortedSchedule.length === 1 ? 'block' : 'blocks'} · {totalPlannedHours}h planned
         </div>
       </div>
