@@ -6,48 +6,54 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **tg-dashboard** is a comprehensive personal productivity and financial management application built with React, TypeScript, Vite, and Supabase. The application integrates 5 main modules: Daily planning, Tasks Hub, Business Projects, Content Library, and Finance tracking.
 
-## Git Workflows
+## Git Workflows - CRITICAL DISTINCTION
 
-### Git Sync Workflow
-Syncs **all files** across machines including development files, notes, and tests to the private sync repository.
+⚠️ **TWO SEPARATE REPOSITORIES - DO NOT CONFUSE THEM** ⚠️
 
-**At the START of every session:**
-```bash
-git sync-start
-```
-This pulls the latest changes from your other machines.
+### PUSH SYNC = tg-dashboard-sync (PRIVATE)
+**Command**: User says "PUSH SYNC"
+**Repository**: https://github.com/fullstackaiautomation/tg-dashboard-sync (Private)
+**Branch**: master
+**What to include**: ALL FILES including:
+- ✅ .env (with secrets - SAFE because private)
+- ✅ .gitignore
+- ✅ All development files
+- ✅ All notes and documentation
+- ✅ Everything
 
-**At the END of every session:**
-```bash
-git sync-end
-```
-This automatically stages, commits, and pushes all changes with a timestamp.
+**Action Steps**:
+1. `git add .`
+2. `git commit -m "describe changes"`
+3. `git push origin master`
 
-**Manual commands (if aliases not available):**
-- Start: `git pull`
-- End: `git add . && git commit -m "describe changes" && git push`
+### PUSH LIVE = tgdashboard (PUBLIC)
+**Command**: User says "PUSH LIVE"
+**Repository**: https://github.com/fullstackaiautomation/tgdashboard (Public)
+**Remote name in code**: `main` (also called `main-repo`)
+**Branch**: master
+**What to include**: ONLY production-ready code
+- ✅ Built dist/ files
+- ✅ Source code (src/)
+- ✅ Configuration (package.json, tailwind.config.js, etc.)
+- ✅ Public documentation
+- ❌ .env (NEVER - contains secrets)
+- ❌ .gitignore (NEVER - contains security rules)
+- ❌ credentials.json
+- ❌ Any files with API keys
 
-**Repository:** https://github.com/fullstackaiautomation/tg-dashboard-sync (Private) - Branch: master
+**Action Steps**:
+1. `npm run build` (creates dist/ folder)
+2. `git add -f dist/` (force add, dist is in .gitignore)
+3. `git commit -m "Add built dist files for..."`
+4. `git push main master` (or `git push main master -f` if needed)
+5. GitHub Actions workflow triggers automatically
+6. Site deploys to https://tgdashboard.fullstackaiautomation.com
 
-### Push Live Workflow
-Pushes **production-ready code only** to deployment/public repositories. This workflow:
-- Excludes `.env` files and sensitive configuration
-- Excludes `credentials.json` and API keys
-- Filters out any files that won't pass security checks
-- Only syncs code safe for public deployment
+**CRITICAL**: Check for .env secrets before pushing to public. GitHub will block the push if secrets are detected.
 
-Use this when deploying or sharing code publicly without sensitive data.
-
-**Implementation Details**:
-1. Build locally: `npm run build` (creates dist/ folder)
-2. Copy dist to deploy repo: `cp -r dist/* tgdashboard-deploy/dist/`
-3. Commit and push: `git add dist/ && git commit && git push`
-4. GitHub Actions automatically deploys to GitHub Pages
-
-**Important Notes**:
-- Remove `dist` from `.gitignore` in deployment repo (so files are tracked)
-- Use Personal Access Token (PAT) with `workflow` scope to push workflow files
-- See [BUGS.md - GitHub Actions Issues](BUGS.md#github-actions--deployment-issues) for troubleshooting
+### Why Two Repos?
+- **tg-dashboard-sync (Private)**: Development work, all files, experimental code, secrets
+- **tgdashboard (Public)**: Live production code, public documentation, no secrets, automatic deployment
 
 ## Context Management
 
