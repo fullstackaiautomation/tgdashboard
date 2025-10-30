@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TG-Dashboard Knowledge Graph</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+        }
+        .status {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 15px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .loading {
+            color: #667eea;
+            font-style: italic;
+        }
+        .result {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c00;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧠 TG-Dashboard Knowledge Graph</h1>
+        <div class="status">Status: <span id="status">Checking...</span></div>
+    </div>
+
+    <div class="card">
+        <h2>📊 Graph Statistics</h2>
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="nodes">-</div>
+                <div class="stat-label">Total Nodes</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="relationships">-</div>
+                <div class="stat-label">Relationships</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="tasks">4</div>
+                <div class="stat-label">Tasks Synced</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="projects">3</div>
+                <div class="stat-label">Projects Synced</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🔍 Query Your Knowledge Graph</h2>
+        <input type="text" id="queryInput" placeholder="Ask a question... (e.g., 'What tasks are in progress?')" onkeypress="if(event.key==='Enter') queryGraph()">
+        <br><br>
+        <button onclick="queryGraph()">🔎 Search</button>
+        <button onclick="queryInput.value='What projects exist?'; queryGraph()">📁 Projects</button>
+        <button onclick="queryInput.value='What tasks are high priority?'; queryGraph()">⚡ High Priority Tasks</button>
+        <div id="queryResult"></div>
+    </div>
+
+    <div class="card">
+        <h2>📈 Quick Insights</h2>
+        <button onclick="getInsights('tasks')">📋 Task Insights</button>
+        <button onclick="getInsights('projects')">📁 Project Overview</button>
+        <div id="insightsResult"></div>
+    </div>
+
+    <div class="card">
+        <h2>🔄 Data Sync</h2>
+        <p>Sync your TG-Dashboard data to the knowledge graph.</p>
+        <button onclick="syncData('tasks')">Sync Tasks</button>
+        <button onclick="syncData('projects')">Sync Projects</button>
+        <button onclick="syncData('all')" style="background: #e74c3c;">⚠️ Sync All (may hit rate limit)</button>
+        <div id="syncResult"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+
+        // Check API status
+        async function checkStatus() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                document.getElementById('status').textContent = data.status === 'running' ? '✅ Running' : '❌ Offline';
+                document.getElementById('status').style.color = data.status === 'running' ? '#2ecc71' : '#e74c3c';
+            } catch (error) {
+                document.getElementById('status').textContent = '❌ Offline';
+                document.getElementById('status').style.color = '#e74c3c';
+            }
+        }
+
+        // Load graph stats (you'll need to implement this endpoint or use Neo4j directly)
+        async function loadStats() {
+            // For now, showing static values from our sync
+            document.getElementById('nodes').textContent = '26';
+            document.getElementById('relationships').textContent = '43';
+        }
+
+        // Query the knowledge graph
+        async function queryGraph() {
+            const query = document.getElementById('queryInput').value;
+            const resultDiv = document.getElementById('queryResult');
+
+            if (!query) {
+                alert('Please enter a question');
+                return;
+            }
+
+            resultDiv.innerHTML = '<div class="result loading">Searching knowledge graph...</div>';
+
+            try {
+                const response = await fetch(`${API_URL}/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: query })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="result">
+                            <strong>Answer:</strong><br><br>
+                            ${data.answer}
+                            <br><br>
+                            <strong>Confidence:</strong> ${data.confidence}
+                            <br><br>
+                            <strong>Results Found:</strong> ${data.results.length}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">Error: ${data.detail}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Get insights
+        async function getInsights(type) {
+            const resultDiv = document.getElementById('insightsResult');
+            resultDiv.innerHTML = '<div class="result loading">Generating insights...</div>';
+
+            try {
+                const response = await fetch(`${API_URL}/insights/${type}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="result">
+                            <strong>Insights:</strong><br><br>
+                            ${data.answer}
+                            <br><br>
+                            <strong>Confidence:</strong> ${data.confidence}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">Error: ${data.detail}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Sync data
+        async function syncData(type) {
+            const resultDiv = document.getElementById('syncResult');
+            resultDiv.innerHTML = '<div class="result loading">Starting sync... This may take a while.</div>';
+
+            try {
+                const response = await fetch(`${API_URL}/sync/${type}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="result">
+                            ✅ Sync completed!
+                            ${data.synced_count ? `<br><br>Synced: ${data.synced_count} items` : ''}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">⚠️ ${data.detail}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Initialize
+        checkStatus();
+        loadStats();
+        setInterval(checkStatus, 30000); // Check status every 30 seconds
+    </script>
+</body>
+</html>
+<!-- Add before closing </body> tag -->

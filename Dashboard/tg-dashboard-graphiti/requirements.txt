@@ -1,0 +1,13 @@
+# Core dependencies
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+python-dotenv==1.1.1
+
+# Graphiti and AI
+graphiti-core[anthropic]==0.22.0
+
+# Supabase
+supabase==2.11.0
+
+# Data handling
+pydantic==2.12.2
