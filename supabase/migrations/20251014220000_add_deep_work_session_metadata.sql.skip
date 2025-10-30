@@ -1,0 +1,354 @@
+-- Story 4.6: Add session metadata columns to deep_work_log for insights
+-- Enables tracking of session quality, interruptions, and goal achievement
+
+-- ============================================================================
+-- 1. Add metadata columns to deep_work_log
+-- ============================================================================
+ALTER TABLE deep_work_log
+ADD COLUMN IF NOT EXISTS is_planned BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE deep_work_log
+ADD COLUMN IF NOT EXISTS was_interrupted BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE deep_work_log
+ADD COLUMN IF NOT EXISTS interruption_reason TEXT DEFAULT NULL;
+
+ALTER TABLE deep_work_log
+ADD COLUMN IF NOT EXISTS goal_achieved BOOLEAN DEFAULT NULL;
+
+ALTER TABLE deep_work_log
+ADD COLUMN IF NOT EXISTS session_quality_rating INTEGER DEFAULT NULL
+  CHECK (session_quality_rating IS NULL OR (session_quality_rating >= 1 AND session_quality_rating <= 5));
+
+-- Create indexes for insights queries
+CREATE INDEX IF NOT EXISTS idx_deep_work_log_is_planned ON deep_work_log(is_planned);
+CREATE INDEX IF NOT EXISTS idx_deep_work_log_was_interrupted ON deep_work_log(was_interrupted);
+CREATE INDEX IF NOT EXISTS idx_deep_work_log_goal_achieved ON deep_work_log(goal_achieved);
+CREATE INDEX IF NOT EXISTS idx_deep_work_log_user_date_area ON deep_work_log(user_id, DATE(start_time), area);
+
+-- Add comments for documentation
+COMMENT ON COLUMN deep_work_log.is_planned IS 'Whether session was pre-scheduled (TRUE) or reactive (FALSE)';
+COMMENT ON COLUMN deep_work_log.was_interrupted IS 'Whether session was interrupted before natural completion';
+COMMENT ON COLUMN deep_work_log.interruption_reason IS 'Reason for interruption if was_interrupted is TRUE';
+COMMENT ON COLUMN deep_work_log.goal_achieved IS 'Whether session accomplished its intended goal (TRUE/FALSE/NULL for partial)';
+COMMENT ON COLUMN deep_work_log.session_quality_rating IS 'Self-assessed quality rating (1-5 scale)';
+
+-- ============================================================================
+-- 2. Session Analytics Function
+-- ============================================================================
+CREATE OR REPLACE FUNCTION get_session_analytics(
+  p_user_id UUID,
+  p_start_date DATE,
+  p_end_date DATE
+)
+RETURNS JSONB AS $$
+DECLARE
+  v_result JSONB;
+BEGIN
+  SELECT jsonb_build_object(
+    'total_sessions', COUNT(*),
+    'avg_session_length_minutes', ROUND(AVG(duration_minutes), 0),
+    'median_session_length_minutes', ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY duration_minutes), 0),
+    'longest_session_minutes', MAX(duration_minutes),
+    'shortest_session_minutes', MIN(duration_minutes),
+    'total_deep_work_hours', ROUND(SUM(duration_minutes) / 60.0, 2),
+    'avg_sessions_per_day', ROUND(COUNT(*)::NUMERIC / GREATEST(EXTRACT(DAY FROM p_end_date - p_start_date + INTERVAL '1 day'), 1), 1),
+    'session_length_distribution', jsonb_build_object(
+      'under_30min', COUNT(*) FILTER (WHERE duration_minutes < 30),
+      '30_to_60min', COUNT(*) FILTER (WHERE duration_minutes >= 30 AND duration_minutes < 60),
+      '60_to_90min', COUNT(*) FILTER (WHERE duration_minutes >= 60 AND duration_minutes < 90),
+      '90_to_120min', COUNT(*) FILTER (WHERE duration_minutes >= 90 AND duration_minutes < 120),
+      'over_120min', COUNT(*) FILTER (WHERE duration_minutes >= 120)
+    )
+  ) INTO v_result
+  FROM deep_work_log
+  WHERE user_id = p_user_id
+    AND DATE(start_time) >= p_start_date
+    AND DATE(start_time) <= p_end_date
+    AND end_time IS NOT NULL;
+
+  RETURN v_result;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+-- ============================================================================
+-- 3. Context Switching Detection
+-- ============================================================================
+CREATE OR REPLACE FUNCTION calculate_context_switches(
+  p_user_id UUID,
+  p_date DATE
+)
+RETURNS INTEGER AS $$
+  SELECT GREATEST(COUNT(DISTINCT area) - 1, 0)
+  FROM deep_work_log
+  WHERE user_id = p_user_id
+    AND DATE(start_time) = p_date
+    AND end_time IS NOT NULL;
+$$ LANGUAGE SQL STABLE;
+
+-- ============================================================================
+-- 4. Focus Quality Score
+-- ============================================================================
+CREATE OR REPLACE FUNCTION calculate_focus_quality_score(
+  p_user_id UUID,
+  p_start_date DATE,
+  p_end_date DATE
+)
+RETURNS NUMERIC AS $$
+  SELECT
+    CASE
+      WHEN COUNT(*) = 0 THEN 0
+      ELSE ROUND((COUNT(*) FILTER (WHERE is_planned = TRUE)::NUMERIC / COUNT(*)) * 100, 0)
+    END
+  FROM deep_work_log
+  WHERE user_id = p_user_id
+    AND DATE(start_time) >= p_start_date
+    AND DATE(start_time) <= p_end_date
+    AND end_time IS NOT NULL;
+$$ LANGUAGE SQL STABLE;
+
+-- ============================================================================
+-- 5. Completion Rate
+-- ============================================================================
+CREATE OR REPLACE FUNCTION calculate_completion_rate(
+  p_user_id UUID,
+  p_start_date DATE,
+  p_end_date DATE
+)
+RETURNS NUMERIC AS $$
+  SELECT
+    CASE
+      WHEN COUNT(*) FILTER (WHERE goal_achieved IS NOT NULL) = 0 THEN NULL
+      ELSE ROUND((COUNT(*) FILTER (WHERE goal_achieved = TRUE)::NUMERIC /
+        COUNT(*) FILTER (WHERE goal_achieved IS NOT NULL)) * 100, 0)
+    END
+  FROM deep_work_log
+  WHERE user_id = p_user_id
+    AND DATE(start_time) >= p_start_date
+    AND DATE(start_time) <= p_end_date
+    AND end_time IS NOT NULL;
+$$ LANGUAGE SQL STABLE;
+
+-- ============================================================================
+-- 6. Interruption Analysis
+-- ============================================================================
+CREATE OR REPLACE FUNCTION analyze_interruptions(
+  p_user_id UUID,
+  p_start_date DATE,
+  p_end_date DATE
+)
+RETURNS JSONB AS $$
+  SELECT jsonb_build_object(
+    'total_sessions', COUNT(*),
+    'interrupted_sessions', COUNT(*) FILTER (WHERE was_interrupted = TRUE),
+    'interruption_rate', ROUND((COUNT(*) FILTER (WHERE was_interrupted = TRUE)::NUMERIC / NULLIF(COUNT(*), 0)) * 100, 0),
+    'reasons', (
+      SELECT jsonb_object_agg(interruption_reason, reason_count)
+      FROM (
+        SELECT interruption_reason, COUNT(*) as reason_count
+        FROM deep_work_log
+        WHERE user_id = p_user_id
+          AND DATE(start_time) >= p_start_date
+          AND DATE(start_time) <= p_end_date
+          AND was_interrupted = TRUE
+          AND interruption_reason IS NOT NULL
+          AND end_time IS NOT NULL
+        GROUP BY interruption_reason
+        ORDER BY reason_count DESC
+      ) reasons
+    )
+  )
+  FROM deep_work_log
+  WHERE user_id = p_user_id
+    AND DATE(start_time) >= p_start_date
+    AND DATE(start_time) <= p_end_date
+    AND end_time IS NOT NULL;
+$$ LANGUAGE SQL STABLE;
+
+-- ============================================================================
+-- 7. Optimal Session Length Analysis
+-- ============================================================================
+CREATE OR REPLACE FUNCTION analyze_optimal_session_length(
+  p_user_id UUID,
+  p_area TEXT,
+  p_start_date DATE,
+  p_end_date DATE
+)
+RETURNS TABLE(
+  duration_bucket TEXT,
+  session_count INTEGER,
+  avg_completion_rate NUMERIC,
+  avg_quality_rating NUMERIC
+) AS $$
+  SELECT
+    CASE
+      WHEN duration_minutes < 30 THEN 'Under 30 min'
+      WHEN duration_minutes < 60 THEN '30-60 min'
+      WHEN duration_minutes < 90 THEN '60-90 min'
+      WHEN duration_minutes < 120 THEN '90-120 min'
+      ELSE 'Over 120 min'
+    END as duration_bucket,
+    COUNT(*)::INTEGER as session_count,
+    ROUND(AVG(CASE WHEN goal_achieved = TRUE THEN 100 WHEN goal_achieved = FALSE THEN 0 ELSE NULL END), 0) as avg_completion_rate,
+    ROUND(AVG(session_quality_rating), 1) as avg_quality_rating
+  FROM deep_work_log
+  WHERE user_id = p_user_id
+    AND (p_area IS NULL OR area = p_area)
+    AND DATE(start_time) >= p_start_date
+    AND DATE(start_time) <= p_end_date
+    AND end_time IS NOT NULL
+  GROUP BY duration_bucket
+  ORDER BY
+    CASE duration_bucket
+      WHEN 'Under 30 min' THEN 1
+      WHEN '30-60 min' THEN 2
+      WHEN '60-90 min' THEN 3
+      WHEN '90-120 min' THEN 4
+      WHEN 'Over 120 min' THEN 5
+    END;
+$$ LANGUAGE SQL STABLE;
+
+-- ============================================================================
+-- 8. Deep Work Streak Calculation
+-- ============================================================================
+CREATE OR REPLACE FUNCTION calculate_deep_work_streak(p_user_id UUID)
+RETURNS INTEGER AS $$
+DECLARE
+  v_current_streak INTEGER := 0;
+  v_check_date DATE := CURRENT_DATE;
+  v_session_count INTEGER;
+BEGIN
+  LOOP
+    SELECT COUNT(*)
+    INTO v_session_count
+    FROM deep_work_log
+    WHERE user_id = p_user_id
+      AND DATE(start_time) = v_check_date
+      AND end_time IS NOT NULL;
+
+    IF v_session_count > 0 THEN
+      v_current_streak := v_current_streak + 1;
+      v_check_date := v_check_date - INTERVAL '1 day';
+    ELSE
+      EXIT;
+    END IF;
+
+    -- Safety limit: check max 365 days
+    IF v_current_streak >= 365 THEN
+      EXIT;
+    END IF;
+  END LOOP;
+
+  RETURN v_current_streak;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+-- ============================================================================
+-- 9. Productivity Recommendations
+-- ============================================================================
+CREATE OR REPLACE FUNCTION generate_productivity_recommendations(p_user_id UUID)
+RETURNS JSONB AS $$
+DECLARE
+  v_recommendations JSONB := '[]'::JSONB;
+  v_record RECORD;
+BEGIN
+  -- Find optimal time of day per area (requires at least 5 sessions with goal_achieved data)
+  FOR v_record IN
+    SELECT
+      dwl.area,
+      CASE
+        WHEN EXTRACT(HOUR FROM dwl.start_time) BETWEEN 6 AND 11 THEN 'morning'
+        WHEN EXTRACT(HOUR FROM dwl.start_time) BETWEEN 12 AND 17 THEN 'afternoon'
+        WHEN EXTRACT(HOUR FROM dwl.start_time) BETWEEN 18 AND 23 THEN 'evening'
+        ELSE 'night'
+      END as time_period,
+      ROUND(AVG(CASE WHEN dwl.goal_achieved = TRUE THEN 100 WHEN dwl.goal_achieved = FALSE THEN 0 ELSE NULL END), 0) as completion_rate
+    FROM deep_work_log dwl
+    WHERE dwl.user_id = p_user_id
+      AND dwl.start_time >= NOW() - INTERVAL '30 days'
+      AND dwl.goal_achieved IS NOT NULL
+      AND dwl.end_time IS NOT NULL
+    GROUP BY dwl.area, time_period
+    HAVING COUNT(*) >= 5
+    ORDER BY completion_rate DESC
+    LIMIT 3
+  LOOP
+    v_recommendations := v_recommendations || jsonb_build_object(
+      'type', 'optimal_time',
+      'area', v_record.area,
+      'time_period', v_record.time_period,
+      'completion_rate', v_record.completion_rate,
+      'message', format('You''re most productive on %s in the %s (%s%% completion rate)',
+        v_record.area, v_record.time_period, v_record.completion_rate)
+    );
+  END LOOP;
+
+  -- Recommend reducing context switching if high
+  SELECT AVG(daily_switches) INTO v_record
+  FROM (
+    SELECT DATE(start_time) as day, COUNT(DISTINCT area) - 1 as daily_switches
+    FROM deep_work_log
+    WHERE user_id = p_user_id
+      AND start_time >= NOW() - INTERVAL '14 days'
+      AND end_time IS NOT NULL
+    GROUP BY day
+  ) daily_data;
+
+  IF v_record.avg >= 3 THEN
+    v_recommendations := v_recommendations || jsonb_build_object(
+      'type', 'reduce_context_switching',
+      'avg_switches', ROUND(v_record.avg, 1),
+      'message', format('You average %.1f context switches per day. Try dedicating full days to single areas for deeper focus.', v_record.avg)
+    );
+  END IF;
+
+  RETURN v_recommendations;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+-- ============================================================================
+-- 10. Context Switching Cost Analysis
+-- ============================================================================
+CREATE OR REPLACE FUNCTION calculate_context_switching_cost(
+  p_user_id UUID,
+  p_start_date DATE,
+  p_end_date DATE
+)
+RETURNS JSONB AS $$
+  WITH daily_metrics AS (
+    SELECT
+      DATE(start_time) as day,
+      COUNT(DISTINCT area) as areas_count,
+      SUM(duration_minutes) / 60.0 as total_hours,
+      AVG(CASE WHEN goal_achieved = TRUE THEN 100 WHEN goal_achieved = FALSE THEN 0 ELSE NULL END) as completion_rate,
+      COUNT(DISTINCT area) - 1 as context_switches
+    FROM deep_work_log
+    WHERE user_id = p_user_id
+      AND DATE(start_time) >= p_start_date
+      AND DATE(start_time) <= p_end_date
+      AND end_time IS NOT NULL
+    GROUP BY day
+  ),
+  focused_days AS (
+    SELECT * FROM daily_metrics WHERE areas_count = 1
+  ),
+  fragmented_days AS (
+    SELECT * FROM daily_metrics WHERE areas_count >= 3
+  )
+  SELECT jsonb_build_object(
+    'focused_days', jsonb_build_object(
+      'count', (SELECT COUNT(*) FROM focused_days),
+      'avg_hours', (SELECT ROUND(AVG(total_hours), 1) FROM focused_days),
+      'avg_completion_rate', (SELECT ROUND(AVG(completion_rate), 0) FROM focused_days)
+    ),
+    'fragmented_days', jsonb_build_object(
+      'count', (SELECT COUNT(*) FROM fragmented_days),
+      'avg_hours', (SELECT ROUND(AVG(total_hours), 1) FROM fragmented_days),
+      'avg_completion_rate', (SELECT ROUND(AVG(completion_rate), 0) FROM fragmented_days)
+    ),
+    'total_switching_cost_minutes', (
+      SELECT SUM(context_switches) * 15
+      FROM daily_metrics
+    )
+  );
+$$ LANGUAGE SQL STABLE;

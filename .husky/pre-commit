@@ -1,0 +1,83 @@
+#!/bin/bash
+# Pre-commit hook for secret detection
+# Blocks commits containing API keys, credentials, or sensitive files
+
+echo "🔍 Scanning for secrets before commit..."
+
+# Get list of staged files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+# Secret patterns to detect
+SUPABASE_KEY_PATTERN="eyJhbGciOiJI[A-Za-z0-9_-]*\\.eyJ[A-Za-z0-9_-]*"
+SUPABASE_NEW_KEY_PATTERN="sb_(secret|publishable)_[A-Za-z0-9_-]+"
+GENERIC_API_KEY_PATTERN="api[_-]?key['\"]?\s*[:=]\s*['\"][A-Za-z0-9]{20,}"
+CONNECTION_STRING_PATTERN="postgres(ql)?://[^/]+@[^/]+"
+PRIVATE_KEY_PATTERN="-----BEGIN.*PRIVATE KEY-----"
+
+# Check for .env files being staged
+if echo "$STAGED_FILES" | grep -qE "^\.env$|^\.env\.local$"; then
+    echo "❌ ERROR: Attempting to commit .env file"
+    echo "   Files detected: $(echo "$STAGED_FILES" | grep -E "^\.env")"
+    echo "   Remove from staging: git reset HEAD .env .env.local"
+    exit 1
+fi
+
+# Scan staged files for secret patterns
+ERROR_FOUND=false
+
+for file in $STAGED_FILES; do
+    if [[ -f "$file" ]]; then
+        # Skip binary files and node_modules
+        if file "$file" | grep -q "text" 2>/dev/null || [[ "$file" == *.ts ]] || [[ "$file" == *.tsx ]] || [[ "$file" == *.js ]] || [[ "$file" == *.jsx ]]; then
+
+            # Check for old Supabase JWT keys
+            if grep -qE "$SUPABASE_KEY_PATTERN" "$file" 2>/dev/null; then
+                echo "❌ ERROR: Supabase JWT key detected in $file"
+                echo "   Use environment variables: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY"
+                ERROR_FOUND=true
+            fi
+
+            # Check for new Supabase keys
+            if grep -qE "$SUPABASE_NEW_KEY_PATTERN" "$file" 2>/dev/null; then
+                # Allow in .env.example only
+                if [[ "$file" != ".env.example" ]]; then
+                    echo "❌ ERROR: Supabase API key detected in $file"
+                    echo "   Use environment variables instead"
+                    ERROR_FOUND=true
+                fi
+            fi
+
+            # Check for generic API keys
+            if grep -qE "$GENERIC_API_KEY_PATTERN" "$file" 2>/dev/null; then
+                echo "❌ ERROR: API key pattern detected in $file"
+                echo "   Use environment variables instead"
+                ERROR_FOUND=true
+            fi
+
+            # Check for database connection strings
+            if grep -qE "$CONNECTION_STRING_PATTERN" "$file" 2>/dev/null; then
+                echo "❌ ERROR: Database connection string detected in $file"
+                echo "   Use environment variables instead"
+                ERROR_FOUND=true
+            fi
+
+            # Check for private keys
+            if grep -qE "$PRIVATE_KEY_PATTERN" "$file" 2>/dev/null; then
+                echo "❌ ERROR: Private key detected in $file"
+                echo "   Never commit private keys"
+                ERROR_FOUND=true
+            fi
+        fi
+    fi
+done
+
+if [ "$ERROR_FOUND" = true ]; then
+    echo ""
+    echo "❌ COMMIT BLOCKED: Secrets detected"
+    echo "   Fix the issues above before committing"
+    echo "   To bypass (not recommended): git commit --no-verify"
+    exit 1
+fi
+
+echo "✅ No secrets detected - commit allowed"
+exit 0
