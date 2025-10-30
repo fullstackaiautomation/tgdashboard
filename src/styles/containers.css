@@ -1,0 +1,209 @@
+/* Responsive Container System
+ * Ensures consistent spacing and max-widths across all breakpoints
+ * Reference: docs/RESPONSIVE-DESIGN-AUDIT.md
+ */
+
+/* Main page container - full viewport with responsive side padding */
+.container-page {
+  width: 100%;
+  padding-left: 1.5rem;    /* 24px */
+  padding-right: 1.5rem;   /* 24px */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 640px) {
+  .container-page {
+    padding-left: 2rem;    /* 32px */
+    padding-right: 2rem;   /* 32px */
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-page {
+    padding-left: 2.5rem;   /* 40px */
+    padding-right: 2.5rem;  /* 40px */
+  }
+}
+
+@media (min-width: 1920px) {
+  .container-page {
+    max-width: 1600px;      /* Prevent huge screens from expanding infinitely */
+    padding-left: 3rem;     /* 48px */
+    padding-right: 3rem;    /* 48px */
+  }
+}
+
+/* Content container - used within pages for narrower content */
+.container-content {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 1920px) {
+  .container-content {
+    max-width: 1400px;
+  }
+}
+
+/* Responsive grid gaps - scale with screen size */
+.grid-gap-responsive {
+  gap: 1rem;        /* 16px - mobile */
+}
+
+@media (min-width: 768px) {
+  .grid-gap-responsive {
+    gap: 1.5rem;    /* 24px - tablet */
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-gap-responsive {
+    gap: 2rem;      /* 32px - desktop */
+  }
+}
+
+/* Two-column layout that maintains proportions */
+.layout-two-column {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .layout-two-column {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+}
+
+@media (min-width: 1920px) {
+  .layout-two-column {
+    gap: 2rem;
+  }
+}
+
+/* Prevent grid overflow on narrow widths */
+.grid-safe {
+  min-width: 0;
+}
+
+/* Responsive padding for sections */
+.section-padding {
+  padding: 1.5rem;    /* 24px - mobile */
+}
+
+@media (min-width: 768px) {
+  .section-padding {
+    padding: 2rem;    /* 32px - tablet */
+  }
+}
+
+@media (min-width: 1024px) {
+  .section-padding {
+    padding: 2.5rem;  /* 40px - desktop */
+  }
+}
+
+/* Responsive padding for cards */
+.card-padding {
+  padding: 1rem;      /* 16px - mobile */
+}
+
+@media (min-width: 768px) {
+  .card-padding {
+    padding: 1.5rem;  /* 24px - tablet */
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-padding {
+    padding: 1.5rem;  /* 24px - desktop */
+  }
+}
+
+/* Responsive text scaling helpers */
+.text-responsive-h1 {
+  font-size: 1.5rem;  /* 24px - mobile */
+  line-height: 2rem;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-h1 {
+    font-size: 1.875rem;  /* 30px - sm */
+    line-height: 2.25rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .text-responsive-h1 {
+    font-size: 2.25rem;   /* 36px - md */
+    line-height: 2.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-h1 {
+    font-size: 3rem;      /* 48px - lg */
+    line-height: 3.5rem;
+  }
+}
+
+.text-responsive-h2 {
+  font-size: 1.25rem;  /* 20px - mobile */
+  line-height: 1.75rem;
+}
+
+@media (min-width: 768px) {
+  .text-responsive-h2 {
+    font-size: 1.5rem;    /* 24px - md */
+    line-height: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-h2 {
+    font-size: 1.875rem;  /* 30px - lg */
+    line-height: 2.25rem;
+  }
+}
+
+.text-responsive-h3 {
+  font-size: 1.125rem;  /* 18px - mobile */
+  line-height: 1.75rem;
+}
+
+@media (min-width: 768px) {
+  .text-responsive-h3 {
+    font-size: 1.25rem;   /* 20px - md */
+    line-height: 1.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-h3 {
+    font-size: 1.5rem;    /* 24px - lg */
+    line-height: 2rem;
+  }
+}
+
+/* Responsive font sizing for body text */
+.text-responsive-body {
+  font-size: 0.875rem;  /* 14px - mobile */
+  line-height: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .text-responsive-body {
+    font-size: 1rem;      /* 16px - md */
+    line-height: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-body {
+    font-size: 1rem;      /* 16px - lg */
+    line-height: 1.625rem;
+  }
+}

@@ -62,7 +62,9 @@
       "Bash(export SUPABASE_ACCESS_TOKEN=\"sbp_6a061cc591875a5e800c1bfabb2cb1d9953ad06f\")",
       "Bash(supabase status:*)",
       "Bash(cat:*)",
-      "Read(//Users/tg/**)"
+      "Read(//Users/tg/**)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nSync all files from tg-dashboard-sync master branch\n\nMerged all project files including documentation, configurations, source code, and build artifacts from the private sync repository master branch to keep the local sync folder up to date.\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

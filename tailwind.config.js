@@ -8,7 +8,14 @@ export default {
   theme: {
   	extend: {
   		screens: {
-  			'3xl': '1920px',
+  			'xs': '320px',    // Mobile phones
+  			'sm': '640px',    // Small tablets
+  			'md': '768px',    // Tablets (Tailwind default)
+  			'lg': '1024px',   // Laptops (Tailwind default)
+  			'xl': '1280px',   // Desktop (Tailwind default)
+  			'2xl': '1536px',  // Large desktop (Tailwind default)
+  			'3xl': '1920px',  // HD monitors (custom)
+  			'4xl': '2560px',  // 4K monitors (custom)
   		},
   		colors: {
   			primary: {

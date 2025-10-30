@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Responsive Container System - Reference: docs/RESPONSIVE-DESIGN-AUDIT.md */
+@import './styles/containers.css';
+
 /* Prevent double-tap zoom on input fields only */
 input, button, textarea, select {
   touch-action: manipulation;

@@ -6,6 +6,68 @@ This document logs all major architectural and design decisions made during deve
 
 ## Decision Log
 
+### D-003: Responsive Design System Standardization
+**Date**: Oct 30, 2025
+**Author**: Claude (PM Agent)
+**Status**: 🔄 In Progress
+
+**Problem**:
+- Dashboard components display inconsistently across screen widths (1496px, 1920px, 2560px)
+- Tasks column too wide on 2560px, too narrow on 1496px
+- No consistent spacing or max-width rules
+- Developers unsure how to handle responsive design for new pages
+- Missing intermediate breakpoints for modern devices
+
+**Decision**:
+Implement a comprehensive responsive design system with:
+1. **Standardized Breakpoints**: xs, sm, md, lg, xl, 2xl, 3xl (1920px), 4xl (2560px)
+2. **Container Max-Widths**: Prevent infinite expansion at 3xl+ with max-width: 1600px
+3. **Responsive Spacing Scale**: Gap scales from 16px (mobile) → 24px (tablet) → 32px (desktop)
+4. **Grid Proportions**: 1-column → 2-column (lg) → 3-column layouts with consistent ratios
+5. **Typography Scaling**: Headlines scale responsively, body text sized appropriately per breakpoint
+
+**Rationale**:
+- Consistency: All pages follow same responsive patterns
+- Maintainability: Clear rules prevent ad-hoc responsive changes
+- Scalability: New pages can follow checklist instead of guessing
+- Accessibility: Proper sizing ensures readability at all breakpoints
+- Performance: CSS-based (not JavaScript), no layout thrashing
+
+**Implementation**:
+- ✅ Created `docs/RESPONSIVE-DESIGN-AUDIT.md` with complete standards
+- ✅ Created `src/styles/containers.css` with utility classes
+- ✅ Updated `tailwind.config.js` with new breakpoints (xs, sm, 3xl, 4xl)
+- ✅ Imported containers.css in `src/index.css`
+- 🔄 Fix DailyTime.tsx grid proportions (in progress)
+- 🔄 Audit and fix other pages (pending)
+- 🔄 Update component patterns docs (pending)
+
+**Testing Checklist**:
+- [ ] Test 1496px (MacBook) - columns proportional
+- [ ] Test 1920px (baseline) - reference layout
+- [ ] Test 2560px (4K) - max-width prevents overflow
+- [ ] Text readability at all sizes
+- [ ] No horizontal scrolling
+- [ ] Component spacing consistent
+
+**Trade-offs**:
+- Additional CSS file (minimal size)
+- Requires discipline in following grid patterns
+- May need to refactor existing inconsistent layouts
+
+**Impact**:
+- ✅ All new pages will have consistent responsive behavior
+- ✅ Users won't see drastic layout shifts when switching monitors
+- ✅ Improved readability across all device sizes
+- ✅ Reduced responsive design bugs
+
+**References**:
+- `docs/RESPONSIVE-DESIGN-AUDIT.md` - Full standards document
+- `src/styles/containers.css` - Responsive utilities
+- `tailwind.config.js` - Updated breakpoints
+
+---
+
 ### D-001: Documentation Structure Reorganization
 **Date**: Oct 26, 2025
 **Author**: Claude
