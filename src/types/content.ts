@@ -1,4 +1,6 @@
-export type ContentSource = 'Twitter' | 'YouTube' | 'Instagram' | 'Article' | 'Podcast' | 'Video' | 'Book' | 'Course' | 'Other'
+export type ContentSource = 'Website' | 'Twitter' | 'YouTube' | 'Instagram' | 'Other'
+
+export type ContentPlatform = ContentSource // Alias for new naming
 
 export type ContentCategory =
   | 'Full Stack Development'
@@ -35,6 +37,7 @@ export interface ContentItem {
   action_items?: string[]
   tags: string[]
   dashboard_areas?: string[] // Business UUIDs or life area strings (Health, Life, Finance, Golf)
+  agent?: string // Agent name or identifier
   saved_at: string
   completed_at?: string | null
   time_to_consume?: number | null // in minutes (legacy field)
@@ -42,6 +45,8 @@ export interface ContentItem {
   creator?: string
   rating?: number | null // 1-5 stars (legacy field)
   value_rating?: number | null // 1-10 value rating
+  tg_rating?: number | null // 1-10 TG rating
+  google_llm?: boolean // Yes/No for Google LLM
   is_favorite: boolean
   folder?: string
   created_at: string

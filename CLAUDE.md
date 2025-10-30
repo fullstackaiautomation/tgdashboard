@@ -57,10 +57,17 @@ npm preview
 
 Detailed documentation is organized in the `docs/` directory:
 
+### Core Documentation
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - App structure, tabs, components, and directory layout
 - **[docs/DATABASE.md](docs/DATABASE.md)** - Database schema, tables, and migrations workflow
 - **[docs/IMPLEMENTATION-GUIDE.md](docs/IMPLEMENTATION-GUIDE.md)** - Development workflow, patterns, and implementation details
 - **[docs/SETUP.md](docs/SETUP.md)** - Environment configuration and dependency setup
+
+### UI Component References
+- **[docs/SHADCN-TABLE-REFERENCE.md](docs/SHADCN-TABLE-REFERENCE.md)** - Complete guide to shadcn/ui table components
+- **[docs/SHADCN-TABLE-QUICK-START.md](docs/SHADCN-TABLE-QUICK-START.md)** - Quick reference for table implementation
+
+### Standards & Guidelines
 - **[docs/TIMEZONE-POLICY.md](docs/TIMEZONE-POLICY.md)** - **READ FIRST for any date/time work** - Complete timezone standards
 - **[docs/TIMEZONE-AUDIT-REPORT.md](docs/TIMEZONE-AUDIT-REPORT.md)** - Full audit of date/time handling
 
