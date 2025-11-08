@@ -95,14 +95,14 @@ ${contentCreator ? `\nCreator: ${contentCreator}` : ''}
 ` : 'No content available - analyze based on URL only.'}
 
 Please provide a JSON response with the following fields:
-- title: Create a concise 5-8 word title that summarizes the MAIN TOPIC or KEY INSIGHT of the content. Make it descriptive and specific about what the content teaches or discusses. DO NOT just copy the original title - create a NEW title that captures the essence.
+- title: ${url.includes('youtube.com') || url.includes('youtu.be') ? `Use the original title exactly: "${contentTitle}"` : 'Create a concise 5-8 word title that summarizes the MAIN TOPIC or KEY INSIGHT of the content. Make it descriptive and specific about what the content teaches or discusses. DO NOT just copy the original title - create a NEW title that captures the essence.'}
 - ai_summary: A concise bullet-point summary with 3-5 key takeaways or main points from the content. Format as markdown with bullet points (•). ${scrapedContent ? 'Base this on the actual content above.' : ''}
 - creator: ${contentCreator ? `Use "${contentCreator}"` : 'The author/creator (guess from URL if needed)'}
 - time_estimate: Estimated time to consume (e.g., "5 min", "15 min", "1 hour")
 - tags: Array of 2-4 relevant tags based on the content
 - value_rating: A 1-10 rating of how valuable/interesting this content seems
 
-Example title: "Building SaaS Through Organic YouTube Content"
+${url.includes('youtube.com') || url.includes('youtu.be') ? '' : 'Example title: "Building SaaS Through Organic YouTube Content"'}
 Example ai_summary format:
 "• First key point about the content
 • Second important takeaway
@@ -132,6 +132,27 @@ Return ONLY valid JSON, no markdown code blocks or explanations.`
     // Try to extract JSON from response (Claude might wrap it in markdown)
     let jsonMatch = responseText.match(/\{[\s\S]*\}/)
     const analysisData = jsonMatch ? JSON.parse(jsonMatch[0]) : {}
+
+    // Format tags to remove hyphens and properly capitalize
+    if (analysisData.tags && Array.isArray(analysisData.tags)) {
+      analysisData.tags = analysisData.tags.map((tag: string) => {
+        // Remove hyphens and replace with spaces
+        const withoutHyphens = tag.replace(/-/g, ' ')
+        // Capitalize each word
+        const words = withoutHyphens.trim().split(/\s+/)
+        const formatted = words.map(word => {
+          if (!word) return ''
+          // Keep common acronyms uppercase
+          const upperWord = word.toUpperCase()
+          if (['AI', 'API', 'UI', 'UX', 'CEO', 'CTO', 'AWS', 'GCP', 'SQL', 'HTTP', 'HTTPS', 'REST', 'JSON', 'XML', 'HTML', 'CSS', 'JS', 'TS'].includes(upperWord)) {
+            return upperWord
+          }
+          // Regular capitalization
+          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        }).join(' ')
+        return formatted
+      }).filter((tag: string) => tag)
+    }
 
     return new Response(
       JSON.stringify(analysisData),

@@ -14,13 +14,15 @@ import { supabase } from '../../lib/supabase';
 import { ProjectCard } from './ProjectCard';
 import { NewProjectModal } from './NewProjectModal';
 import { BusinessMetrics } from './BusinessMetrics';
+import { ProjectScheduling } from './ProjectScheduling';
 import { formatDateString, parseLocalDate } from '../../utils/dateHelpers';
 
 interface BusinessDashboardProps {
   preselectedBusinessArea?: string | null;
+  onNavigateToScheduling?: (businessId: string | null, projectId: string | null) => void;
 }
 
-export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusinessArea }) => {
+export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusinessArea, onNavigateToScheduling }) => {
   const { data: businesses, isLoading: businessesLoading } = useBusinesses();
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -195,6 +197,14 @@ export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusin
         <div className="flex gap-2">
           <Button
             size="sm"
+            className="bg-gray-700 hover:bg-gray-600 text-white"
+            onClick={() => onNavigateToScheduling?.(selectedBusinessId, selectedProjectId)}
+          >
+            <Calendar className="w-4 h-4 mr-1" />
+            Schedule
+          </Button>
+          <Button
+            size="sm"
             className="bg-purple-600 hover:bg-purple-700 text-white"
             onClick={() => setShowNewProjectModal(true)}
           >
@@ -270,8 +280,8 @@ export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusin
       })()}
 
       {/* Projects Section */}
-      <div className={selectedProjectId === null ? "grid grid-cols-[1fr_450px] gap-4" : ""}>
-        {/* Left Column - Projects List */}
+      <div>
+        {/* Projects List */}
         <div>
           {filteredProjects.length === 0 ? (
             <Card className="bg-gray-900/50 border-gray-800">
@@ -306,9 +316,7 @@ export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusin
               }
 
               return (
-                <div key={project.id} className={selectedProjectId === null ? "" : "grid grid-cols-[1fr_450px] gap-4"}>
-                  {/* Left Column - Project Details */}
-                  <Card className="bg-gray-900/60 border-gray-800 shadow-lg overflow-hidden">
+                <Card key={project.id} className="bg-gray-900/60 border-gray-800 shadow-lg overflow-hidden">
                     {/* Project Header */}
                     <div className="p-5" style={{ backgroundColor: `${business?.color}30` }}>
                       <div className="flex items-center justify-between">
@@ -399,183 +407,11 @@ export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusin
                       <ProjectCard project={project} businessId={project.business_id} businessColor={business?.color} />
                     </div>
                   </Card>
-
-                  {/* Right Column - Task Scheduler (Only show when a specific project is selected) */}
-                  {selectedProjectId !== null && (
-                    <Card className="shadow-lg h-fit sticky top-4" style={{
-                      backgroundColor: `${business?.color}15`,
-                      borderColor: `${business?.color}60`,
-                    }}>
-                      <div className="p-5">
-                        <h4 className="text-lg font-semibold text-gray-100 mb-4">Upcoming Tasks</h4>
-                        <div className="space-y-3 max-h-[600px] overflow-y-auto overflow-x-hidden">
-                          {(() => {
-                            // Get tasks for this project, sorted by due_date
-                            const upcomingTasks = projectTasks
-                              .filter(task => task.due_date && task.progress_percentage !== 100)
-                              .sort((a, b) => {
-                                if (!a.due_date) return 1;
-                                if (!b.due_date) return -1;
-                                return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-                              });
-
-                            if (upcomingTasks.length === 0) {
-                              return (
-                                <div className="text-sm text-gray-400 text-center py-8">
-                                  No upcoming tasks scheduled
-                                </div>
-                              );
-                            }
-
-                            return upcomingTasks.map((task) => {
-                              const dueDate = task.due_date ? parseLocalDate(task.due_date) : null;
-                              const today = new Date();
-                              today.setHours(0, 0, 0, 0);
-                              const isOverdue = dueDate && dueDate < today;
-                              const formattedDate = task.due_date || '';
-
-                              return (
-                                <div
-                                  key={task.id}
-                                  className="p-3 rounded-lg border transition-colors"
-                                  style={{
-                                    backgroundColor: `${business?.color}20`,
-                                    borderColor: `${business?.color}50`,
-                                  }}
-                                >
-                                  <div className="flex items-start justify-between gap-3">
-                                    <h5 className="font-semibold text-gray-100 text-base flex-1 break-words">
-                                      {task.task_name || 'Untitled Task'}
-                                    </h5>
-
-                                    {/* Due Date Picker */}
-                                    <div className="relative">
-                                      <input
-                                        type="date"
-                                        id={`task-date-${task.id}`}
-                                        value={formattedDate}
-                                        onChange={(e) => {
-                                          handleUpdateTaskDueDate(task.id, e.target.value);
-                                        }}
-                                        className="absolute opacity-0 pointer-events-none"
-                                      />
-                                      <button
-                                        onClick={() => {
-                                          const input = document.getElementById(`task-date-${task.id}`) as HTMLInputElement;
-                                          if (input) {
-                                            input.showPicker();
-                                          }
-                                        }}
-                                        className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-semibold whitespace-nowrap transition-colors ${
-                                          isOverdue
-                                            ? 'bg-red-600 text-white hover:bg-red-700'
-                                            : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
-                                        }`}
-                                      >
-                                        <Calendar className="w-3.5 h-3.5" />
-                                        <span>{dueDate ? dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date'}</span>
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            });
-                          })()}
-                        </div>
-                      </div>
-                    </Card>
-                  )}
-                </div>
               );
             })}
           </div>
         )}
         </div>
-        {/* End Left Column */}
-
-        {/* Right Column - Consolidated Task Scheduler (Only show when All Projects is selected) */}
-        {selectedProjectId === null && selectedBusinessId && (() => {
-          const business = businesses?.find(b => b.id === selectedBusinessId);
-          const upcomingTasks = filteredTasks
-            .filter(task => task.due_date && task.progress_percentage !== 100)
-            .sort((a, b) => {
-              if (!a.due_date) return 1;
-              if (!b.due_date) return -1;
-              return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-            });
-
-          return (
-            <Card className="shadow-lg h-fit sticky top-4" style={{
-              backgroundColor: `${business?.color}15`,
-              borderColor: `${business?.color}60`,
-            }}>
-              <div className="p-5">
-                <h4 className="text-lg font-semibold text-gray-100 mb-4">Upcoming Tasks</h4>
-                <div className="space-y-3 max-h-[600px] overflow-y-auto overflow-x-hidden">
-                  {upcomingTasks.length === 0 ? (
-                    <div className="text-sm text-gray-400 text-center py-8">
-                      No upcoming tasks scheduled
-                    </div>
-                  ) : (
-                    upcomingTasks.map((task) => {
-                      const dueDate = task.due_date ? parseLocalDate(task.due_date) : null;
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      const isOverdue = dueDate && dueDate < today;
-                      const formattedDate = task.due_date || '';
-
-                      return (
-                        <div
-                          key={task.id}
-                          className="p-3 rounded-lg border transition-colors"
-                          style={{
-                            backgroundColor: `${business?.color}20`,
-                            borderColor: `${business?.color}50`,
-                          }}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <h5 className="font-semibold text-gray-100 text-base flex-1 break-words">
-                              {task.task_name || 'Untitled Task'}
-                            </h5>
-
-                            {/* Due Date Picker */}
-                            <div className="relative">
-                              <input
-                                type="date"
-                                id={`task-date-all-${task.id}`}
-                                value={formattedDate}
-                                onChange={(e) => {
-                                  handleUpdateTaskDueDate(task.id, e.target.value);
-                                }}
-                                className="absolute opacity-0 pointer-events-none"
-                              />
-                              <button
-                                onClick={() => {
-                                  const input = document.getElementById(`task-date-all-${task.id}`) as HTMLInputElement;
-                                  if (input) {
-                                    input.showPicker();
-                                  }
-                                }}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-semibold whitespace-nowrap transition-colors ${
-                                  isOverdue
-                                    ? 'bg-red-600 text-white hover:bg-red-700'
-                                    : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
-                                }`}
-                              >
-                                <Calendar className="w-3.5 h-3.5" />
-                                <span>{dueDate ? dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date'}</span>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </Card>
-          );
-        })()}
       </div>
 
       {/* New Project Modal */}

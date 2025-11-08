@@ -149,11 +149,11 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
     <div className="space-y-3 mb-6">
       {/* Business/Area Filters Card - Full Width Stacked */}
       <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/30 shadow-lg">
-        <CardContent className="pt-4 pb-4">
-          <div className="grid grid-cols-8 gap-2">
+        <CardContent className="pt-3 pb-3 px-2 sm:pt-4 sm:pb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2">
             <Badge
               variant="outline"
-              className={`cursor-pointer px-5 py-3 text-lg font-semibold text-white transition-all duration-150 flex flex-col items-center ${
+              className={`cursor-pointer px-3 sm:px-5 py-2 sm:py-3 text-sm sm:text-lg font-semibold text-white transition-all duration-150 flex flex-col items-center min-h-[48px] sm:min-h-auto justify-center ${
                 selectedBusiness === null
                   ? 'border-2 border-white shadow-lg'
                   : 'border-0 hover:shadow-md'
@@ -171,7 +171,7 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
               <Badge
                 key={business.id}
                 variant="outline"
-                className={`cursor-pointer px-5 py-3 text-lg font-semibold text-white transition-all duration-150 flex flex-col items-center ${
+                className={`cursor-pointer px-3 sm:px-5 py-2 sm:py-3 text-sm sm:text-lg font-semibold text-white transition-all duration-150 flex flex-col items-center min-h-[48px] sm:min-h-auto justify-center ${
                   selectedBusiness === business.id
                     ? 'border-2 border-white shadow-lg'
                     : 'border-0 hover:shadow-md'
@@ -190,7 +190,7 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
               <Badge
                 key={area.id}
                 variant="outline"
-                className={`cursor-pointer px-5 py-3 text-lg font-semibold text-white transition-all duration-150 flex flex-col items-center ${
+                className={`cursor-pointer px-3 sm:px-5 py-2 sm:py-3 text-sm sm:text-lg font-semibold text-white transition-all duration-150 flex flex-col items-center min-h-[48px] sm:min-h-auto justify-center ${
                   selectedBusiness === area.id
                     ? 'border-2 border-white shadow-lg'
                     : 'border-0 hover:shadow-md'
@@ -210,12 +210,12 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
 
       {/* Status Filters Card - Full Width Stacked */}
       <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/30 shadow-lg">
-        <CardContent className="pt-4 pb-4">
-          <div className="grid grid-cols-8 gap-2">
+        <CardContent className="pt-3 pb-3 px-2 sm:pt-4 sm:pb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2">
             {/* All Tasks Filter - First Position */}
             <Badge
               variant="outline"
-              className={`cursor-pointer px-5 py-3 text-lg font-semibold text-white transition-all duration-150 flex flex-col items-center ${
+              className={`cursor-pointer px-3 sm:px-5 py-2 sm:py-3 text-sm sm:text-lg font-semibold text-white transition-all duration-150 flex flex-col items-center min-h-[48px] sm:min-h-auto justify-center ${
                 selectedStatus === null
                   ? 'border-2 border-white shadow-lg'
                   : 'border-0 hover:shadow-md'
@@ -233,7 +233,7 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
               <Badge
                 key={status.id}
                 variant="outline"
-                className={`cursor-pointer px-5 py-3 text-lg font-semibold text-white transition-all duration-150 flex flex-col items-center ${
+                className={`cursor-pointer px-3 sm:px-5 py-2 sm:py-3 text-sm sm:text-lg font-semibold text-white transition-all duration-150 flex flex-col items-center min-h-[48px] sm:min-h-auto justify-center ${
                   selectedStatus === status.id
                     ? 'border-2 border-white shadow-lg'
                     : 'border-0 hover:shadow-md'

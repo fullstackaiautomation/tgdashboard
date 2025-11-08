@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
+import { useIsMobile } from './hooks/useIsMobile'
 import ContentLibrary from './components/ContentLibrary'
 import { TasksHub } from './components/tasks/TasksHub'
 import { DeepWorkSessions } from './components/tasks/DeepWorkSessions'
 import { DeepWorkSidebar } from './components/tasks/DeepWorkSidebar'
 import { BusinessDashboard } from './components/business/BusinessDashboard'
+import { ProjectScheduling } from './components/business/ProjectScheduling'
 import FinanceDashboard from './components/finance/FinanceDashboard'
 import NotesBoard from './components/notes/NotesBoard'
 import { TimeAnalytics } from './pages/TimeAnalytics'
@@ -15,6 +17,7 @@ import { Calendar } from './pages/Calendar'
 import { DailyTime } from './pages/DailyTime'
 import { DeepWorkInsights } from './pages/DeepWorkInsights'
 import { ReviewDashboard } from './pages/ReviewDashboard'
+import { AutomationsBoard } from './components/automations'
 
 type Area = 'Full Stack' | 'S4' | '808' | 'Personal' | 'Huge Capital' | 'Golf' | 'Health'
 type EffortLevel = '$$$ Printer $$$' | '$ Makes Money $' | '-$ Save Dat $-' | ':( No Money ):' | '8) Vibing (8'
@@ -56,9 +59,11 @@ function App() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [deepWorkSessions, setDeepWorkSessions] = useState<any[]>([])
   const [selectedArea, _setSelectedArea] = useState<Area | 'All Areas'>('All Areas')
-  const [activeMainTab, setActiveMainTab] = useState<'tasks' | 'business' | 'content' | 'finance' | 'notes' | 'review' | 'analytics' | 'health' | 'planning' | 'calendar' | 'dailytime' | 'insights'>('tasks')
+  const [activeMainTab, setActiveMainTab] = useState<'tasks' | 'business' | 'content' | 'finance' | 'notes' | 'review' | 'analytics' | 'health' | 'planning' | 'calendar' | 'dailytime' | 'insights' | 'automations' | 'project-scheduling'>('tasks')
   const [activeTasksSubTab, setActiveTasksSubTab] = useState<'tasks-list' | 'deepwork'>('tasks-list') // NEW: Tasks Hub subtabs
   const [selectedBusinessArea, setSelectedBusinessArea] = useState<string | null>(null) // For Projects sub-pages
+  const [schedulingBusinessId, setSchedulingBusinessId] = useState<string | null>(null) // For Project Scheduling page
+  const [schedulingProjectId, setSchedulingProjectId] = useState<string | null>(null) // For Project Scheduling page
   const [selectedTimePeriod, _setSelectedTimePeriod] = useState<'All Time' | 'Today' | 'This Week' | 'This Month'>('All Time')
   const [selectedDWArea, _setSelectedDWArea] = useState<Area | 'All Areas'>('All Areas')
   const [selectedEffortLevel, _setSelectedEffortLevel] = useState<string>('All Levels')
@@ -90,6 +95,8 @@ function App() {
   const [showEditTaskDropdown, setShowEditTaskDropdown] = useState<boolean>(false)
   const [_editingTaskField, setEditingTaskField] = useState<{taskId: string, field: string} | null>(null)
   const [hoveredMainPage, setHoveredMainPage] = useState<string | null>(null)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const isMobile = useIsMobile()
 
   // Load persisted timer state on mount
   useEffect(() => {
@@ -936,7 +943,8 @@ function App() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#1a1a1a', color: '#fff', overflow: 'visible' }}>
-      {/* Sticky Sidebar */}
+      {/* Sticky Sidebar - Hidden on mobile */}
+      {!isMobile && (
       <div style={{
         width: '264px',
         backgroundColor: '#0f0f0f',
@@ -948,7 +956,8 @@ function App() {
         flexDirection: 'column',
         overflowY: 'auto',
         overflowX: 'visible',
-        zIndex: 100
+        zIndex: 100,
+        minWidth: '264px'
       }}>
         {/* Logo/Header */}
         <div style={{ padding: '24px', borderBottom: '1px solid #2a2a2a' }}>
@@ -1159,7 +1168,7 @@ function App() {
             </button>
 
             {/* Submenu on hover or when active */}
-            {(hoveredMainPage === 'business' || activeMainTab === 'business') && (
+            {(hoveredMainPage === 'business' || activeMainTab === 'business' || activeMainTab === 'automations') && (
               <div
                 style={{
                   marginTop: '4px',
@@ -1172,6 +1181,27 @@ function App() {
                 onMouseEnter={() => setHoveredMainPage('business')}
                 onMouseLeave={() => setHoveredMainPage(null)}
               >
+                <button
+                  onClick={() => {
+                    setActiveMainTab('automations');
+                    setSelectedBusinessArea(null);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: activeMainTab === 'automations' ? '#2a2a2a' : 'transparent',
+                    color: activeMainTab === 'automations' ? '#a855f7' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '18.9px',
+                    fontWeight: activeMainTab === 'automations' ? '600' : '500',
+                    textAlign: 'left',
+                    marginBottom: '4px'
+                  }}
+                >
+                  Automations
+                </button>
                 <button
                   onClick={() => {
                     setActiveMainTab('business');
@@ -1334,7 +1364,8 @@ function App() {
                     cursor: 'pointer',
                     fontSize: '18.9px',
                     fontWeight: selectedBusinessArea === 'Service SaaS' ? '600' : '500',
-                    textAlign: 'left'
+                    textAlign: 'left',
+                    marginBottom: '4px'
                   }}
                 >
                   Service SaaS
@@ -1636,9 +1667,654 @@ function App() {
         </div>
 
       </div>
+      )}
+
+      {/* Mobile Sidebar Overlay */}
+      {mobileSidebarOpen && isMobile && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 40
+          }}
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar Menu */}
+      {mobileSidebarOpen && isMobile && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '264px',
+          height: '100vh',
+          backgroundColor: '#0f0f0f',
+          borderRight: '1px solid #2a2a2a',
+          display: 'flex',
+          flexDirection: 'column',
+          overflowY: 'auto',
+          zIndex: 50
+        }}>
+          {/* Logo/Header */}
+          <div style={{ padding: '24px', borderBottom: '1px solid #2a2a2a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h1 style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              background: 'linear-gradient(to right, #f97316, #eab308)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              marginBottom: '0'
+            }}>
+              TG Dashboard
+            </h1>
+            <button
+              onClick={() => setMobileSidebarOpen(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#9ca3af',
+                fontSize: '24px',
+                cursor: 'pointer',
+                padding: '0'
+              }}
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Navigation - With Sub-Pages */}
+          <div style={{ flex: 1, padding: '16px', position: 'relative', overflow: 'visible' }}>
+            {/* Daily Section with Sub-Pages */}
+            <div style={{ marginBottom: '8px' }}>
+              <button
+                onClick={() => setHoveredMainPage(hoveredMainPage === 'daily' ? null : 'daily')}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: activeMainTab === 'tasks' || activeMainTab === 'calendar' || activeMainTab === 'dailytime' || activeMainTab === 'analytics' ? '#10b981' : 'transparent',
+                  color: activeMainTab === 'tasks' || activeMainTab === 'calendar' || activeMainTab === 'dailytime' || activeMainTab === 'analytics' ? 'white' : '#10b981',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  textAlign: 'left',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                Daily
+                <span style={{ fontSize: '12px' }}>▼</span>
+              </button>
+              {/* Sub-pages */}
+              {hoveredMainPage === 'daily' && (
+                <div style={{ marginTop: '4px', marginLeft: '16px', borderLeft: '2px solid #10b981', paddingLeft: '8px' }}>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('tasks')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: activeMainTab === 'tasks' ? '#047857' : 'transparent',
+                      color: '#10b981',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    Tasks
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('calendar')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: activeMainTab === 'calendar' ? '#047857' : 'transparent',
+                      color: '#10b981',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    Calendar
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('dailytime')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: activeMainTab === 'dailytime' ? '#047857' : 'transparent',
+                      color: '#10b981',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left'
+                    }}
+                  >
+                    Daily Time
+                  </button>
+                </div>
+              )}
+            </div>
+            {/* Projects Section with Sub-Pages */}
+            <div style={{ marginBottom: '8px' }}>
+              <button
+                onClick={() => setHoveredMainPage(hoveredMainPage === 'projects' ? null : 'projects')}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: activeMainTab === 'business' ? '#a855f7' : 'transparent',
+                  color: activeMainTab === 'business' ? 'white' : '#a855f7',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  textAlign: 'left',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                Projects
+                <span style={{ fontSize: '12px' }}>▼</span>
+              </button>
+              {hoveredMainPage === 'projects' && (
+                <div style={{ marginTop: '4px', marginLeft: '16px', borderLeft: '2px solid #a855f7', paddingLeft: '8px' }}>
+                  {/* Automations - First */}
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('automations')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: activeMainTab === 'automations' ? '#7e22ce' : 'transparent',
+                      color: '#a855f7',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    Automations
+                  </button>
+                  {/* Business Areas */}
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('business')
+                      setSelectedBusinessArea('full-stack')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: selectedBusinessArea === 'full-stack' ? '#7e22ce' : 'transparent',
+                      color: '#a855f7',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    Full Stack
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('business')
+                      setSelectedBusinessArea('huge-capital')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: selectedBusinessArea === 'huge-capital' ? '#7e22ce' : 'transparent',
+                      color: '#a855f7',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    Huge Capital
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('business')
+                      setSelectedBusinessArea('s4')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: selectedBusinessArea === 's4' ? '#7e22ce' : 'transparent',
+                      color: '#a855f7',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    S4
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('business')
+                      setSelectedBusinessArea('808')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: selectedBusinessArea === '808' ? '#7e22ce' : 'transparent',
+                      color: '#a855f7',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    808
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('business')
+                      setSelectedBusinessArea('personal')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: selectedBusinessArea === 'personal' ? '#7e22ce' : 'transparent',
+                      color: '#a855f7',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    Personal
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('business')
+                      setSelectedBusinessArea('health')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: selectedBusinessArea === 'health' ? '#7e22ce' : 'transparent',
+                      color: '#a855f7',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    Health
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('business')
+                      setSelectedBusinessArea('golf')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: selectedBusinessArea === 'golf' ? '#7e22ce' : 'transparent',
+                      color: '#a855f7',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    Golf
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('business')
+                      setSelectedBusinessArea('service-saas')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: selectedBusinessArea === 'service-saas' ? '#7e22ce' : 'transparent',
+                      color: '#a855f7',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    Service SaaS
+                  </button>
+                </div>
+              )}
+            </div>
+            {/* Resources Section with Sub-Pages */}
+            <div style={{ marginBottom: '8px' }}>
+              <button
+                onClick={() => setHoveredMainPage(hoveredMainPage === 'resources' ? null : 'resources')}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: activeMainTab === 'content' || activeMainTab === 'notes' ? '#10b981' : 'transparent',
+                  color: activeMainTab === 'content' || activeMainTab === 'notes' ? 'white' : '#10b981',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  textAlign: 'left',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                Resources
+                <span style={{ fontSize: '12px' }}>▼</span>
+              </button>
+              {hoveredMainPage === 'resources' && (
+                <div style={{ marginTop: '4px', marginLeft: '16px', borderLeft: '2px solid #10b981', paddingLeft: '8px' }}>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('content')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: activeMainTab === 'content' ? '#047857' : 'transparent',
+                      color: '#10b981',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    Content Library
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('notes')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: activeMainTab === 'notes' ? '#047857' : 'transparent',
+                      color: '#10b981',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left'
+                    }}
+                  >
+                    Notes
+                  </button>
+                </div>
+              )}
+            </div>
+            <div style={{ marginBottom: '8px', position: 'relative' }}>
+              <button
+                onClick={() => {
+                  setActiveMainTab('finance')
+                  setMobileSidebarOpen(false)
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: activeMainTab === 'finance' ? '#eab308' : 'transparent',
+                  color: activeMainTab === 'finance' ? 'white' : '#eab308',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  textAlign: 'left'
+                }}
+              >
+                Finance
+              </button>
+            </div>
+            <div style={{ marginBottom: '8px', position: 'relative' }}>
+              <button
+                onClick={() => {
+                  setActiveMainTab('health')
+                  setMobileSidebarOpen(false)
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: activeMainTab === 'health' ? '#14b8a6' : 'transparent',
+                  color: activeMainTab === 'health' ? 'white' : '#14b8a6',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  textAlign: 'left'
+                }}
+              >
+                Health
+              </button>
+            </div>
+            {/* Review Section with Sub-Pages */}
+            <div style={{ marginBottom: '8px' }}>
+              <button
+                onClick={() => setHoveredMainPage(hoveredMainPage === 'review' ? null : 'review')}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: activeMainTab === 'review' || activeMainTab === 'analytics' || activeMainTab === 'insights' || activeMainTab === 'planning' ? '#ec4899' : 'transparent',
+                  color: activeMainTab === 'review' || activeMainTab === 'analytics' || activeMainTab === 'insights' || activeMainTab === 'planning' ? 'white' : '#ec4899',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  textAlign: 'left',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                Review
+                <span style={{ fontSize: '12px' }}>▼</span>
+              </button>
+              {hoveredMainPage === 'review' && (
+                <div style={{ marginTop: '4px', marginLeft: '16px', borderLeft: '2px solid #ec4899', paddingLeft: '8px' }}>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('review')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: activeMainTab === 'review' ? '#be185d' : 'transparent',
+                      color: '#ec4899',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('analytics')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: activeMainTab === 'analytics' ? '#be185d' : 'transparent',
+                      color: '#ec4899',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    Analytics
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('insights')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: activeMainTab === 'insights' ? '#be185d' : 'transparent',
+                      color: '#ec4899',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left',
+                      marginBottom: '4px'
+                    }}
+                  >
+                    Insights
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveMainTab('planning')
+                      setMobileSidebarOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: activeMainTab === 'planning' ? '#be185d' : 'transparent',
+                      color: '#ec4899',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      textAlign: 'left'
+                    }}
+                  >
+                    Planning
+                  </button>
+                </div>
+              )}
+            </div>
+            <div style={{ marginBottom: '8px', position: 'relative' }}>
+              <button
+                onClick={() => {
+                  setActiveMainTab('automations')
+                  setMobileSidebarOpen(false)
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: activeMainTab === 'automations' ? '#f59e0b' : 'transparent',
+                  color: activeMainTab === 'automations' ? 'white' : '#f59e0b',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  textAlign: 'left'
+                }}
+              >
+                Automations
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+
+        {/* Mobile Header with Hamburger Menu */}
+        {isMobile && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '12px 16px',
+            borderBottom: '1px solid #2a2a2a',
+            backgroundColor: '#0f0f0f'
+          }}>
+            <button
+              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#9ca3af',
+                cursor: 'pointer',
+                padding: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              aria-label="Toggle sidebar"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
+            <span style={{ color: '#e5e7eb', fontSize: '14px', fontWeight: '500', flex: 1 }}>Menu</span>
+          </div>
+        )}
 
         {/* Tasks Hub Tab */}
         {activeMainTab === 'tasks' && (
@@ -1664,7 +2340,32 @@ function App() {
         {/* Business Tab */}
         {activeMainTab === 'business' && (
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            <BusinessDashboard preselectedBusinessArea={selectedBusinessArea} />
+            <BusinessDashboard
+              preselectedBusinessArea={selectedBusinessArea}
+              onNavigateToScheduling={(businessId, projectId) => {
+                setSchedulingBusinessId(businessId);
+                setSchedulingProjectId(projectId);
+                setActiveMainTab('project-scheduling');
+              }}
+            />
+          </div>
+        )}
+
+        {/* Project Scheduling Tab */}
+        {activeMainTab === 'project-scheduling' && (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <ProjectScheduling
+              selectedBusinessId={schedulingBusinessId}
+              selectedProjectId={schedulingProjectId}
+              onBack={() => setActiveMainTab('business')}
+            />
+          </div>
+        )}
+
+        {/* Automations Tab */}
+        {activeMainTab === 'automations' && (
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+            <AutomationsBoard />
           </div>
         )}
 
@@ -1677,7 +2378,7 @@ function App() {
 
         {/* Finance Tab */}
         {activeMainTab === 'finance' && (
-          <div style={{ flex: 1, overflow: 'hidden' }}>
+          <div style={{ flex: 1, overflow: 'auto' }}>
             <FinanceDashboard />
           </div>
         )}

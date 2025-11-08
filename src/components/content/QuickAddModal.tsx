@@ -3,6 +3,7 @@ import { X, Link as LinkIcon, Loader2 } from 'lucide-react'
 import type { ContentItem, ContentSource } from '../../types/content'
 import { analyzeContentURL } from '../../services/aiContentAnalyzer'
 import { supabase } from '../../lib/supabase'
+import { formatTags, formatTag } from '../../utils/tagFormatter'
 
 // Tag color mapping
 const TAG_COLORS: Record<string, string> = {
@@ -56,13 +57,14 @@ export const QuickAddModal: FC<QuickAddModalProps> = ({
   const [formData, setFormData] = useState<Partial<ContentItem>>({
     title: '',
     url: '',
-    source: 'Article',
+    source: 'Website',
     category: 'Full Stack Development',
     ai_summary: '',
     status: 'To Watch',
     priority: 'Medium',
     tags: [],
     dashboard_areas: [],
+    google_llm: false, // Default to "No"
   })
 
   // Fetch existing tags from database
@@ -91,10 +93,11 @@ export const QuickAddModal: FC<QuickAddModalProps> = ({
   if (!isOpen) return null
 
   const handleAddTag = () => {
-    if (tagInput.trim() && !(formData.tags || []).includes(tagInput.trim())) {
+    const formattedTag = formatTag(tagInput.trim())
+    if (formattedTag && !(formData.tags || []).includes(formattedTag)) {
       setFormData({
         ...formData,
-        tags: [...(formData.tags || []), tagInput.trim()]
+        tags: [...(formData.tags || []), formattedTag]
       })
       setTagInput('')
       setShowTagSuggestions(false)
@@ -123,7 +126,7 @@ export const QuickAddModal: FC<QuickAddModalProps> = ({
 
       // Detect source from domain
       const parsedUrl = new URL(url)
-      let source: ContentSource = 'Article'
+      let source: ContentSource = 'Website'
       if (parsedUrl.hostname.includes('youtube.com') || parsedUrl.hostname.includes('youtu.be')) {
         source = 'YouTube'
       } else if (parsedUrl.hostname.includes('twitter.com') || parsedUrl.hostname.includes('x.com')) {
@@ -131,7 +134,7 @@ export const QuickAddModal: FC<QuickAddModalProps> = ({
       } else if (parsedUrl.hostname.includes('instagram.com')) {
         source = 'Instagram'
       } else if (parsedUrl.hostname.includes('github.com')) {
-        source = 'Article'
+        source = 'Website'
       }
 
       setFormData({
@@ -142,7 +145,7 @@ export const QuickAddModal: FC<QuickAddModalProps> = ({
         ai_summary: analysis.ai_summary,
         creator: analysis.creator,
         time_estimate: analysis.time_estimate,
-        tags: analysis.tags || [],
+        tags: formatTags(analysis.tags || []),
         dashboard_areas: analysis.dashboard_areas || [],
         value_rating: analysis.value_rating,
         thumbnail_url: analysis.thumbnail_url,
@@ -168,7 +171,7 @@ export const QuickAddModal: FC<QuickAddModalProps> = ({
     setFormData({
       title: '',
       url: '',
-      source: 'Article',
+      source: 'Website',
       ai_summary: '',
       status: 'To Watch',
       priority: 'Medium',

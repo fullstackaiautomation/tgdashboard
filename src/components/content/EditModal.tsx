@@ -2,6 +2,7 @@ import { type FC, useState, useEffect } from 'react'
 import { X, Save } from 'lucide-react'
 import type { ContentItem, ContentSource, ContentCategory, ContentStatus, ContentPriority } from '../../types/content'
 import type { Business } from '../../types/business'
+import { parseAndFormatTags } from '../../utils/tagFormatter'
 
 interface EditModalProps {
   isOpen: boolean
@@ -278,7 +279,7 @@ export const EditModal: FC<EditModalProps> = ({
               value={(formData.tags || []).join(', ')}
               onChange={(e) => setFormData({
                 ...formData,
-                tags: e.target.value.split(',').map(t => t.trim()).filter(t => t)
+                tags: parseAndFormatTags(e.target.value)
               })}
               placeholder="react, typescript, tutorial"
               className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"

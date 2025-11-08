@@ -26,6 +26,10 @@ export type Automation = 'Automate' | 'Manual' | 'Delegate'
 
 export type RecurringType = 'none' | 'daily' | 'daily_weekdays' | 'weekly' | 'monthly' | 'custom'
 
+export type EnergyLevel = 'Deep Work' | 'Admin'
+
+export type EstimationAccuracy = 'Overestimated' | 'Underestimated' | 'Accurate'
+
 export interface ChecklistItem {
   id: string
   text: string
@@ -117,6 +121,11 @@ export interface TaskHub {
   // Checklist
   checklist: ChecklistItem[]
 
+  // Metadata fields
+  energy_level: EnergyLevel | null
+  hours_accuracy: number | null
+  estimation_accuracy: EstimationAccuracy | null
+
   // Timestamps (string dates from Supabase)
   created_at: string
   updated_at: string
@@ -160,6 +169,11 @@ export interface CreateTaskDTO {
   recurring_days?: number[]
   is_recurring_template?: boolean
   recurring_parent_id?: string
+
+  // Metadata fields
+  energy_level?: EnergyLevel
+  hours_accuracy?: number
+  estimation_accuracy?: EstimationAccuracy
 }
 
 export interface UpdateTaskDTO {
@@ -200,6 +214,11 @@ export interface UpdateTaskDTO {
   recurring_type?: RecurringType | null
   recurring_interval?: number | null
   recurring_days?: number[] | null
+
+  // Metadata fields
+  energy_level?: EnergyLevel | null
+  hours_accuracy?: number | null
+  estimation_accuracy?: EstimationAccuracy | null
 
   // Checklist
   checklist?: ChecklistItem[]

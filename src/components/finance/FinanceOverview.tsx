@@ -342,10 +342,10 @@ const FinanceOverview = () => {
   const totalDebtUtilization = totalDebtOriginal > 0 ? (totalDebt / totalDebtOriginal) * 100 : 0
 
   return (
-    <div className="h-full overflow-y-auto p-6 space-y-6" style={{ minWidth: 0 }}>
-      <div className="max-w-full mx-auto" style={{ maxWidth: '1600px' }}>
+    <div className="h-full overflow-y-auto p-4 pr-6 space-y-4" style={{ minWidth: 0 }}>
+      <div className="w-full max-w-5xl mx-auto"  style={{ minWidth: 0 }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-3xl font-bold text-white">Net Worth</h2>
         </div>
@@ -371,39 +371,36 @@ const FinanceOverview = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
         {/* Net Worth */}
-        <div className="bg-gradient-to-br from-green-600 to-emerald-700 rounded-xl p-6 text-white">
-          <div className="flex items-center gap-3 mb-2">
-            <Wallet className="w-6 h-6" />
-            <p className="text-sm opacity-90">Net Worth</p>
+        <div className="bg-gradient-to-br from-green-600 to-emerald-700 rounded-xl p-4 text-white min-w-0 overflow-hidden">
+          <div className="flex items-center gap-2 mb-2">
+            <Wallet className="w-5 h-5 flex-shrink-0" />
+            <p className="text-xs opacity-90">Net Worth</p>
           </div>
-          <div className="flex items-center justify-between">
-            <h3 className="text-5xl font-bold">{formatCurrency(summary?.net_worth || 0)}</h3>
+          <div className="flex flex-col gap-1">
+            <h3 className="text-3xl xl:text-4xl font-bold">{formatCurrency(summary?.net_worth || 0)}</h3>
             {(() => {
               const trends = calculateTrends(summary?.net_worth || 0, 'netWorth')
               return (
-                <div className="space-y-0">
-                  <div className="flex items-center gap-0.5 text-sm">
-                    <span className="w-7 text-right font-bold opacity-80">1y:</span>
-                    <span className={`${trends.change1Year >= 0 ? 'text-green-400' : 'text-red-400'} min-w-[60px] text-right`}>
-                      {trends.change1Year >= 0 ? '+' : ''}{formatCurrency(trends.change1Year)}
+                <div className="space-y-0.5 text-xs">
+                  <div className="flex items-center gap-1">
+                    <span className="w-6 text-right font-semibold opacity-80">1y:</span>
+                    <span className={`${trends.change1Year >= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
+                      {trends.change1Year >= 0 ? '+' : ''}{formatCurrency(trends.change1Year)} ({trends.percent1Year >= 0 ? '+' : ''}{trends.percent1Year.toFixed(0)}%)
                     </span>
-                    <span className={`${trends.change1Year >= 0 ? 'text-green-400' : 'text-red-400'} min-w-[50px] text-right`}>({trends.percent1Year >= 0 ? '+' : ''}{trends.percent1Year.toFixed(0)}%)</span>
                   </div>
-                  <div className="flex items-center gap-0.5 text-sm">
-                    <span className="w-7 text-right font-bold opacity-80">30d:</span>
-                    <span className={`${trends.change30Days >= 0 ? 'text-green-400' : 'text-red-400'} min-w-[60px] text-right`}>
-                      {trends.change30Days >= 0 ? '+' : ''}{formatCurrency(trends.change30Days)}
+                  <div className="flex items-center gap-1">
+                    <span className="w-6 text-right font-semibold opacity-80">30d:</span>
+                    <span className={`${trends.change30Days >= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
+                      {trends.change30Days >= 0 ? '+' : ''}{formatCurrency(trends.change30Days)} ({trends.percent30Days >= 0 ? '+' : ''}{trends.percent30Days.toFixed(0)}%)
                     </span>
-                    <span className={`${trends.change30Days >= 0 ? 'text-green-400' : 'text-red-400'} min-w-[50px] text-right`}>({trends.percent30Days >= 0 ? '+' : ''}{trends.percent30Days.toFixed(0)}%)</span>
                   </div>
-                  <div className="flex items-center gap-0.5 text-sm">
-                    <span className="w-7 text-right font-bold opacity-80">last:</span>
-                    <span className={`${trends.changeLast >= 0 ? 'text-green-400' : 'text-red-400'} min-w-[60px] text-right`}>
-                      {trends.changeLast >= 0 ? '+' : ''}{formatCurrency(trends.changeLast)}
+                  <div className="flex items-center gap-1">
+                    <span className="w-6 text-right font-semibold opacity-80">last:</span>
+                    <span className={`${trends.changeLast >= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
+                      {trends.changeLast >= 0 ? '+' : ''}{formatCurrency(trends.changeLast)} ({trends.percentLast >= 0 ? '+' : ''}{trends.percentLast.toFixed(0)}%)
                     </span>
-                    <span className={`${trends.changeLast >= 0 ? 'text-green-400' : 'text-red-400'} min-w-[50px] text-right`}>({trends.percentLast >= 0 ? '+' : ''}{trends.percentLast.toFixed(0)}%)</span>
                   </div>
                 </div>
               )
@@ -412,37 +409,34 @@ const FinanceOverview = () => {
         </div>
 
         {/* Cash on Hand */}
-        <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white">
-          <div className="flex items-center gap-3 mb-2">
-            <DollarSign className="w-6 h-6" />
-            <p className="text-sm opacity-90">Cash on Hand</p>
+        <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-4 text-white min-w-0 overflow-hidden">
+          <div className="flex items-center gap-2 mb-2">
+            <DollarSign className="w-5 h-5 flex-shrink-0" />
+            <p className="text-xs opacity-90">Cash on Hand</p>
           </div>
-          <div className="flex items-center justify-between">
-            <h3 className="text-5xl font-bold">{formatCurrency(cashTotal || 0)}</h3>
+          <div className="flex flex-col gap-1">
+            <h3 className="text-3xl xl:text-4xl font-bold">{formatCurrency(cashTotal || 0)}</h3>
             {(() => {
               const trends = calculateTrends(cashTotal, 'cash')
               return (
-                <div className="space-y-0">
-                  <div className="flex items-center gap-0.5 text-sm">
-                    <span className="w-7 text-right font-bold opacity-80">1y:</span>
-                    <span className={`${trends.change1Year >= 0 ? 'text-green-400' : 'text-red-400'} min-w-[60px] text-right`}>
-                      {trends.change1Year >= 0 ? '+' : ''}{formatCurrency(trends.change1Year)}
+                <div className="space-y-0.5 text-xs">
+                  <div className="flex items-center gap-1">
+                    <span className="w-6 text-right font-semibold opacity-80">1y:</span>
+                    <span className={`${trends.change1Year >= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
+                      {trends.change1Year >= 0 ? '+' : ''}{formatCurrency(trends.change1Year)} ({trends.percent1Year >= 0 ? '+' : ''}{trends.percent1Year.toFixed(0)}%)
                     </span>
-                    <span className={`${trends.change1Year >= 0 ? 'text-green-400' : 'text-red-400'} min-w-[50px] text-right`}>({trends.percent1Year >= 0 ? '+' : ''}{trends.percent1Year.toFixed(0)}%)</span>
                   </div>
-                  <div className="flex items-center gap-0.5 text-sm">
-                    <span className="w-7 text-right font-bold opacity-80">30d:</span>
-                    <span className={`${trends.change30Days >= 0 ? 'text-green-400' : 'text-red-400'} min-w-[60px] text-right`}>
-                      {trends.change30Days >= 0 ? '+' : ''}{formatCurrency(trends.change30Days)}
+                  <div className="flex items-center gap-1">
+                    <span className="w-6 text-right font-semibold opacity-80">30d:</span>
+                    <span className={`${trends.change30Days >= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
+                      {trends.change30Days >= 0 ? '+' : ''}{formatCurrency(trends.change30Days)} ({trends.percent30Days >= 0 ? '+' : ''}{trends.percent30Days.toFixed(0)}%)
                     </span>
-                    <span className={`${trends.change30Days >= 0 ? 'text-green-400' : 'text-red-400'} min-w-[50px] text-right`}>({trends.percent30Days >= 0 ? '+' : ''}{trends.percent30Days.toFixed(0)}%)</span>
                   </div>
-                  <div className="flex items-center gap-0.5 text-sm">
-                    <span className="w-7 text-right font-bold opacity-80">last:</span>
-                    <span className={`${trends.changeLast >= 0 ? 'text-green-400' : 'text-red-400'} min-w-[60px] text-right`}>
-                      {trends.changeLast >= 0 ? '+' : ''}{formatCurrency(trends.changeLast)}
+                  <div className="flex items-center gap-1">
+                    <span className="w-6 text-right font-semibold opacity-80">last:</span>
+                    <span className={`${trends.changeLast >= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
+                      {trends.changeLast >= 0 ? '+' : ''}{formatCurrency(trends.changeLast)} ({trends.percentLast >= 0 ? '+' : ''}{trends.percentLast.toFixed(0)}%)
                     </span>
-                    <span className={`${trends.changeLast >= 0 ? 'text-green-400' : 'text-red-400'} min-w-[50px] text-right`}>({trends.percentLast >= 0 ? '+' : ''}{trends.percentLast.toFixed(0)}%)</span>
                   </div>
                 </div>
               )
@@ -451,37 +445,34 @@ const FinanceOverview = () => {
         </div>
 
         {/* CC & Personal */}
-        <div className="bg-gradient-to-br from-pink-600 to-pink-700 rounded-xl p-6 text-white">
-          <div className="flex items-center gap-3 mb-2">
-            <CreditCard className="w-6 h-6" />
-            <p className="text-sm opacity-90">CC & Personal</p>
+        <div className="bg-gradient-to-br from-pink-600 to-pink-700 rounded-xl p-4 text-white min-w-0 overflow-hidden">
+          <div className="flex items-center gap-2 mb-2">
+            <CreditCard className="w-5 h-5 flex-shrink-0" />
+            <p className="text-xs opacity-90">CC & Personal</p>
           </div>
-          <div className="flex items-center justify-between">
-            <h3 className="text-5xl font-bold">{formatCurrency(creditCardBalanceTotal + personalLoansTotal)}</h3>
+          <div className="flex flex-col gap-1">
+            <h3 className="text-3xl xl:text-4xl font-bold">{formatCurrency(creditCardBalanceTotal + personalLoansTotal)}</h3>
             {(() => {
               const trends = calculateTrends(creditCardBalanceTotal + personalLoansTotal, 'creditDebt')
               return (
-                <div className="space-y-0">
-                  <div className="flex items-center gap-0.5 text-sm">
-                    <span className="w-7 text-right font-bold opacity-80">1y:</span>
-                    <span className={`${trends.change1Year <= 0 ? 'text-green-200' : 'text-red-200'} min-w-[60px] text-right`}>
-                      {trends.change1Year >= 0 ? '+' : ''}{formatCurrency(trends.change1Year)}
+                <div className="space-y-0.5 text-xs">
+                  <div className="flex items-center gap-1">
+                    <span className="w-6 text-right font-semibold opacity-80">1y:</span>
+                    <span className={`${trends.change1Year <= 0 ? 'text-green-200' : 'text-red-200'} flex-1 text-right`}>
+                      {trends.change1Year >= 0 ? '+' : ''}{formatCurrency(trends.change1Year)} ({trends.percent1Year >= 0 ? '+' : ''}{trends.percent1Year.toFixed(0)}%)
                     </span>
-                    <span className={`${trends.change1Year <= 0 ? 'text-green-200' : 'text-red-200'} min-w-[50px] text-right`}>({trends.percent1Year >= 0 ? '+' : ''}{trends.percent1Year.toFixed(0)}%)</span>
                   </div>
-                  <div className="flex items-center gap-0.5 text-sm">
-                    <span className="w-7 text-right font-bold opacity-80">30d:</span>
-                    <span className={`${trends.change30Days <= 0 ? 'text-green-200' : 'text-red-200'} min-w-[60px] text-right`}>
-                      {trends.change30Days >= 0 ? '+' : ''}{formatCurrency(trends.change30Days)}
+                  <div className="flex items-center gap-1">
+                    <span className="w-6 text-right font-semibold opacity-80">30d:</span>
+                    <span className={`${trends.change30Days <= 0 ? 'text-green-200' : 'text-red-200'} flex-1 text-right`}>
+                      {trends.change30Days >= 0 ? '+' : ''}{formatCurrency(trends.change30Days)} ({trends.percent30Days >= 0 ? '+' : ''}{trends.percent30Days.toFixed(0)}%)
                     </span>
-                    <span className={`${trends.change30Days <= 0 ? 'text-green-200' : 'text-red-200'} min-w-[50px] text-right`}>({trends.percent30Days >= 0 ? '+' : ''}{trends.percent30Days.toFixed(0)}%)</span>
                   </div>
-                  <div className="flex items-center gap-0.5 text-sm">
-                    <span className="w-7 text-right font-bold opacity-80">last:</span>
-                    <span className={`${trends.changeLast <= 0 ? 'text-green-200' : 'text-red-200'} min-w-[60px] text-right`}>
-                      {trends.changeLast >= 0 ? '+' : ''}{formatCurrency(trends.changeLast)}
+                  <div className="flex items-center gap-1">
+                    <span className="w-6 text-right font-semibold opacity-80">last:</span>
+                    <span className={`${trends.changeLast <= 0 ? 'text-green-200' : 'text-red-200'} flex-1 text-right`}>
+                      {trends.changeLast >= 0 ? '+' : ''}{formatCurrency(trends.changeLast)} ({trends.percentLast >= 0 ? '+' : ''}{trends.percentLast.toFixed(0)}%)
                     </span>
-                    <span className={`${trends.changeLast <= 0 ? 'text-green-200' : 'text-red-200'} min-w-[50px] text-right`}>({trends.percentLast >= 0 ? '+' : ''}{trends.percentLast.toFixed(0)}%)</span>
                   </div>
                 </div>
               )
@@ -490,37 +481,34 @@ const FinanceOverview = () => {
         </div>
 
         {/* Total Debt */}
-        <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl p-6 text-white">
-          <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="w-6 h-6" />
-            <p className="text-sm opacity-90">Total Debt</p>
+        <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl p-4 text-white min-w-0 overflow-hidden">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-5 h-5 flex-shrink-0" />
+            <p className="text-xs opacity-90">Total Debt</p>
           </div>
-          <div className="flex items-center justify-between">
-            <h3 className="text-5xl font-bold">{formatCurrency(totalDebt)}</h3>
+          <div className="flex flex-col gap-1">
+            <h3 className="text-3xl xl:text-4xl font-bold">{formatCurrency(totalDebt)}</h3>
             {(() => {
               const trends = calculateTrends(totalDebt, 'totalDebt')
               return (
-                <div className="space-y-0">
-                  <div className="flex items-center gap-0.5 text-sm">
-                    <span className="w-7 text-right font-bold opacity-80">1y:</span>
-                    <span className={`${trends.change1Year <= 0 ? 'text-green-400' : 'text-red-400'} min-w-[60px] text-right`}>
-                      {trends.change1Year >= 0 ? '+' : ''}{formatCurrency(trends.change1Year)}
+                <div className="space-y-0.5 text-xs">
+                  <div className="flex items-center gap-1">
+                    <span className="w-6 text-right font-semibold opacity-80">1y:</span>
+                    <span className={`${trends.change1Year <= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
+                      {trends.change1Year >= 0 ? '+' : ''}{formatCurrency(trends.change1Year)} ({trends.percent1Year >= 0 ? '+' : ''}{trends.percent1Year.toFixed(0)}%)
                     </span>
-                    <span className={`${trends.change1Year <= 0 ? 'text-green-400' : 'text-red-400'} min-w-[50px] text-right`}>({trends.percent1Year >= 0 ? '+' : ''}{trends.percent1Year.toFixed(0)}%)</span>
                   </div>
-                  <div className="flex items-center gap-0.5 text-sm">
-                    <span className="w-7 text-right font-bold opacity-80">30d:</span>
-                    <span className={`${trends.change30Days <= 0 ? 'text-green-400' : 'text-red-400'} min-w-[60px] text-right`}>
-                      {trends.change30Days >= 0 ? '+' : ''}{formatCurrency(trends.change30Days)}
+                  <div className="flex items-center gap-1">
+                    <span className="w-6 text-right font-semibold opacity-80">30d:</span>
+                    <span className={`${trends.change30Days <= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
+                      {trends.change30Days >= 0 ? '+' : ''}{formatCurrency(trends.change30Days)} ({trends.percent30Days >= 0 ? '+' : ''}{trends.percent30Days.toFixed(0)}%)
                     </span>
-                    <span className={`${trends.change30Days <= 0 ? 'text-green-400' : 'text-red-400'} min-w-[50px] text-right`}>({trends.percent30Days >= 0 ? '+' : ''}{trends.percent30Days.toFixed(0)}%)</span>
                   </div>
-                  <div className="flex items-center gap-0.5 text-sm">
-                    <span className="w-7 text-right font-bold opacity-80">last:</span>
-                    <span className={`${trends.changeLast <= 0 ? 'text-green-400' : 'text-red-400'} min-w-[60px] text-right`}>
-                      {trends.changeLast >= 0 ? '+' : ''}{formatCurrency(trends.changeLast)}
+                  <div className="flex items-center gap-1">
+                    <span className="w-6 text-right font-semibold opacity-80">last:</span>
+                    <span className={`${trends.changeLast <= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
+                      {trends.changeLast >= 0 ? '+' : ''}{formatCurrency(trends.changeLast)} ({trends.percentLast >= 0 ? '+' : ''}{trends.percentLast.toFixed(0)}%)
                     </span>
-                    <span className={`${trends.changeLast <= 0 ? 'text-green-400' : 'text-red-400'} min-w-[50px] text-right`}>({trends.percentLast >= 0 ? '+' : ''}{trends.percentLast.toFixed(0)}%)</span>
                   </div>
                 </div>
               )
@@ -530,14 +518,14 @@ const FinanceOverview = () => {
       </div>
 
       {/* 3-Column Balance Entry */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 3xl:grid-cols-3 gap-4">
         {/* Column 1: Cash & Investments */}
         <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 border border-green-500/20 shadow-xl">
           <div className="flex items-center gap-2 mb-3 pb-2 border-b border-green-500/30">
             <div className="p-1.5 bg-green-500/10 rounded-lg">
               <Wallet className="w-6 h-6 text-green-400" />
             </div>
-            <h3 className="text-xl font-bold text-green-400">Cash & Investments</h3>
+            <h3 className="text-lg font-bold text-green-400">Cash & Investments</h3>
           </div>
 
           {/* Cash Section */}
@@ -547,16 +535,16 @@ const FinanceOverview = () => {
                 const isUpdated = updatedAccounts.has(account.id)
                 return (
                   <div key={account.id} className="flex items-center justify-between gap-2">
-                    <label className="text-gray-300 text-xl font-medium truncate flex-1">{account.account_name}</label>
+                    <label className="text-gray-300 text-base font-medium truncate flex-1">{account.account_name}</label>
                     <div className="flex items-center gap-0.5 w-36 justify-end">
-                      <span className="text-green-400 text-xl font-semibold">$</span>
+                      <span className="text-green-400 text-base font-semibold">$</span>
                       <input
                         type="text"
                         value={getInputValue(account.id)}
                         onFocus={() => handleFocus(account.id)}
                         onBlur={() => handleBlur(account.id)}
                         onChange={(e) => handleBalanceChange(account.id, e.target.value)}
-                        className={`w-28 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-xl font-semibold transition-all focus:outline-none ${
+                        className={`w-28 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-base font-semibold transition-all focus:outline-none ${
                           isUpdated ? 'text-white' : 'text-gray-500'
                         }`}
                       />
@@ -567,8 +555,8 @@ const FinanceOverview = () => {
             </div>
             <div className="pt-2 mt-2 border-t border-green-500/30">
               <div className="flex items-center justify-between bg-green-500/10 p-2 rounded">
-                <span className="text-xl font-bold text-green-300">Total Cash</span>
-                <span className="text-xl font-bold text-green-400 w-36 text-right">{formatCurrency(cashTotal)}</span>
+                <span className="text-lg font-bold text-green-300">Total Cash</span>
+                <span className="text-lg font-bold text-green-400 w-28 text-right">{formatCurrency(cashTotal)}</span>
               </div>
             </div>
           </div>
@@ -580,16 +568,16 @@ const FinanceOverview = () => {
                 const isUpdated = updatedAccounts.has(account.id)
                 return (
                   <div key={account.id} className="flex items-center justify-between gap-2">
-                    <label className="text-gray-300 text-xl font-medium truncate flex-1">{account.account_name}</label>
+                    <label className="text-gray-300 text-base font-medium truncate flex-1">{account.account_name}</label>
                     <div className="flex items-center gap-0.5 w-36 justify-end">
-                      <span className="text-blue-400 text-xl font-semibold">$</span>
+                      <span className="text-blue-400 text-base font-semibold">$</span>
                       <input
                         type="text"
                         value={getInputValue(account.id)}
                         onFocus={() => handleFocus(account.id)}
                         onBlur={() => handleBlur(account.id)}
                         onChange={(e) => handleBalanceChange(account.id, e.target.value)}
-                        className={`w-28 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-xl font-semibold transition-all focus:outline-none ${
+                        className={`w-28 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-base font-semibold transition-all focus:outline-none ${
                           isUpdated ? 'text-white' : 'text-gray-500'
                         }`}
                       />
@@ -601,7 +589,7 @@ const FinanceOverview = () => {
             <div className="pt-2 mt-2 border-t border-blue-500/30">
               <div className="flex items-center justify-between bg-blue-500/10 p-2 rounded">
                 <span className="text-xl font-bold text-blue-300">Total Investments</span>
-                <span className="text-xl font-bold text-blue-400 w-36 text-right">{formatCurrency(investmentTotal)}</span>
+                <span className="text-xl font-bold text-blue-400 w-28 text-right">{formatCurrency(investmentTotal)}</span>
               </div>
             </div>
           </div>
@@ -609,8 +597,8 @@ const FinanceOverview = () => {
           {/* Combined Total */}
           <div className="pt-2 mt-2 border-t border-green-500/40">
             <div className="flex items-center justify-between bg-green-500/20 p-2 rounded">
-              <span className="text-xl font-bold text-green-300">Total Assets</span>
-              <span className="text-xl font-bold text-green-400 w-36 text-right">{formatCurrency(cashTotal + investmentTotal)}</span>
+              <span className="text-lg font-bold text-green-300">Total Assets</span>
+              <span className="text-lg font-bold text-green-400 w-28 text-right">{formatCurrency(cashTotal + investmentTotal)}</span>
             </div>
           </div>
         </div>
@@ -690,7 +678,7 @@ const FinanceOverview = () => {
               <div className="flex items-center gap-1">
                 <span className="text-xl font-bold text-orange-400 text-right" style={{ width: '125px' }}>{formatCurrency(creditCardBalanceTotal)}</span>
                 <span className="text-xl font-bold text-orange-400 text-center" style={{ width: '125px' }}>{formatCurrency(creditCardLimitTotal)}</span>
-                <span className={`text-xl font-semibold text-right pr-2 ${creditUtilization > 70 ? 'text-orange-400' : 'text-gray-400'}`} style={{ width: '50px' }}>{creditUtilization.toFixed(0)}%</span>
+                <span className={`text-base font-semibold text-right pr-2 ${creditUtilization > 70 ? 'text-orange-400' : 'text-gray-400'}`} style={{ width: '50px' }}>{creditUtilization.toFixed(0)}%</span>
               </div>
             </div>
           </div>
@@ -716,16 +704,16 @@ const FinanceOverview = () => {
                     const isUpdated = updatedAccounts.has(account.id)
                     return (
                       <div key={account.id} className="flex items-center justify-between px-2" style={{ paddingTop: '0.225rem', paddingBottom: '0.225rem' }}>
-                        <label className="text-gray-300 text-xl font-medium truncate min-w-[140px]">{account.account_name}</label>
+                        <label className="text-gray-300 text-base font-medium truncate min-w-[140px]">{account.account_name}</label>
                         <div className="flex items-center gap-1 justify-end">
-                          <span className="text-red-400 text-xl font-semibold">$</span>
+                          <span className="text-red-400 text-base font-semibold">$</span>
                           <input
                             type="text"
                             value={getInputValue(account.id)}
                             onFocus={() => handleFocus(account.id)}
                             onBlur={() => handleBlur(account.id)}
                             onChange={(e) => handleBalanceChange(account.id, e.target.value)}
-                            className={`w-20 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-xl font-semibold transition-all focus:outline-none ${
+                            className={`w-20 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-base font-semibold transition-all focus:outline-none ${
                               isUpdated ? 'text-white' : 'text-gray-500'
                             }`}
                           />
@@ -760,16 +748,16 @@ const FinanceOverview = () => {
                     const isUpdated = updatedAccounts.has(account.id)
                     return (
                       <div key={account.id} className="flex items-center justify-between px-2" style={{ paddingTop: '0.225rem', paddingBottom: '0.225rem' }}>
-                        <label className="text-gray-300 text-xl font-medium truncate min-w-[140px]">{account.account_name}</label>
+                        <label className="text-gray-300 text-base font-medium truncate min-w-[140px]">{account.account_name}</label>
                         <div className="flex items-center gap-1 justify-end">
-                          <span className="text-red-400 text-xl font-semibold">$</span>
+                          <span className="text-red-400 text-base font-semibold">$</span>
                           <input
                             type="text"
                             value={getInputValue(account.id)}
                             onFocus={() => handleFocus(account.id)}
                             onBlur={() => handleBlur(account.id)}
                             onChange={(e) => handleBalanceChange(account.id, e.target.value)}
-                            className={`w-20 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-xl font-semibold transition-all focus:outline-none ${
+                            className={`w-20 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-base font-semibold transition-all focus:outline-none ${
                               isUpdated ? 'text-white' : 'text-gray-500'
                             }`}
                           />
@@ -804,16 +792,16 @@ const FinanceOverview = () => {
                     const isUpdated = updatedAccounts.has(account.id)
                     return (
                       <div key={account.id} className="flex items-center justify-between px-2" style={{ paddingTop: '0.225rem', paddingBottom: '0.225rem' }}>
-                        <label className="text-gray-300 text-xl font-medium truncate min-w-[140px]">{account.account_name}</label>
+                        <label className="text-gray-300 text-base font-medium truncate min-w-[140px]">{account.account_name}</label>
                         <div className="flex items-center gap-1 justify-end">
-                          <span className="text-red-400 text-xl font-semibold">$</span>
+                          <span className="text-red-400 text-base font-semibold">$</span>
                           <input
                             type="text"
                             value={getInputValue(account.id)}
                             onFocus={() => handleFocus(account.id)}
                             onBlur={() => handleBlur(account.id)}
                             onChange={(e) => handleBalanceChange(account.id, e.target.value)}
-                            className={`w-20 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-xl font-semibold transition-all focus:outline-none ${
+                            className={`w-20 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-base font-semibold transition-all focus:outline-none ${
                               isUpdated ? 'text-white' : 'text-gray-500'
                             }`}
                           />
@@ -880,37 +868,37 @@ const FinanceOverview = () => {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-black border-b-2 border-gray-800">
-                    <th className="px-6 py-4 text-center text-gray-400 text-xs font-semibold uppercase tracking-wide sticky left-0 bg-black z-10" style={{minWidth: '120px'}}>
+                    <th className="px-4 py-4 text-center text-gray-400 text-xs font-semibold uppercase tracking-wide sticky left-0 bg-black z-10" style={{minWidth: '100px'}}>
                       Date
                     </th>
-                    <th className="px-6 py-4 text-center text-white text-xs font-semibold uppercase tracking-wide" style={{minWidth: '110px'}}>
+                    <th className="px-3 py-4 text-center text-white text-xs font-semibold uppercase tracking-wide" style={{minWidth: '90px'}}>
                       Net Worth
                     </th>
-                    <th className="px-6 py-4 text-center text-white text-xs font-semibold uppercase tracking-wide" style={{minWidth: '110px'}}>
+                    <th className="px-3 py-4 text-center text-white text-xs font-semibold uppercase tracking-wide" style={{minWidth: '80px'}}>
                       Change
                     </th>
-                    <th className="px-6 py-4 text-center text-green-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '110px'}}>
+                    <th className="px-3 py-4 text-center text-green-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '90px'}}>
                       Total Assets
                     </th>
-                    <th className="px-6 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '110px'}}>
+                    <th className="px-3 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '90px'}}>
                       Total Debt
                     </th>
-                    <th className="px-6 py-4 text-center text-green-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '100px'}}>
+                    <th className="px-3 py-4 text-center text-green-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '80px'}}>
                       Cash
                     </th>
-                    <th className="px-6 py-4 text-center text-green-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '110px'}}>
+                    <th className="px-3 py-4 text-center text-green-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '90px'}}>
                       Investments
                     </th>
-                    <th className="px-6 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '110px'}}>
+                    <th className="px-3 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '90px'}}>
                       Credit Cards
                     </th>
-                    <th className="px-6 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '100px'}}>
+                    <th className="px-3 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '90px'}}>
                       Personal Loans
                     </th>
-                    <th className="px-6 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '100px'}}>
+                    <th className="px-3 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '90px'}}>
                       Auto Loans
                     </th>
-                    <th className="px-6 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '100px'}}>
+                    <th className="px-3 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '80px'}}>
                       Taxes
                     </th>
                   </tr>

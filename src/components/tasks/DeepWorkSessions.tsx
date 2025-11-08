@@ -241,7 +241,7 @@ export const DeepWorkSessions: FC<DeepWorkSessionsProps> = () => {
       </div>
 
       {/* Area Filters */}
-      <div className="grid grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
         {Object.entries(areaCounts).map(([area, count]) => (
           <Button
             key={area}
@@ -259,7 +259,7 @@ export const DeepWorkSessions: FC<DeepWorkSessionsProps> = () => {
       </div>
 
       {/* Effort Level Filters */}
-      <div className="grid grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
         {Object.entries(effortCounts).map(([level, count]) => (
           <Button
             key={level}
@@ -277,7 +277,7 @@ export const DeepWorkSessions: FC<DeepWorkSessionsProps> = () => {
       </div>
 
       {/* Top 5 Tasks Cards */}
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {top5Tasks.map((task, idx) => (
           <Card
             key={idx}

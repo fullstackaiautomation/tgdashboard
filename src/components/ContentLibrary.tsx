@@ -24,18 +24,22 @@ import {
 } from 'lucide-react'
 import { DashboardAreaSelector } from './content/DashboardAreaSelector'
 import { ValueRatingInput } from './content/ValueRatingInput'
+import { AgentSelector } from './content/AgentSelector'
 import { ContentCard } from './content/ContentCard'
+import { ContentTable } from './content/ContentTable'
 import { QuickAddModal } from './content/QuickAddModal'
 import { DetailsModal } from './content/DetailsModal'
 import { EditModal } from './content/EditModal'
 import { useQuery } from '@tanstack/react-query'
 import type { Business } from '../types/business'
 import { analyzeContentURL } from '../services/aiContentAnalyzer'
+import { parseAndFormatTags } from '../utils/tagFormatter'
 
 const ContentLibrary = () => {
   const [contents, setContents] = useState<ContentItem[]>([])
   const [filteredContents, setFilteredContents] = useState<ContentItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
 
   // Fetch businesses for dashboard areas
   const { data: businesses = [] } = useQuery<Business[]>({
@@ -83,7 +87,7 @@ const ContentLibrary = () => {
   const [formData, setFormData] = useState<Partial<ContentItem>>({
     title: '',
     url: '',
-    source: 'YouTube',
+    source: 'Website',
     category: 'Full Stack Development',
     status: 'To Watch',
     priority: 'Medium',
@@ -92,6 +96,9 @@ const ContentLibrary = () => {
     tags: [],
     dashboard_areas: [],
     value_rating: null,
+    tg_rating: null,
+    google_llm: false,
+    agent: '',
     is_favorite: false,
   })
   const [_thumbnailFile, setThumbnailFile] = useState<File | null>(null)
@@ -321,6 +328,34 @@ const ContentLibrary = () => {
     await handleUpdateContent(id, { is_favorite: !currentValue })
   }
 
+  const handleUpdateTGRating = async (id: string, rating: number | null) => {
+    await handleUpdateContent(id, { tg_rating: rating })
+  }
+
+  const handleUpdateGoogleLLM = async (id: string, value: boolean | null) => {
+    await handleUpdateContent(id, { google_llm: value || false })
+  }
+
+  const handleUpdateAgent = async (id: string, agent: string | undefined) => {
+    await handleUpdateContent(id, { agent: agent || undefined })
+  }
+
+  const handleUpdateNotes = async (id: string, notes: string) => {
+    await handleUpdateContent(id, { notes })
+  }
+
+  const handleUpdateCreator = async (id: string, creator: string) => {
+    await handleUpdateContent(id, { creator })
+  }
+
+  const handleUpdateStatus = async (id: string, status: string) => {
+    await handleUpdateContent(id, { status: status as ContentStatus })
+  }
+
+  const handleUpdateTags = async (id: string, tags: string[]) => {
+    await handleUpdateContent(id, { tags })
+  }
+
   const handleImageUpload = (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file')
@@ -367,13 +402,17 @@ const ContentLibrary = () => {
     setFormData({
       title: '',
       url: '',
-      source: 'YouTube',
+      source: 'Website',
       category: 'Full Stack Development',
       status: 'To Watch',
       priority: 'Medium',
       notes: '',
       tags: [],
       dashboard_areas: [],
+      value_rating: null,
+      tg_rating: null,
+      google_llm: false,
+      agent: '',
       is_favorite: false,
     })
     setThumbnailFile(null)
@@ -385,16 +424,10 @@ const ContentLibrary = () => {
       Twitter: '𝕏',
       YouTube: '▶',
       Instagram: '📷',
-      Article: '📄',
-      Podcast: '🎙',
-      Video: '🎬',
-      Book: '📚',
-      Course: '🎓',
-      Other: '🔗',
       Website: '🌐',
-      GitHub: '💻',
+      Other: '🔗',
     }
-    return icons[source] || '🔗'
+    return icons[source] || '🌐'
   }
 
   const getStatusIcon = (status: string): ReactElement => {
@@ -467,7 +500,7 @@ const ContentLibrary = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+    <div className="w-full h-full overflow-y-auto px-6 py-6 space-y-6" style={{ minWidth: 0 }}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -495,7 +528,7 @@ const ContentLibrary = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="bg-gray-800 rounded-lg shadow-lg p-4 border border-gray-700">
           <div className="text-2xl font-bold text-white">{stats.total}</div>
           <div className="text-sm text-gray-400">Total Items</div>
@@ -559,6 +592,30 @@ const ContentLibrary = () => {
           >
             {sortOrder === 'asc' ? '↑' : '↓'}
           </button>
+          <div className="flex gap-2 border border-gray-700 rounded-lg bg-gray-900 p-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-1 rounded transition-colors ${
+                viewMode === 'grid'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+              title="Grid view"
+            >
+              ⊞
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1 rounded transition-colors ${
+                viewMode === 'table'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+              title="Table view"
+            >
+              ≡
+            </button>
+          </div>
         </div>
 
         {/* Expanded Filters */}
@@ -714,7 +771,8 @@ const ContentLibrary = () => {
             </button>
           )}
         </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
+        // Grid View
         <div className="masonry-grid">
           {filteredContents.map((content) => (
             <div key={content.id} className="masonry-item">
@@ -725,6 +783,25 @@ const ContentLibrary = () => {
                   setShowDetailsModal(true)
                 }}
                 onToggleFavorite={handleToggleFavorite}
+                onEdit={() => {
+                  setSelectedContent(content)
+                  setFormData(content)
+                  setShowEditModal(true)
+                }}
+                onDelete={async () => {
+                  if (confirm('Are you sure you want to delete this content?')) {
+                    try {
+                      const { error } = await supabase
+                        .from('content_library')
+                        .delete()
+                        .eq('id', content.id)
+                      if (error) throw error
+                      setContents(contents.filter((c) => c.id !== content.id))
+                    } catch (error) {
+                      console.error('Error deleting content:', error)
+                    }
+                  }
+                }}
                 getSourceIcon={getSourceIcon}
                 getStatusIcon={(status: string) => getStatusIcon(status as ContentStatus)}
                 getStatusColor={(status: string) => getStatusColor(status as ContentStatus)}
@@ -733,6 +810,45 @@ const ContentLibrary = () => {
             </div>
           ))}
         </div>
+      ) : (
+        // Table View
+        <ContentTable
+          contents={filteredContents}
+          onToggleFavorite={handleToggleFavorite}
+          onEdit={(content) => {
+            setSelectedContent(content)
+            setFormData(content)
+            setShowEditModal(true)
+          }}
+          onDelete={async (id) => {
+            if (confirm('Are you sure you want to delete this content?')) {
+              try {
+                const { error } = await supabase
+                  .from('content_library')
+                  .delete()
+                  .eq('id', id)
+                if (error) throw error
+                setContents(contents.filter((c) => c.id !== id))
+              } catch (error) {
+                console.error('Error deleting content:', error)
+              }
+            }
+          }}
+          onOpenDetails={(content) => {
+            setSelectedContent(content)
+            setShowDetailsModal(true)
+          }}
+          onUpdateTGRating={handleUpdateTGRating}
+          onUpdateGoogleLLM={handleUpdateGoogleLLM}
+          onUpdateAgent={handleUpdateAgent}
+          onUpdateNotes={handleUpdateNotes}
+          onUpdateCreator={handleUpdateCreator}
+          onUpdateStatus={handleUpdateStatus}
+          onUpdateTags={handleUpdateTags}
+          getSourceIcon={getSourceIcon}
+          getStatusColor={(status: string) => getStatusColor(status as ContentStatus)}
+          getPriorityColor={(priority: string) => getPriorityColor(priority as ContentPriority)}
+        />
       )}
 
       {/* Add Content Modal */}
@@ -847,7 +963,7 @@ const ContentLibrary = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-1">
-                      Source
+                      Platform
                     </label>
                     <select
                       value={formData.source}
@@ -856,14 +972,10 @@ const ContentLibrary = () => {
                       }
                       className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="YouTube">YouTube</option>
+                      <option value="Website">Website</option>
                       <option value="Twitter">Twitter</option>
+                      <option value="YouTube">YouTube</option>
                       <option value="Instagram">Instagram</option>
-                      <option value="Article">Article</option>
-                      <option value="Podcast">Podcast</option>
-                      <option value="Video">Video</option>
-                      <option value="Book">Book</option>
-                      <option value="Course">Course</option>
                       <option value="Other">Other</option>
                     </select>
                   </div>
@@ -959,6 +1071,44 @@ const ContentLibrary = () => {
                   />
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      TG Rating (1-10)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={formData.tg_rating || ''}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          tg_rating: e.target.value ? parseInt(e.target.value) : null,
+                        })
+                      }
+                      className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="1-10"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Google LLM
+                    </label>
+                    <select
+                      value={formData.google_llm ? 'yes' : 'no'}
+                      onChange={(e) =>
+                        setFormData({ ...formData, google_llm: e.target.value === 'yes' })
+                      }
+                      className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="no">No</option>
+                      <option value="yes">Yes</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Creator</label>
                   <input
@@ -967,6 +1117,14 @@ const ContentLibrary = () => {
                     onChange={(e) => setFormData({ ...formData, creator: e.target.value })}
                     className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Author, YouTuber, etc."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Agent</label>
+                  <AgentSelector
+                    selectedAgent={formData.agent}
+                    onChange={(agent) => setFormData({ ...formData, agent })}
                   />
                 </div>
 
@@ -980,7 +1138,7 @@ const ContentLibrary = () => {
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        tags: e.target.value.split(',').map((t) => t.trim()).filter(Boolean),
+                        tags: parseAndFormatTags(e.target.value),
                       })
                     }
                     className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1177,20 +1335,16 @@ const ContentLibrary = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Source</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Platform</label>
                     <select
                       value={formData.source}
                       onChange={(e) => setFormData({ ...formData, source: e.target.value as ContentSource })}
                       className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="YouTube">YouTube</option>
+                      <option value="Website">Website</option>
                       <option value="Twitter">Twitter</option>
+                      <option value="YouTube">YouTube</option>
                       <option value="Instagram">Instagram</option>
-                      <option value="Article">Article</option>
-                      <option value="Podcast">Podcast</option>
-                      <option value="Video">Video</option>
-                      <option value="Book">Book</option>
-                      <option value="Course">Course</option>
                       <option value="Other">Other</option>
                     </select>
                   </div>
@@ -1277,6 +1431,14 @@ const ContentLibrary = () => {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Agent</label>
+                  <AgentSelector
+                    selectedAgent={formData.agent}
+                    onChange={(agent) => setFormData({ ...formData, agent })}
+                  />
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Tags (comma separated)</label>
                   <input
                     type="text"
@@ -1284,7 +1446,7 @@ const ContentLibrary = () => {
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        tags: e.target.value.split(',').map((t) => t.trim()).filter(Boolean),
+                        tags: parseAndFormatTags(e.target.value),
                       })
                     }
                     className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1335,6 +1497,44 @@ const ContentLibrary = () => {
                   value={formData.value_rating || null}
                   onChange={(rating) => setFormData({ ...formData, value_rating: rating })}
                 />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      TG Rating (1-10)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={formData.tg_rating || ''}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          tg_rating: e.target.value ? parseInt(e.target.value) : null,
+                        })
+                      }
+                      className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="1-10"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Google LLM
+                    </label>
+                    <select
+                      value={formData.google_llm ? 'yes' : 'no'}
+                      onChange={(e) =>
+                        setFormData({ ...formData, google_llm: e.target.value === 'yes' })
+                      }
+                      className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="no">No</option>
+                      <option value="yes">Yes</option>
+                    </select>
+                  </div>
+                </div>
 
                 <div>
                   <label className="flex items-center gap-2">

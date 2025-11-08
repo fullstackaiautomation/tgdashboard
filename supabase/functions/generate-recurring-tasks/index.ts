@@ -28,20 +28,29 @@ const getCurrentWeekSunday = (date: Date = new Date()): Date => {
   return new Date(d.setDate(diff));
 };
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 Deno.serve(async (req) => {
-  // Verify the request is from Supabase (optional but recommended)
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return new Response("Unauthorized", { status: 401 });
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
   if (!supabaseUrl || !supabaseKey) {
-    return new Response("Missing environment variables", { status: 500 });
+    return new Response(
+      JSON.stringify({ error: "Missing environment variables" }),
+      { status: 500, headers: corsHeaders }
+    );
   }
 
+  // Use service role key for database operations (has full access)
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
@@ -206,13 +215,13 @@ Deno.serve(async (req) => {
         tasksCreated: tasksCreated.length,
         tasks: tasksCreated,
       }),
-      { status: 200 }
+      { status: 200, headers: corsHeaders }
     );
   } catch (error) {
     console.error("Error in generate-recurring-tasks:", error);
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 });
