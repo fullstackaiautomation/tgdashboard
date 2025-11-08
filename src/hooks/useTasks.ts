@@ -77,10 +77,44 @@ export const useUpdateTask = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates, skipConflictCheck }: { id: string; updates: UpdateTaskDTO; skipConflictCheck?: boolean }) => {
+      // When task is marked as complete (progress_percentage = 100), auto-calculate accuracy fields
+      const processedUpdates = { ...updates };
+
+      if (updates.progress_percentage === 100) {
+        // Fetch current task to get hours_projected and hours_worked
+        const { data: currentTask, error: fetchError } = await supabase
+          .from('tasks')
+          .select('hours_projected, hours_worked')
+          .eq('id', id)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        const hoursProjected = currentTask?.hours_projected || 0;
+        const hoursWorked = currentTask?.hours_worked || 0;
+
+        // Calculate hours_accuracy (absolute difference)
+        processedUpdates.hours_accuracy = Math.abs(hoursProjected - hoursWorked);
+
+        // Calculate estimation_accuracy
+        if (hoursProjected > 0) {
+          if (hoursWorked > hoursProjected * 1.1) {
+            // More than 10% over projected
+            processedUpdates.estimation_accuracy = 'Underestimated';
+          } else if (hoursWorked < hoursProjected * 0.9) {
+            // Less than 90% of projected (10% under)
+            processedUpdates.estimation_accuracy = 'Overestimated';
+          } else {
+            // Within 10% margin
+            processedUpdates.estimation_accuracy = 'Accurate';
+          }
+        }
+      }
+
       // Skip conflict detection - just proceed with update
       const { data, error } = await supabase
         .from('tasks')
-        .update(updates)
+        .update(processedUpdates)
         .eq('id', id)
         .select()
         .single();

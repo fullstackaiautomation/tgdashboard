@@ -14,6 +14,7 @@ import { useUpdateTask, useDeleteTask } from '../../hooks/useTasks';
 import { useUndo } from '../../hooks/useUndo';
 import { useProjects, usePhases } from '../../hooks/useProjects';
 import { useTaskTimeBlocks } from '../../hooks/useTaskTimeBlocks';
+import { useCreateTimeBlock } from '../../hooks/useCalendar';
 import { ProgressSlider } from '../shared/ProgressSlider';
 import { DateTimePicker } from './DateTimePicker';
 import { TimeTrackingModal } from './TimeTrackingModal';
@@ -119,6 +120,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
 
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const createTimeBlock = useCreateTimeBlock();
   const { setupUndo } = useUndo<TaskHub>(30000);
 
   // Fetch projects for the task's business
@@ -239,7 +241,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
     setShowTimeTrackingModal(false);
   };
 
-  const handleScheduleChange = (date: string | null, _time: string | null) => {
+  const handleScheduleChange = async (date: string | null, time: string | null) => {
     // The DateTimePicker already provides properly formatted date string (YYYY-MM-DD)
     // We need to convert it to ISO format for storage
     if (!date) {
@@ -251,8 +253,45 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
     const [year, month, day] = date.split('-').map(Number);
     const localDate = new Date(year, month - 1, day, 12, 0, 0, 0);
 
-    // Convert to ISO string for storage
+    // Update the due date
     handleUpdate({ due_date: localDate.toISOString() });
+
+    // If time is selected, create a time block
+    if (time && task.hours_projected) {
+      try {
+        // Parse the time (HH:MM format)
+        const [hours, minutes] = time.split(':').map(Number);
+
+        // Create start time in HH:MM:SS format
+        const startTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+
+        // Calculate end time based on hours projected
+        const endDate = new Date(year, month - 1, day, hours, minutes);
+        endDate.setHours(endDate.getHours() + task.hours_projected);
+        const endHours = String(endDate.getHours()).padStart(2, '0');
+        const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+        const endTime = `${endHours}:${endMinutes}:00`;
+
+        // Create the time block
+        await createTimeBlock.mutateAsync({
+          taskId: task.id,
+          scheduledDate: localDate,
+          startTime,
+          endTime,
+          plannedDurationMinutes: Math.round(task.hours_projected * 60),
+        });
+
+        console.log('✅ Time block created:', {
+          taskId: task.id,
+          date,
+          startTime,
+          endTime,
+          hoursProjected: task.hours_projected,
+        });
+      } catch (error) {
+        console.error('❌ Failed to create time block:', error);
+      }
+    }
   };
 
   const handleDeleteClick = () => {
@@ -370,7 +409,177 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
     >
       {/* Compact Main Row */}
       <div className="p-3 sm:p-4">
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+        {/* Mobile layout: Full-width title on first row */}
+        <div className="flex items-center gap-2 sm:hidden mb-2 justify-between">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {/* Status Icon (Clickable) */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                // Toggle completion
+                if (isCompleted) {
+                  // Uncomplete the task
+                  handleUpdate({
+                    progress_percentage: 0,
+                    status: 'Not started',
+                    completed_at: null,
+                  });
+                } else {
+                  // Validation checks before marking complete
+                  const missingFields: string[] = [];
+
+                  if (!task.hours_worked || task.hours_worked === 0) {
+                    missingFields.push('Time Tracking Log entries');
+                  }
+                  if (!task.effort_level) {
+                    missingFields.push('Money Maker');
+                  }
+                  if (!task.automation) {
+                    missingFields.push('Automation');
+                  }
+                  if (!task.hours_projected || task.hours_projected === 0) {
+                    missingFields.push('Hours Projected');
+                  }
+
+                  if (missingFields.length > 0) {
+                    alert(`Please fill out the following fields before marking this task as complete:\n\n${missingFields.join('\n')}`);
+                    return;
+                  }
+
+                  // Mark as complete
+                  handleUpdate({
+                    progress_percentage: 100,
+                    status: 'Done',
+                    completed_at: new Date().toISOString(),
+                  });
+                }
+              }}
+              className="w-8 h-8 p-0 relative shrink-0"
+            >
+              {isCompleted ? (
+                <CheckCircle2 className="w-5 h-5 text-green-400" />
+              ) : (
+                <Circle className="w-5 h-5 text-white" />
+              )}
+            </Button>
+
+            {/* Title (Editable) - Full width on mobile */}
+            <div className="flex-1 min-w-0">
+              {isEditingTitle ? (
+                <Input
+                  type="text"
+                  value={editedTitle}
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  onBlur={handleTitleSave}
+                  onKeyDown={handleTitleKeyDown}
+                  autoFocus
+                  className="h-9 text-lg text-gray-100 font-medium bg-transparent border-gray-600 focus:border-blue-400"
+                />
+              ) : (
+                <div>
+                  <h3
+                    onClick={() => setIsEditingTitle(true)}
+                    className={`text-lg font-medium cursor-pointer hover:text-blue-400 transition-colors line-clamp-2 ${
+                      isCompleted ? 'line-through text-gray-500' : 'text-gray-100'
+                    }`}
+                  >
+                    {task.task_name}
+                  </h3>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Expand Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="w-6 h-6 p-0 text-white hover:text-white shrink-0"
+          >
+            <MoreHorizontal className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Mobile: Description (full width) */}
+        {task.description && (
+          <div className="sm:hidden mb-2 pl-10">
+            <p className="text-xs text-gray-300 line-clamp-2">
+              {task.description}
+            </p>
+          </div>
+        )}
+
+        {/* Mobile: Date and Schedule buttons stacked on right with expand button */}
+        <div className="sm:hidden flex items-start justify-end gap-2">
+          {/* Right: Stacked buttons */}
+          <div className="flex flex-col gap-1 items-end shrink-0">
+            {/* Due Date Badge */}
+            {task.due_date ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  setDatePickerAnchor(e.currentTarget);
+                  setShowDateTimePicker(true);
+                }}
+                className={`h-6 px-1.5 text-xs gap-0.5 w-auto justify-center ${
+                  overdue
+                    ? 'text-red-400 hover:bg-red-500/10'
+                    : dueToday
+                    ? 'text-yellow-400 hover:bg-yellow-500/10'
+                    : 'text-gray-400 hover:bg-gray-700'
+                }`}
+              >
+                {overdue && <AlertCircle className="w-2.5 h-2.5" />}
+                <Calendar className="w-2.5 h-2.5" />
+                <span className="text-xs">
+                  {dueToday
+                    ? 'Today'
+                    : overdue
+                    ? 'Overdue'
+                    : format(parseLocalDate(task.due_date) || new Date(), 'MMM d')}
+                </span>
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  setDatePickerAnchor(e.currentTarget);
+                  setShowDateTimePicker(true);
+                }}
+                className="h-6 px-1.5 text-xs gap-0.5 w-auto justify-center text-gray-500 hover:bg-gray-700 hover:text-gray-300"
+              >
+                <Calendar className="w-2.5 h-2.5" />
+              </Button>
+            )}
+
+            {/* Schedule Status Button */}
+            <div
+              className={`h-6 px-1.5 text-xs font-medium rounded-md w-auto flex items-center justify-center text-white ${
+                isCompleted
+                  ? 'bg-green-600'
+                  : hasTimeBlocks
+                  ? 'bg-yellow-500'
+                  : 'bg-blue-600'
+              }`}
+              title={earliestTimeBlock ? `Scheduled for ${earliestTimeBlock.scheduled_date}` : undefined}
+            >
+              <span className="text-xs">
+                {isCompleted
+                  ? 'Done'
+                  : hasTimeBlocks && earliestTimeBlock
+                  ? format(new Date(`2000-01-01T${earliestTimeBlock.start_time}`), 'h:mm a')
+                  : 'Schedule'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop layout: Original layout preserved */}
+        <div className="hidden sm:flex items-center gap-2 sm:gap-3 flex-wrap">
           {/* Status Icon (Clickable) */}
           <Button
             variant="ghost"
@@ -424,7 +633,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
           </Button>
 
           {/* Title (Editable) */}
-          <div className="flex-1 min-w-0 max-w-[200px] sm:max-w-[600px]">
+          <div className="flex-1 min-w-0 max-w-[600px]">
             {isEditingTitle ? (
               <Input
                 type="text"
@@ -577,19 +786,6 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
           </div>
         </div>
 
-        {/* Progress Bar - more prominent */}
-        {progress > 0 && progress < 100 && (
-          <div className="mt-3">
-            <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-              <div
-                className="h-full transition-all duration-300 rounded-full bg-green-500"
-                style={{
-                  width: `${progress}%`
-                }}
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Expanded Details */}
@@ -824,7 +1020,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
           scheduledTime={null}
           onSchedule={handleScheduleChange}
           onClose={() => setShowDateTimePicker(false)}
-          anchorEl={datePickerAnchor}
+          hoursProjected={task.hours_projected}
         />
       )}
 

@@ -7,6 +7,7 @@ import { TasksHub } from './components/tasks/TasksHub'
 import { DeepWorkSessions } from './components/tasks/DeepWorkSessions'
 import { DeepWorkSidebar } from './components/tasks/DeepWorkSidebar'
 import { BusinessDashboard } from './components/business/BusinessDashboard'
+import { ProjectScheduling } from './components/business/ProjectScheduling'
 import FinanceDashboard from './components/finance/FinanceDashboard'
 import NotesBoard from './components/notes/NotesBoard'
 import { TimeAnalytics } from './pages/TimeAnalytics'
@@ -58,9 +59,11 @@ function App() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [deepWorkSessions, setDeepWorkSessions] = useState<any[]>([])
   const [selectedArea, _setSelectedArea] = useState<Area | 'All Areas'>('All Areas')
-  const [activeMainTab, setActiveMainTab] = useState<'tasks' | 'business' | 'content' | 'finance' | 'notes' | 'review' | 'analytics' | 'health' | 'planning' | 'calendar' | 'dailytime' | 'insights' | 'automations'>('tasks')
+  const [activeMainTab, setActiveMainTab] = useState<'tasks' | 'business' | 'content' | 'finance' | 'notes' | 'review' | 'analytics' | 'health' | 'planning' | 'calendar' | 'dailytime' | 'insights' | 'automations' | 'project-scheduling'>('tasks')
   const [activeTasksSubTab, setActiveTasksSubTab] = useState<'tasks-list' | 'deepwork'>('tasks-list') // NEW: Tasks Hub subtabs
   const [selectedBusinessArea, setSelectedBusinessArea] = useState<string | null>(null) // For Projects sub-pages
+  const [schedulingBusinessId, setSchedulingBusinessId] = useState<string | null>(null) // For Project Scheduling page
+  const [schedulingProjectId, setSchedulingProjectId] = useState<string | null>(null) // For Project Scheduling page
   const [selectedTimePeriod, _setSelectedTimePeriod] = useState<'All Time' | 'Today' | 'This Week' | 'This Month'>('All Time')
   const [selectedDWArea, _setSelectedDWArea] = useState<Area | 'All Areas'>('All Areas')
   const [selectedEffortLevel, _setSelectedEffortLevel] = useState<string>('All Levels')
@@ -2337,7 +2340,25 @@ function App() {
         {/* Business Tab */}
         {activeMainTab === 'business' && (
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            <BusinessDashboard preselectedBusinessArea={selectedBusinessArea} />
+            <BusinessDashboard
+              preselectedBusinessArea={selectedBusinessArea}
+              onNavigateToScheduling={(businessId, projectId) => {
+                setSchedulingBusinessId(businessId);
+                setSchedulingProjectId(projectId);
+                setActiveMainTab('project-scheduling');
+              }}
+            />
+          </div>
+        )}
+
+        {/* Project Scheduling Tab */}
+        {activeMainTab === 'project-scheduling' && (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <ProjectScheduling
+              selectedBusinessId={schedulingBusinessId}
+              selectedProjectId={schedulingProjectId}
+              onBack={() => setActiveMainTab('business')}
+            />
           </div>
         )}
 

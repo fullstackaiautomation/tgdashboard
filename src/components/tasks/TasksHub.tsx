@@ -98,6 +98,7 @@ export const TasksHub: FC = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [scheduleDate, setScheduleDate] = useState<Date>(new Date());
+  const [isGeneratingRecurring, setIsGeneratingRecurring] = useState(false);
 
   // Get current user ID for real-time sync
   useEffect(() => {
@@ -212,6 +213,37 @@ export const TasksHub: FC = () => {
     }
   };
 
+  // Handle recurring tasks generation
+  const handleGenerateRecurringTasks = async () => {
+    try {
+      setIsGeneratingRecurring(true);
+
+      const { data, error } = await supabase.functions.invoke(
+        'generate-recurring-tasks',
+        {
+          body: {},
+        }
+      );
+
+      if (error) {
+        console.error('Error generating recurring tasks:', error);
+        alert(`Failed to generate recurring tasks: ${error.message}`);
+        return;
+      }
+
+      console.log('✅ Recurring tasks generated:', data);
+      alert(`Successfully generated ${data.tasksCreated} recurring task instances!`);
+
+      // Refresh tasks
+      window.location.reload();
+    } catch (err) {
+      console.error('❌ Failed to generate recurring tasks:', err);
+      alert(`Failed to generate recurring tasks: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsGeneratingRecurring(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="py-6 px-8">
@@ -240,14 +272,25 @@ export const TasksHub: FC = () => {
     <div className="py-4 sm:py-6 px-4 sm:px-8 max-w-full mx-auto">
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-100">Tasks</h1>
-        <button
-          onClick={() => setIsAddTaskModalOpen(true)}
-          className="px-4 sm:px-4 py-2.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm sm:text-base touch-action-none"
-        >
-          <span className="text-xl leading-none">+</span>
-          <span className="hidden sm:inline">Add Task</span>
-          <span className="sm:hidden">Add</span>
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleGenerateRecurringTasks}
+            disabled={isGeneratingRecurring}
+            className="px-3 sm:px-4 py-2.5 sm:py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-900 disabled:opacity-50 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm sm:text-base touch-action-none"
+            title="Generate next week's recurring task instances"
+          >
+            <span className="hidden sm:inline">{isGeneratingRecurring ? 'Generating...' : 'Generate Recurring'}</span>
+            <span className="sm:hidden">{isGeneratingRecurring ? '⟳' : '⟳'}</span>
+          </button>
+          <button
+            onClick={() => setIsAddTaskModalOpen(true)}
+            className="px-4 sm:px-4 py-2.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm sm:text-base touch-action-none"
+          >
+            <span className="text-xl leading-none">+</span>
+            <span className="hidden sm:inline">Add Task</span>
+            <span className="sm:hidden">Add</span>
+          </button>
+        </div>
       </div>
 
       <TaskFilters
