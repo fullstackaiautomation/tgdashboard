@@ -486,42 +486,42 @@ Implement two separate git workflows:
    - Includes: source, docs, notes, scripts, tests, everything
    - Used for cross-machine development synchronization
 
-2. **Push Live** - Pushes ONLY production files to tgdashboard deployment repo
+2. **Push Live** - Publishes production-ready source code to the public tgdashboard repo
    - Branch: main
-   - Includes: Pre-built dist/ folder only
-   - Excludes: .env, credentials.json, API keys, node_modules
-   - Uses GitHub Actions for automated deployment
+   - Includes: src/, configuration, public docs, `public/.nojekyll`
+   - Excludes: .env, credentials.json, API keys, node_modules, private notes
+   - GitHub Actions builds and deploys the site directly from main
 
 **Implementation**:
 - Updated [CLAUDE.md](CLAUDE.md) with both workflows
 - tg-dashboard-sync (private): Contains full source + all development files
-- tgdashboard-deploy (public): Contains only dist/ folder for GitHub Pages
-- GitHub Actions workflows handle automated build and deploy
+- tgdashboard (public): Contains the flattened Vite app, configs, docs, and `.nojekyll`
+- GitHub Actions workflow (`deploy.yml`) installs dependencies, builds, and deploys artifact to GitHub Pages
 
 **Rationale**:
 - Separation of concerns: development vs. deployment
 - Security: Sensitive files never pushed to deployment repo
-- Efficiency: Pre-built deployments don't require rebuild on every push
-- Flexibility: Can deploy stable builds even during development
+- Reliability: GitHub Actions runs the canonical build, avoiding mismatches between local and hosted artifacts
+- Flexibility: Can trigger redeploys via workflow dispatch without rebuilding locally
 
 **Impact**:
 - ✅ Safe deployment without exposing credentials
-- ✅ Fast CI/CD (no rebuild needed for deploy)
+- ✅ Consistent CI/CD—every deploy rebuilds from the latest source on main
 - ✅ Clear distinction between sync and deploy workflows
 - ✅ Development files protected in private repo
 
 **Trade-offs**:
 - Must remember to maintain both repos
-- Pre-built files must be manually copied/committed
-- Two different git workflows to remember
+- Must ensure secrets never enter the public repo history
+- Deploys depend on GitHub Actions availability (monitor workflow status)
 
 **Related Issues Fixed**:
-- GitHub Actions build failures (Oct 30, 2025)
-  - Issue: Workflow tried to rebuild when only dist files present
-  - Fix: Remove build step from deploy workflow, use pre-built files
-- dist/ folder not tracked in deployment repo
-  - Issue: .gitignore excluded dist/, workflow couldn't find it
-  - Fix: Remove dist from .gitignore in deployment repo, commit actual files
+- GitHub Actions deploy hanging (Nov 8, 2025)
+  - Issue: Repo nested under `Dashboard/tg-dashboard/` so workflow couldn't locate project root
+  - Fix: Flatten repo to root, add `public/.nojekyll`, rely on workflow build+deploy
+- Pre-built dist workflow retired (Nov 8, 2025)
+  - Issue: Manual dist commits drifted from actual source and clogged deployment queue
+  - Fix: Remove dist from git history, let `deploy.yml` build artifact during CI
 - GitHub Actions workflow scope limitation
   - Issue: OAuth token lacked `workflow` scope
   - Fix: Use Personal Access Token (PAT) with `workflow` scope

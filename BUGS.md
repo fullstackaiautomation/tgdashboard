@@ -343,56 +343,26 @@ error TS2322: Type '"Article"' is not assignable to type 'ContentSource'
 
 ## GitHub Actions & Deployment Issues
 
-### GitHub Actions Workflow Build Failures
+### GitHub Pages Deploy Job Stuck “in_progress”
 
-**Issue**: GitHub Actions workflow fails even though local build succeeds
+**Issue**: GitHub Actions shows a successful *build* job, but the subsequent *Deploy to GitHub Pages* job never finishes and the live site remains on an older build (only "Daily" and "Content Library" tabs visible).
 
-**Root Causes**:
-1. **Workflow rebuilds instead of using pre-built files**
-   - If deploying pre-built dist files, don't rebuild in CI
-   - Remove build step from deploy workflow
+**Root Causes** (Nov 8, 2025):
+1. The repository was accidentally nested under `Dashboard/tg-dashboard/`, so the workflow could not find `package.json` or `src/` at the root when deploying.
+2. The deployment lacked `public/.nojekyll`, causing GitHub Pages to treat the site as Jekyll and ignore the SPA assets.
+3. A prior workflow run targeting the broken commit held onto the deploy slot, leaving new runs waiting indefinitely.
 
-2. **dist/ folder not found in artifact upload**
-   - Check if dist/ is in .gitignore (will prevent commit)
-   - For deployment repo: Remove dist from .gitignore
-   - Commit actual dist/ folder to deployment repo
+**Fix**:
+1. Flatten the repository back to a single root (delete `Dashboard/tg-dashboard/` after copying the real app to the root).
+2. Add an empty `public/.nojekyll` file so GitHub Pages serves the Vite build without Jekyll processing.
+3. Stop committing pre-built `dist/` assets—let the workflow run `npm ci` and `npm run build` (as defined in `.github/workflows/deploy.yml`).
+4. Push source changes to `main` (`git push origin main`) and monitor the **Deploy to GitHub Pages** workflow until both *build* and *deploy* jobs succeed, followed by the "pages build and deployment" summary job.
+5. Cancel any stuck or long-running older deploy attempts before retrying so the new job can execute.
 
-3. **Missing source files in deployment repo**
-   - Deployment repo may only have dist files, not source
-   - Workflow tries to build but package.json/src/ don't exist
-   - Solution: Either provide source OR skip build step
-
-**Solution** (Oct 30, 2025):
-1. **For pre-built deployments**:
-   ```yaml
-   # In .github/workflows/deploy.yml - SKIP BUILD
-   - name: Setup Pages
-     uses: actions/configure-pages@v4
-
-   - name: Upload artifact
-     uses: actions/upload-pages-artifact@v3
-     with:
-       path: './dist'  # Uses existing dist folder
-
-   # Don't include npm install or npm run build
-   ```
-
-2. **Fix .gitignore for deployment repo**:
-   ```bash
-   # Remove dist from .gitignore for deployment repos
-   # Edit .gitignore and remove: dist
-   git add -f dist/
-   git commit -m "Add built dist files"
-   ```
-
-3. **Verification**:
-   - Check repo has dist/ folder committed
-   - Verify workflow file doesn't include build steps
-   - Test with GitHub Actions "Re-run jobs"
-
-**Files Affected** (Oct 30, 2025):
-- `.github/workflows/deploy.yml` - Updated to skip build
-- `.gitignore` - Removed dist exclusion for deployment repo
+**Prevention**:
+- Keep the project flattened with `package.json`, `src/`, `public/`, etc. at the repository root.
+- Never push directly to the `gh-pages` branch or force-add `dist/`; the workflow now handles artifact creation and publication.
+- Always confirm the latest site update by checking the Actions tab and verifying the live dashboard menu/navigation reflects the new build.
 
 ---
 

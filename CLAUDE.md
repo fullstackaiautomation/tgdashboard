@@ -29,27 +29,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### PUSH LIVE = tgdashboard (PUBLIC)
 **Command**: User says "PUSH LIVE"
 **Repository**: https://github.com/fullstackaiautomation/tgdashboard (Public)
-**Remote name in code**: `main` (also called `main-repo`)
-**Branch**: master
+**Remote name in code**: `origin`
+**Branch**: main
 **What to include**: ONLY production-ready code
-- ✅ Built dist/ files
 - ✅ Source code (src/)
 - ✅ Configuration (package.json, tailwind.config.js, etc.)
 - ✅ Public documentation
+- ✅ `public/.nojekyll` marker (prevents Jekyll processing)
+- ❌ `dist/` (GitHub Actions builds this now)
 - ❌ .env (NEVER - contains secrets)
-- ❌ .gitignore (NEVER - contains security rules)
-- ❌ credentials.json
-- ❌ Any files with API keys
+- ❌ .gitignore (avoid leaking private repo rules)
+- ❌ credentials.json or any API keys
 
 **Action Steps**:
-1. `npm run build` (creates dist/ folder)
-2. `git add -f dist/` (force add, dist is in .gitignore)
-3. `git commit -m "Add built dist files for..."`
-4. `git push main master` (or `git push main master -f` if needed)
-5. GitHub Actions workflow triggers automatically
-6. Site deploys to https://tgdashboard.fullstackaiautomation.com
+1. Run quality gates locally (at minimum `npm run typecheck` and `npm run build`).
+2. Stage only source/config/docs changes: `git add <files>` (do **not** force-add `dist/`).
+3. Commit with a descriptive message.
+4. Push to GitHub: `git push origin main`.
+5. Monitor the **Deploy to GitHub Pages** workflow in GitHub Actions until both *build* and *deploy* jobs succeed.
+6. Confirm the follow-on **pages build and deployment** summary job completes and the site updates at https://tgdashboard.fullstackaiautomation.com.
 
-**CRITICAL**: Check for .env secrets before pushing to public. GitHub will block the push if secrets are detected.
+**CRITICAL**: Never push directly to the `gh-pages` branch. GitHub Actions builds from `main` and publishes the artifact automatically. Cancel any stuck older runs before re-triggering a deploy.
 
 ### Why Two Repos?
 - **tg-dashboard-sync (Private)**: Development work, all files, experimental code, secrets
