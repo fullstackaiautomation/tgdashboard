@@ -257,7 +257,7 @@ export const EditTaskModal: FC<EditTaskModalProps> = ({ task, isOpen, onClose, b
 
             {/* Hours Worked */}
             <div>
-              <label className="text-sm font-semibold text-gray-200 block mb-2">Hours Worked</label>
+              <label className="text-sm font-semibold text-gray-200 block mb-2">Worked</label>
               <Input
                 type="number"
                 value={hoursWorked || ''}

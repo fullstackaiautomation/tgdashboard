@@ -15,6 +15,7 @@ interface ContentTableProps {
   onEdit: (content: ContentItem) => void
   onDelete: (id: string) => void
   onOpenDetails: (content: ContentItem) => void
+  onUpdateValueRating: (id: string, rating: number | null) => void
   onUpdateTGRating: (id: string, rating: number | null) => void
   onUpdateGoogleLLM: (id: string, value: boolean | null) => void
   onUpdateAgent: (id: string, agent: string | undefined) => void
@@ -84,6 +85,7 @@ export const ContentTable: FC<ContentTableProps> = ({
   onEdit,
   onDelete,
   onOpenDetails,
+  onUpdateValueRating,
   onUpdateTGRating,
   onUpdateGoogleLLM,
   onUpdateAgent,
@@ -179,7 +181,8 @@ export const ContentTable: FC<ContentTableProps> = ({
               <th className="px-3 py-3 text-left text-sm font-bold text-gray-100 min-w-[150px] max-w-[300px]">Title</th>
               <th className="px-2 py-3 text-center text-sm font-bold text-gray-100 w-12">Platform</th>
               <th className="px-2 py-3 text-center text-sm font-bold text-gray-100 w-24">Creator</th>
-              <th className="px-2 py-3 text-center text-sm font-bold text-gray-100 w-20">Rating</th>
+              <th className="px-2 py-3 text-center text-sm font-bold text-gray-100 w-20">Value</th>
+              <th className="px-2 py-3 text-center text-sm font-bold text-gray-100 w-16">TG</th>
               <th className="px-2 py-3 text-center text-sm font-bold text-gray-100 w-24">Notebook</th>
               <th className="px-2 py-3 text-center text-sm font-bold text-gray-100 w-40">Agent</th>
               <th className="px-2 py-3 text-center text-sm font-bold text-gray-100 w-24">Added</th>
@@ -313,25 +316,56 @@ export const ContentTable: FC<ContentTableProps> = ({
                   )}
                 </td>
 
-                {/* TG Rating - Editable */}
+                {/* Value Rating (AI) - Editable */}
                 <td className="px-2 py-3 text-sm align-middle text-center">
                   <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={2}
-                    value={content.tg_rating || ''}
+                    type="number"
+                    inputMode="decimal"
+                    step="0.1"
+                    min="1"
+                    max="10"
+                    value={content.value_rating ?? ''}
                     onChange={(e) => {
                       const val = e.target.value
-                      // Only allow numbers 1-10 or empty
-                      if (val === '' || (val.match(/^\d+$/) && parseInt(val) >= 1 && parseInt(val) <= 10)) {
-                        onUpdateTGRating(
-                          content.id,
-                          val ? parseInt(val) : null
-                        )
+                      if (val === '') {
+                        onUpdateValueRating(content.id, null)
+                        return
+                      }
+
+                      const num = Number(val)
+                      if (!Number.isNaN(num) && num >= 1 && num <= 10) {
+                        const rounded = Math.round(num * 10) / 10
+                        onUpdateValueRating(content.id, rounded)
                       }
                     }}
                     placeholder="-"
-                    className="w-10 px-1 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-12 px-1 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </td>
+
+                {/* TG Rating - Editable */}
+                <td className="px-2 py-3 text-sm align-middle text-center">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="1"
+                    max="10"
+                    step="1"
+                    value={content.tg_rating ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val === '') {
+                        onUpdateTGRating(content.id, null)
+                        return
+                      }
+
+                      const num = Number(val)
+                      if (!Number.isNaN(num) && num >= 1 && num <= 10) {
+                        onUpdateTGRating(content.id, Math.round(num))
+                      }
+                    }}
+                    placeholder="-"
+                    className="w-12 px-1 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </td>
 
@@ -459,7 +493,7 @@ export const ContentTable: FC<ContentTableProps> = ({
               {/* Expanded Details Row */}
               {expandedId === content.id && (
                 <tr className="bg-gray-750 border-b border-gray-700">
-                  <td colSpan={8} className="px-3 py-4">
+                  <td colSpan={9} className="px-3 py-4">
                     <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
                       {/* Single Row: Time, AI Rating, Status, Edit/Delete */}
                       <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-700">

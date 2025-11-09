@@ -6,39 +6,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **tg-dashboard** is a comprehensive personal productivity and financial management application built with React, TypeScript, Vite, and Supabase. The application integrates 5 main modules: Daily planning, Tasks Hub, Business Projects, Content Library, and Finance tracking.
 
-## Git Workflows - CRITICAL DISTINCTION
+## Git Workflow
 
-⚠️ **TWO SEPARATE REPOSITORIES - DO NOT CONFUSE THEM** ⚠️
-
-### PUSH SYNC = tg-dashboard-sync (PRIVATE)
-**Command**: User says "PUSH SYNC"
-**Repository**: https://github.com/fullstackaiautomation/tg-dashboard-sync (Private)
-**Branch**: master
-**What to include**: ALL FILES including:
-- ✅ .env (with secrets - SAFE because private)
-- ✅ .gitignore
-- ✅ All development files
-- ✅ All notes and documentation
-- ✅ Everything
-
-**Action Steps**:
-1. `git add .`
-2. `git commit -m "describe changes"`
-3. `git push origin master`
-
-### PUSH LIVE = tgdashboard (PUBLIC)
-**Command**: User says "PUSH LIVE"
 **Repository**: https://github.com/fullstackaiautomation/tgdashboard (Public)
-**Remote name in code**: `origin`
+**Remote name**: `origin`
 **Branch**: main
-**What to include**: ONLY production-ready code
+
+### Standard Push Workflow
+
+**What to include**:
 - ✅ Source code (src/)
 - ✅ Configuration (package.json, tailwind.config.js, etc.)
 - ✅ Public documentation
 - ✅ `public/.nojekyll` marker (prevents Jekyll processing)
 - ❌ `dist/` (GitHub Actions builds this now)
 - ❌ .env (NEVER - contains secrets)
-- ❌ .gitignore (avoid leaking private repo rules)
+- ❌ .gitignore (should not be committed)
 - ❌ credentials.json or any API keys
 
 **Action Steps**:
@@ -50,10 +33,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 6. Confirm the follow-on **pages build and deployment** summary job completes and the site updates at https://tgdashboard.fullstackaiautomation.com.
 
 **CRITICAL**: Never push directly to the `gh-pages` branch. GitHub Actions builds from `main` and publishes the artifact automatically. Cancel any stuck older runs before re-triggering a deploy.
-
-### Why Two Repos?
-- **tg-dashboard-sync (Private)**: Development work, all files, experimental code, secrets
-- **tgdashboard (Public)**: Live production code, public documentation, no secrets, automatic deployment
 
 ## Context Management
 

@@ -530,17 +530,51 @@ Use this template when reporting a new bug:
 
 ---
 
+## Task Card Height Alignment
+
+**Issue**: Energy level (Dialed), Schedule time (9:00 AM), and Project boxes had inconsistent heights
+
+**Date Fixed**: Nov 9, 2025
+
+**Root Cause**:
+- Energy and Schedule boxes used responsive height: `h-6 sm:h-8` (grows on desktop)
+- Project box uses fixed `h-8 sm:h-9` (also grows but differently)
+- This created visual misalignment where badges appeared different sizes on different screen sizes
+
+**Solution**:
+- Changed Energy level box: from `h-6 sm:h-8` to `h-6` (fixed height)
+- Changed Schedule time box: from `h-6 sm:h-8` to `h-6` (fixed height)
+- Also removed vertical padding: `py-0.5 sm:py-1` to `py-0` to prevent content stretching
+- Result: All three badges now have consistent compact height across all screen sizes
+
+**Files Modified**:
+- [src/components/tasks/TaskCard.tsx:704](src/components/tasks/TaskCard.tsx#L704) - Energy level SelectTrigger
+- [src/components/tasks/TaskCard.tsx:758](src/components/tasks/TaskCard.tsx#L758) - Schedule status button
+
+**Before vs After**:
+```
+BEFORE (responsive growth):
+Mobile:  h-6 (24px)
+Desktop: h-8 (32px) - appeared taller
+
+AFTER (fixed compact):
+Mobile:  h-6 (24px)
+Desktop: h-6 (24px) - consistent everywhere
+```
+
+---
+
 ## Bug Index
 
 | # | Title | Severity | Status | Date |
 |---|-------|----------|--------|------|
-| [Add bugs as you encounter them] | | | | |
+| B-001 | Task Card Height Alignment | Low | ✅ Resolved | Nov 9, 2025 |
 
 ---
 
 ## Bug Statistics
-- **Total Bugs Reported**: 0
-- **Resolved**: 0
+- **Total Bugs Reported**: 1
+- **Resolved**: 1
 - **In Progress**: 0
 - **Open**: 0
 - **Won't Fix**: 0

@@ -90,15 +90,6 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId, busines
 
                 {/* Phase Statistics Scorecards */}
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  {/* Phase Status */}
-                  <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
-                    <span className={`font-semibold ${
-                      completionPercentage === 100 ? 'text-green-400' : completionPercentage > 0 ? 'text-blue-400' : 'text-gray-400'
-                    }`}>
-                      {completionPercentage === 100 ? 'Completed' : completionPercentage > 0 ? 'In Progress' : 'Not Started'}
-                    </span>
-                  </div>
-
                   {/* Tasks */}
                   <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
                     <span className="text-gray-100 font-semibold">{completedTasks}/{totalTasks}</span>
@@ -106,19 +97,19 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId, busines
 
                   {/* Estimated Hours */}
                   <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
-                    <span className="text-gray-400">Hours Est</span>
+                    <span className="text-gray-400">Est.</span>
                     <span className="text-gray-100 font-semibold">{Math.round(estimatedHours)}h</span>
                   </div>
 
                   {/* Actual Hours */}
                   <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
-                    <span className="text-gray-400">Hours Worked</span>
+                    <span className="text-gray-400">Worked</span>
                     <span className="text-gray-100 font-semibold">{Math.round(actualHours)}h</span>
                   </div>
 
                   {/* Hours Accuracy (difference) */}
                   <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
-                    <span className="text-gray-400">Hours Accuracy</span>
+                    <span className="text-gray-400">+/-</span>
                     <span className={`font-semibold ${Math.abs(actualHours - estimatedHours) <= 2 ? 'text-green-400' : Math.abs(actualHours - estimatedHours) <= 5 ? 'text-blue-400' : 'text-orange-400'}`}>
                       {Math.round(actualHours - estimatedHours)}h
                     </span>
@@ -184,15 +175,6 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId, busines
 
                   {/* Unassigned Statistics Scorecards */}
                   <div className="flex items-center gap-3 flex-1 justify-end">
-                    {/* Status */}
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
-                      <span className={`font-semibold ${
-                        unassignedCompletion === 100 ? 'text-green-400' : unassignedCompletion > 0 ? 'text-blue-400' : 'text-gray-400'
-                      }`}>
-                        {unassignedCompletion === 100 ? 'Completed' : unassignedCompletion > 0 ? 'In Progress' : 'Not Started'}
-                      </span>
-                    </div>
-
                     {/* Tasks */}
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
                       <span className="text-gray-100 font-semibold">{unassignedCompleted}/{unassignedTotal}</span>
@@ -200,19 +182,19 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId, busines
 
                     {/* Estimated Hours */}
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
-                      <span className="text-gray-400">Hours Est</span>
+                      <span className="text-gray-400">Est.</span>
                       <span className="text-gray-100 font-semibold">{Math.round(unassignedEstHours)}h</span>
                     </div>
 
                     {/* Actual Hours */}
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
-                      <span className="text-gray-400">Hours Worked</span>
+                      <span className="text-gray-400">Worked</span>
                       <span className="text-gray-100 font-semibold">{Math.round(unassignedActHours)}h</span>
                     </div>
 
                     {/* Hours Accuracy (difference) */}
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
-                      <span className="text-gray-400">Hours Accuracy</span>
+                      <span className="text-gray-400">+/-</span>
                       <span className={`font-semibold ${Math.abs(unassignedActHours - unassignedEstHours) <= 2 ? 'text-green-400' : Math.abs(unassignedActHours - unassignedEstHours) <= 5 ? 'text-blue-400' : 'text-orange-400'}`}>
                         {Math.round(unassignedActHours - unassignedEstHours)}h
                       </span>

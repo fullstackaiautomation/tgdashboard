@@ -328,6 +328,10 @@ const ContentLibrary = () => {
     await handleUpdateContent(id, { is_favorite: !currentValue })
   }
 
+  const handleUpdateValueRating = async (id: string, rating: number | null) => {
+    await handleUpdateContent(id, { value_rating: rating })
+  }
+
   const handleUpdateTGRating = async (id: string, rating: number | null) => {
     await handleUpdateContent(id, { tg_rating: rating })
   }
@@ -838,6 +842,7 @@ const ContentLibrary = () => {
             setSelectedContent(content)
             setShowDetailsModal(true)
           }}
+          onUpdateValueRating={handleUpdateValueRating}
           onUpdateTGRating={handleUpdateTGRating}
           onUpdateGoogleLLM={handleUpdateGoogleLLM}
           onUpdateAgent={handleUpdateAgent}
