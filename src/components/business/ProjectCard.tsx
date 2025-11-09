@@ -88,11 +88,6 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId, busines
 
                 {/* Phase Statistics Scorecards */}
                 <div className="flex items-center gap-2 flex-wrap justify-end">
-                  {/* Tasks */}
-                  <div className="flex items-center gap-1 px-2 py-1 bg-gray-800/60 rounded border border-gray-700 text-xs whitespace-nowrap">
-                    <span className="text-gray-100 font-semibold">{completedTasks}/{totalTasks}</span>
-                  </div>
-
                   {/* Phase Status */}
                   <div className="flex items-center gap-1 px-2 py-1 bg-gray-800/60 rounded border border-gray-700 text-xs whitespace-nowrap">
                     <span className={`font-semibold ${
@@ -100,6 +95,11 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId, busines
                     }`}>
                       {completionPercentage === 100 ? 'Completed' : completionPercentage > 0 ? 'In Progress' : 'Not Started'}
                     </span>
+                  </div>
+
+                  {/* Tasks */}
+                  <div className="flex items-center gap-1 px-2 py-1 bg-gray-800/60 rounded border border-gray-700 text-xs whitespace-nowrap">
+                    <span className="text-gray-100 font-semibold">{completedTasks}/{totalTasks}</span>
                   </div>
 
                   {/* Estimated Hours */}
@@ -181,11 +181,6 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId, busines
 
                 {/* Unassigned Statistics Scorecards */}
                 <div className="flex items-center gap-2 flex-wrap justify-end">
-                  {/* Tasks */}
-                  <div className="flex items-center gap-1 px-2 py-1 bg-gray-800/60 rounded border border-gray-700 text-xs whitespace-nowrap">
-                    <span className="text-gray-100 font-semibold">{unassignedCompleted}/{unassignedTotal}</span>
-                  </div>
-
                   {/* Status */}
                   <div className="flex items-center gap-1 px-2 py-1 bg-gray-800/60 rounded border border-gray-700 text-xs whitespace-nowrap">
                     <span className={`font-semibold ${
@@ -193,6 +188,11 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId, busines
                     }`}>
                       {unassignedCompletion === 100 ? 'Completed' : unassignedCompletion > 0 ? 'In Progress' : 'Not Started'}
                     </span>
+                  </div>
+
+                  {/* Tasks */}
+                  <div className="flex items-center gap-1 px-2 py-1 bg-gray-800/60 rounded border border-gray-700 text-xs whitespace-nowrap">
+                    <span className="text-gray-100 font-semibold">{unassignedCompleted}/{unassignedTotal}</span>
                   </div>
 
                   {/* Estimated Hours */}
