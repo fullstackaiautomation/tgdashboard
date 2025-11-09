@@ -163,7 +163,7 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
               }}
               onClick={() => onBusinessChange(null)}
             >
-              <span>All Areas</span>
+              <span className="text-center">All Areas</span>
               <span className="text-xl font-bold mt-0.5">{getBusinessCount(null)}</span>
             </Badge>
 
@@ -181,7 +181,7 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
                 }}
                 onClick={() => onBusinessChange(business.id)}
               >
-                <span>{business.label}</span>
+                <span className="text-center">{business.label}</span>
                 <span className="text-xl font-bold mt-0.5">{getBusinessCount(business.id)}</span>
               </Badge>
             ))}
@@ -200,7 +200,7 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
                 }}
                 onClick={() => onBusinessChange(area.id)}
               >
-                <span>{area.label}</span>
+                <span className="text-center">{area.label}</span>
                 <span className="text-xl font-bold mt-0.5">{getBusinessCount(area.id)}</span>
               </Badge>
             ))}
@@ -225,7 +225,7 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
               }}
               onClick={() => onStatusChange(null)}
             >
-              <span>All Tasks</span>
+              <span className="text-center">All Tasks</span>
               <span className="text-xl font-bold mt-0.5">{tasks.length}</span>
             </Badge>
 
@@ -243,7 +243,7 @@ export const TaskFilters: FC<TaskFiltersProps> = ({
                 }}
                 onClick={() => onStatusChange(status.id)}
               >
-                <span>{status.label}</span>
+                <span className="text-center">{status.label}</span>
                 <span className="text-xl font-bold mt-0.5">{getStatusCount(status.id)}</span>
               </Badge>
             ))}
