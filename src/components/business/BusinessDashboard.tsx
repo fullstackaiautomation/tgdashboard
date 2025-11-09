@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Trash2, Calendar, Edit2 } from 'lucide-react';
+import { Plus, Trash2, Calendar, Edit2, Save, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +40,8 @@ export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusin
   const [editingTaskDueDate, setEditingTaskDueDate] = useState<string | null>(null);
   const [expandedPhases, setExpandedPhases] = useState<Record<string, boolean>>({});
   const [showAddPhaseModal, setShowAddPhaseModal] = useState(false);
+  const [editingProjectNameId, setEditingProjectNameId] = useState<string | null>(null);
+  const [editProjectName, setEditProjectName] = useState('');
   const deleteProject = useDeleteProject();
   const updateProject = useUpdateProject();
   const updateTask = useUpdateTask();
@@ -139,6 +141,25 @@ export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusin
       setEditProjectGoal('');
     } catch (error) {
       console.error('Failed to update project goal:', error);
+    }
+  };
+
+  // Handle project name update
+  const handleUpdateProjectName = async (projectId: string, projectName: string) => {
+    if (!projectName.trim()) {
+      alert('Project name cannot be empty');
+      return;
+    }
+    try {
+      await updateProject.mutateAsync({
+        id: projectId,
+        updates: { name: projectName.trim() }
+      });
+      setEditingProjectNameId(null);
+      setEditProjectName('');
+    } catch (error) {
+      console.error('Failed to update project name:', error);
+      alert('Failed to update project name. Please try again.');
     }
   };
 
@@ -387,38 +408,119 @@ export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusin
                   <Card className="bg-gray-900/60 border-gray-800 shadow-lg overflow-hidden">
                     {/* Project Header */}
                     <div className="px-5 pt-3 pb-5" style={{ backgroundColor: `${business?.color}30` }}>
-                      <div className="flex items-center gap-4 min-h-16">
-                        {/* Left: Project Name */}
-                        <h3 className="text-4xl font-bold text-gray-100 leading-none whitespace-nowrap">{selectedProjectData.name}</h3>
+                      <div className="flex items-center gap-3 min-h-16">
+                        {/* Left: Project Name (double-click to edit) */}
+                        {editingProjectNameId === selectedProjectData.id ? (
+                          <div className="flex items-center gap-2 flex-1">
+                            <input
+                              type="text"
+                              value={editProjectName}
+                              onChange={(e) => setEditProjectName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleUpdateProjectName(selectedProjectData.id, editProjectName);
+                                } else if (e.key === 'Escape') {
+                                  setEditingProjectNameId(null);
+                                  setEditProjectName('');
+                                }
+                              }}
+                              className="text-4xl font-bold text-gray-100 bg-gray-800 border-2 border-purple-500 rounded px-3 py-1 leading-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+                              autoFocus
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleUpdateProjectName(selectedProjectData.id, editProjectName)}
+                              className="h-10 px-3 bg-purple-600 hover:bg-purple-700"
+                            >
+                              <Save size={18} />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditingProjectNameId(null);
+                                setEditProjectName('');
+                              }}
+                              className="h-10 px-3 text-gray-400 hover:text-gray-200"
+                            >
+                              <X size={18} />
+                            </Button>
+                          </div>
+                        ) : (
+                          <h3
+                            className="text-4xl font-bold text-gray-100 leading-none cursor-pointer hover:text-purple-400 transition-colors"
+                            onDoubleClick={() => {
+                              setEditingProjectNameId(selectedProjectData.id);
+                              setEditProjectName(selectedProjectData.name);
+                            }}
+                            title="Double-click to edit"
+                          >
+                            {selectedProjectData.name}
+                          </h3>
+                        )}
 
-                        {/* Center: Empty space */}
+                        {/* Spacer */}
                         <div className="flex-1"></div>
 
                         {/* Right: Project Goal Input */}
-                        <div className="w-96 flex-shrink-0">
-                          <textarea
-                            value={editingProjectGoalId === selectedProjectData.id ? editProjectGoal : (selectedProjectData.project_goal || '')}
-                            onClick={() => {
-                              if (editingProjectGoalId !== selectedProjectData.id) {
-                                setEditingProjectGoalId(selectedProjectData.id);
-                                setEditProjectGoal(selectedProjectData.project_goal || '');
-                              }
-                            }}
-                            onChange={(e) => {
-                              setEditProjectGoal(e.target.value);
-                              handleUpdateProjectGoal(selectedProjectData.id, e.target.value);
-                            }}
-                            onBlur={() => {
-                              setEditingProjectGoalId(null);
-                            }}
-                            className="w-full px-3 py-2 rounded-lg text-xs bg-gray-900 border-2 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none font-medium"
+                        <div style={{ flex: '0 1 30%', minWidth: 0 }}>
+                          <div
+                            className="rounded-lg border-2 p-3 relative w-full"
                             style={{
-                              borderColor: `${business?.color}`,
-                              backgroundColor: `${business?.color}20`,
+                              backgroundColor: `${business?.color}15`,
+                              borderColor: `${business?.color}60`,
                             }}
-                            rows={2}
-                            placeholder="Enter project goal..."
-                          />
+                          >
+                            {editingProjectGoalId === selectedProjectData.id ? (
+                              <div className="space-y-2">
+                                <textarea
+                                  value={editProjectGoal}
+                                  onChange={(e) => setEditProjectGoal(e.target.value)}
+                                  className="w-full bg-gray-800 text-gray-100 rounded border border-gray-700 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                  rows={3}
+                                  placeholder="Enter project goal..."
+                                />
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingProjectGoalId(null);
+                                      setEditProjectGoal('');
+                                    }}
+                                    className="h-8 px-3 text-gray-400 hover:text-gray-200"
+                                  >
+                                    <X className="w-4 h-4 mr-1" /> Cancel
+                                  </Button>
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => handleUpdateProjectGoal(selectedProjectData.id, editProjectGoal)}
+                                    className="h-8 px-3 bg-purple-600 hover:bg-purple-700 text-white"
+                                  >
+                                    <Save className="w-4 h-4 mr-1" /> Save
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="text-sm line-clamp-2" style={{ color: selectedProjectData.project_goal ? business?.color : '#6b7280' }}>
+                                  {selectedProjectData.project_goal ? selectedProjectData.project_goal : <span className="italic">No goal set</span>}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 flex-shrink-0"
+                                  onClick={() => {
+                                    setEditingProjectGoalId(selectedProjectData.id);
+                                    setEditProjectGoal(selectedProjectData.project_goal || '');
+                                  }}
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -476,29 +578,63 @@ export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusin
 
                       {/* Right: Project Goal Input */}
                       <div className="w-96 flex-shrink-0">
-                        <textarea
-                          value={editingProjectGoalId === project.id ? editProjectGoal : (project.project_goal || '')}
-                          onClick={() => {
-                            if (editingProjectGoalId !== project.id) {
-                              setEditingProjectGoalId(project.id);
-                              setEditProjectGoal(project.project_goal || '');
-                            }
-                          }}
-                          onChange={(e) => {
-                            setEditProjectGoal(e.target.value);
-                            handleUpdateProjectGoal(project.id, e.target.value);
-                          }}
-                          onBlur={() => {
-                            setEditingProjectGoalId(null);
-                          }}
-                          className="w-full px-3 py-2 rounded-lg text-xs bg-gray-900 border-2 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none font-medium"
+                        <div
+                          className="rounded-lg border-2 p-4 relative"
                           style={{
-                            borderColor: `${business?.color}`,
-                            backgroundColor: `${business?.color}20`,
+                            backgroundColor: `${business?.color}15`,
+                            borderColor: `${business?.color}60`,
                           }}
-                          rows={2}
-                          placeholder="Enter project goal..."
-                        />
+                        >
+                          {editingProjectGoalId === project.id ? (
+                            <div className="space-y-2">
+                              <textarea
+                                value={editProjectGoal}
+                                onChange={(e) => setEditProjectGoal(e.target.value)}
+                                className="w-full bg-gray-800 text-gray-100 rounded border border-gray-700 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                rows={3}
+                                placeholder="Enter project goal..."
+                              />
+                              <div className="flex gap-2 justify-end">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingProjectGoalId(null);
+                                    setEditProjectGoal('');
+                                  }}
+                                  className="h-8 px-3 text-gray-400 hover:text-gray-200"
+                                >
+                                  <X className="w-4 h-4 mr-1" /> Cancel
+                                </Button>
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() => handleUpdateProjectGoal(project.id, editProjectGoal)}
+                                  className="h-8 px-3 bg-purple-600 hover:bg-purple-700 text-white"
+                                >
+                                  <Save className="w-4 h-4 mr-1" /> Save
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between gap-3 min-h-[60px]">
+                              <div className="text-sm" style={{ color: project.project_goal ? business?.color : '#6b7280' }}>
+                                {project.project_goal ? project.project_goal : <span className="italic">No goal set</span>}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 flex-shrink-0"
+                                onClick={() => {
+                                  setEditingProjectGoalId(project.id);
+                                  setEditProjectGoal(project.project_goal || '');
+                                }}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
