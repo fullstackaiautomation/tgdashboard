@@ -658,41 +658,32 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
 
           {/* Compact Badges */}
           <div className="flex items-center gap-1 sm:gap-2 shrink-0 flex-wrap xl:flex-nowrap ml-auto">
-            {/* Business/Area/Project Badge - Hidden on mobile to show task name */}
+            {/* Business/Area/Project Badge - Always editable dropdown */}
             <div className="hidden sm:flex items-center gap-1">
-              {task.projects ? (
-                <Badge
-                  className="text-white border-0 text-xs px-2 sm:px-3 py-0.5 sm:py-1 font-medium whitespace-nowrap"
-                  style={{ backgroundColor: businessColor }}
+              <Select
+                value={task.project_id || 'no-project'}
+                onValueChange={(projectId) => handleUpdate({ project_id: projectId === 'no-project' ? null : projectId })}
+              >
+                <SelectTrigger
+                  className="h-8 sm:h-9 text-sm sm:text-base px-2 sm:px-4 py-0 border-0 gap-1 whitespace-nowrap"
+                  style={{
+                    backgroundColor: businessColor,
+                    color: 'white',
+                    minWidth: '120px',
+                    width: 'auto'
+                  }}
                 >
-                  {sourceName}
-                </Badge>
-              ) : (
-                <Select
-                  value={task.project_id || 'no-project'}
-                  onValueChange={(projectId) => handleUpdate({ project_id: projectId === 'no-project' ? null : projectId })}
-                >
-                  <SelectTrigger
-                    className="h-8 sm:h-9 text-sm sm:text-base px-2 sm:px-4 py-0 border-0 gap-1 whitespace-nowrap"
-                    style={{
-                      backgroundColor: businessColor,
-                      color: 'white',
-                      minWidth: '120px',
-                      width: '120px'
-                    }}
-                  >
-                    <SelectValue placeholder="+ Project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no-project">Unorganized</SelectItem>
-                    {projects?.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    )) || null}
-                  </SelectContent>
-                </Select>
-              )}
+                  <SelectValue placeholder="+ Project" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no-project">Unorganized</SelectItem>
+                  {projects?.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  )) || null}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Energy Level Badge - clickable to edit */}
@@ -796,28 +787,52 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
             <div className="grid grid-cols-1 2xl:grid-cols-[1fr_1.5fr_280px] gap-4 sm:gap-6 min-w-0">
               {/* Left Column - Notes Panel (hidden for recurring templates) */}
               {!isRecurringTemplate && (
-              <div className="flex flex-col">
-                <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Notes</label>
-                {isEditingNotes ? (
-                  <Textarea
-                    value={editedNotes}
-                    onChange={(e) => setEditedNotes(e.target.value)}
-                    onBlur={handleNotesSave}
-                    autoFocus
-                    rows={16}
-                    placeholder="Add notes, thoughts, or details..."
-                    className="text-sm resize-none bg-gray-800/30 border-gray-700/30 focus:bg-gray-800/50 transition-colors flex-1 leading-relaxed text-gray-100 placeholder:text-gray-500"
-                  />
-                ) : (
-                  <div
-                    onClick={() => setIsEditingNotes(true)}
-                    className={`text-sm cursor-pointer hover:bg-gray-800/30 transition-all px-4 py-3 rounded-lg border border-gray-700/30 flex-1 leading-relaxed ${
-                      task.description ? 'text-gray-100' : 'text-white'
-                    }`}
+              <div className="flex flex-col gap-4">
+                {/* Phase Selector */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Phase</label>
+                  <Select
+                    value={task.phase_id || 'no-phase'}
+                    onValueChange={(phaseId) => handleUpdate({ phase_id: phaseId === 'no-phase' ? null : phaseId })}
                   >
-                    {task.description || 'Add Notes...'}
-                  </div>
-                )}
+                    <SelectTrigger className="h-10 text-sm bg-gray-800/50 border-gray-700/50 hover:bg-gray-800/70 transition-colors text-gray-100">
+                      <SelectValue placeholder="Select phase" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no-phase">No Phase</SelectItem>
+                      {phases?.map((phase) => (
+                        <SelectItem key={phase.id} value={phase.id}>
+                          {phase.name}
+                        </SelectItem>
+                      )) || null}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Notes</label>
+                  {isEditingNotes ? (
+                    <Textarea
+                      value={editedNotes}
+                      onChange={(e) => setEditedNotes(e.target.value)}
+                      onBlur={handleNotesSave}
+                      autoFocus
+                      rows={16}
+                      placeholder="Add notes, thoughts, or details..."
+                      className="text-sm resize-none bg-gray-800/30 border-gray-700/30 focus:bg-gray-800/50 transition-colors flex-1 leading-relaxed text-gray-100 placeholder:text-gray-500"
+                    />
+                  ) : (
+                    <div
+                      onClick={() => setIsEditingNotes(true)}
+                      className={`text-sm cursor-pointer hover:bg-gray-800/30 transition-all px-4 py-3 rounded-lg border border-gray-700/30 flex-1 leading-relaxed ${
+                        task.description ? 'text-gray-100' : 'text-white'
+                      }`}
+                    >
+                      {task.description || 'Add Notes...'}
+                    </div>
+                  )}
+                </div>
               </div>
               )}
 
