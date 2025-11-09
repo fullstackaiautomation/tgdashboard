@@ -95,67 +95,6 @@ export const ProjectGameplanDetailBox: FC<ProjectGameplanDetailBoxProps> = ({
     >
       {/* Editable Fields Section - Organized in requested order */}
       <div className="space-y-4">
-        {/* Row 1: Project Goal */}
-        <div
-          className="rounded-lg border-2 p-4"
-          style={{
-            backgroundColor: `${businessColor}15`,
-            borderColor: `${businessColor}60`,
-          }}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <label
-              className="text-sm font-semibold"
-              style={{ color: businessColor }}
-            >
-              Project Goal
-            </label>
-            {editingField !== 'project_goal' && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200"
-                onClick={() => startEdit('project_goal', project.project_goal || '')}
-              >
-                <Edit2 className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
-          {editingField === 'project_goal' ? (
-            <div className="space-y-2">
-              <textarea
-                value={editValues['project_goal']}
-                onChange={(e) => setEditValues({ ...editValues, project_goal: e.target.value })}
-                className="w-full bg-gray-800 text-gray-100 rounded border border-gray-700 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
-                rows={3}
-                placeholder="Enter project goal..."
-              />
-              <div className="flex gap-2 justify-end">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={cancelEdit}
-                  className="h-8 px-3 text-gray-400 hover:text-gray-200"
-                >
-                  <X className="w-4 h-4 mr-1" /> Cancel
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => saveEdit('project_goal')}
-                  className="h-8 px-3 bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  <Save className="w-4 h-4 mr-1" /> Save
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="text-sm text-gray-300 bg-gray-800/30 rounded p-3 min-h-[60px]">
-              {project.project_goal || <span className="text-gray-500 italic">No goal set</span>}
-            </div>
-          )}
-        </div>
-
         {/* Row 3: Start Date - Est. Completion - Completion Status */}
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-3">
@@ -255,7 +194,7 @@ export const ProjectGameplanDetailBox: FC<ProjectGameplanDetailBoxProps> = ({
           </div>
           <div className="bg-gray-800/30 rounded p-3 border border-gray-700/30">
             <span className="text-xs text-gray-400 uppercase block mb-1">Completion</span>
-            <span className="text-lg font-bold text-purple-400">{metrics.completionPercentage.toFixed(1)}%</span>
+            <span className="text-lg font-bold text-purple-400">{metrics.completionPercentage.toFixed(0)}%</span>
           </div>
         </div>
 
