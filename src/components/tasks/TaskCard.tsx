@@ -787,15 +787,21 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
             <div className="grid grid-cols-1 2xl:grid-cols-[1fr_1.5fr_280px] gap-4 sm:gap-6 min-w-0">
               {/* Left Column - Notes Panel (hidden for recurring templates) */}
               {!isRecurringTemplate && (
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 min-w-0">
                 {/* Phase Selector */}
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs font-semibold text-gray-200 uppercase tracking-wide block mb-2">Phase</label>
                   <Select
                     value={task.phase_id || 'no-phase'}
                     onValueChange={(phaseId) => handleUpdate({ phase_id: phaseId === 'no-phase' ? null : phaseId })}
                   >
-                    <SelectTrigger className="h-10 text-sm bg-gray-800/50 border-gray-700/50 hover:bg-gray-800/70 transition-colors text-gray-100">
+                    <SelectTrigger
+                      className="h-10 text-sm border-0 hover:bg-opacity-80 transition-colors text-white font-medium w-full truncate"
+                      style={{
+                        backgroundColor: businessColor,
+                        color: 'white'
+                      }}
+                    >
                       <SelectValue placeholder="Select phase" />
                     </SelectTrigger>
                     <SelectContent>
