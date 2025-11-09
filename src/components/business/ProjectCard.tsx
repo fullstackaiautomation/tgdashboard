@@ -94,11 +94,13 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId, busines
                     <span className="text-gray-100 font-semibold">{completedTasks}/{totalTasks}</span>
                   </div>
 
-                  {/* Completion % */}
+                  {/* Phase Status */}
                   <div className="flex items-center gap-1 px-2 py-1 bg-gray-800/60 rounded border border-gray-700 text-xs whitespace-nowrap">
-                    <span className="text-gray-400">Done</span>
-                    <span className={`font-semibold ${completionPercentage === 100 ? 'text-green-400' : completionPercentage >= 50 ? 'text-blue-400' : 'text-gray-100'}`}>
-                      {completionPercentage}%
+                    <span className="text-gray-400">Status</span>
+                    <span className={`font-semibold ${
+                      completionPercentage === 100 ? 'text-green-400' : completionPercentage > 0 ? 'text-blue-400' : 'text-gray-400'
+                    }`}>
+                      {completionPercentage === 100 ? 'Completed' : completionPercentage > 0 ? 'In Progress' : 'Not Started'}
                     </span>
                   </div>
 
@@ -187,11 +189,13 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId, busines
                     <span className="text-gray-100 font-semibold">{unassignedCompleted}/{unassignedTotal}</span>
                   </div>
 
-                  {/* Completion % */}
+                  {/* Status */}
                   <div className="flex items-center gap-1 px-2 py-1 bg-gray-800/60 rounded border border-gray-700 text-xs whitespace-nowrap">
-                    <span className="text-gray-400">Done</span>
-                    <span className={`font-semibold ${unassignedCompletion === 100 ? 'text-green-400' : unassignedCompletion >= 50 ? 'text-blue-400' : 'text-gray-100'}`}>
-                      {unassignedCompletion}%
+                    <span className="text-gray-400">Status</span>
+                    <span className={`font-semibold ${
+                      unassignedCompletion === 100 ? 'text-green-400' : unassignedCompletion > 0 ? 'text-blue-400' : 'text-gray-400'
+                    }`}>
+                      {unassignedCompletion === 100 ? 'Completed' : unassignedCompletion > 0 ? 'In Progress' : 'Not Started'}
                     </span>
                   </div>
 
