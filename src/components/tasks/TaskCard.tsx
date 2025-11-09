@@ -109,7 +109,6 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
   const [hoursProjectedInput, setHoursProjectedInput] = useState('');
   const [showProgressSlider, setShowProgressSlider] = useState(false);
   const [showDateTimePicker, setShowDateTimePicker] = useState(false);
-  const [datePickerAnchor, setDatePickerAnchor] = useState<HTMLElement | null>(null);
   const [showTimeTrackingModal, setShowTimeTrackingModal] = useState(false);
   const [_showProjectDropdown, _setShowProjectDropdown] = useState(false);
   const [_syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
@@ -242,7 +241,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
   };
 
   const handleScheduleChange = async (date: string | null, time: string | null) => {
-    // The DateTimePicker already provides properly formatted date string (YYYY-MM-DD)
+    // CalendarDialog provides properly formatted date string (YYYY-MM-DD)
     // We need to convert it to ISO format for storage
     if (!date) {
       handleUpdate({ due_date: undefined });
@@ -520,10 +519,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
-                  setDatePickerAnchor(e.currentTarget);
-                  setShowDateTimePicker(true);
-                }}
+                onClick={() => setShowDateTimePicker(true)}
                 className={`h-6 px-1.5 text-xs gap-0.5 w-auto justify-center ${
                   overdue
                     ? 'text-red-400 hover:bg-red-500/10'
@@ -546,10 +542,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
-                  setDatePickerAnchor(e.currentTarget);
-                  setShowDateTimePicker(true);
-                }}
+                onClick={() => setShowDateTimePicker(true)}
                 className="h-6 px-1.5 text-xs gap-0.5 w-auto justify-center text-gray-500 hover:bg-gray-700 hover:text-gray-300"
               >
                 <Calendar className="w-2.5 h-2.5" />
@@ -558,16 +551,16 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
 
             {/* Schedule Status Button */}
             <div
-              className={`h-6 px-1.5 text-xs font-medium rounded-md w-auto flex items-center justify-center text-white ${
+              className={`h-6 px-1.5 text-xs font-medium rounded-md w-auto flex items-center justify-center text-white whitespace-nowrap ${
                 isCompleted
                   ? 'bg-green-600'
                   : hasTimeBlocks
-                  ? 'bg-yellow-500'
-                  : 'bg-blue-600'
+                  ? 'bg-blue-600'
+                  : 'bg-pink-500'
               }`}
               title={earliestTimeBlock ? `Scheduled for ${earliestTimeBlock.scheduled_date}` : undefined}
             >
-              <span className="text-xs">
+              <span className="text-xs whitespace-nowrap">
                 {isCompleted
                   ? 'Done'
                   : hasTimeBlocks && earliestTimeBlock
@@ -702,25 +695,33 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
               )}
             </div>
 
-            {/* Phase Badge - appears when project and phase are selected - hidden on mobile */}
-            {task.project_id && task.phase_id && task.phases && (
-              <Badge
-                className="hidden sm:inline text-white border-0 text-xs px-2 sm:px-3 py-0.5 sm:py-1 font-medium whitespace-nowrap"
-                style={{ backgroundColor: businessColor }}
+            {/* Energy Level Badge - clickable to edit */}
+            <Select
+              value={task.energy_level || 'none'}
+              onValueChange={(value) => handleUpdate({ energy_level: value === 'none' ? null : (value as any) })}
+            >
+              <SelectTrigger
+                className="h-6 text-xs px-2 sm:px-3 py-0 border-0 whitespace-nowrap text-white font-medium [&>svg]:hidden flex items-center justify-center"
+                style={{
+                  backgroundColor: task.energy_level === 'Deep Work' ? '#2563eb' : task.energy_level === 'Admin' ? '#f59e0b' : '#6b7280',
+                  borderColor: task.energy_level === 'Deep Work' ? '#2563eb' : task.energy_level === 'Admin' ? '#f59e0b' : '#6b7280'
+                }}
               >
-                {task.phases.name}
-              </Badge>
-            )}
+                <SelectValue placeholder="Energy" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No Energy Level</SelectItem>
+                <SelectItem value="Deep Work">🎯 Deep Work</SelectItem>
+                <SelectItem value="Admin">📋 Admin</SelectItem>
+              </SelectContent>
+            </Select>
 
             {/* Due Date Badge */}
             {task.due_date ? (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
-                  setDatePickerAnchor(e.currentTarget);
-                  setShowDateTimePicker(true);
-                }}
+                onClick={() => setShowDateTimePicker(true)}
                 className={`h-7 sm:h-8 px-1 sm:px-2 text-xs sm:text-xs gap-0.5 w-auto justify-center ${
                   overdue
                     ? 'text-red-400 hover:bg-red-500/10'
@@ -743,10 +744,7 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
-                  setDatePickerAnchor(e.currentTarget);
-                  setShowDateTimePicker(true);
-                }}
+                onClick={() => setShowDateTimePicker(true)}
                 className="h-7 sm:h-8 px-1 sm:px-2 text-xs sm:text-xs gap-0.5 w-auto justify-center text-gray-500 hover:bg-gray-700 hover:text-gray-300"
               >
                 <Calendar className="w-3 sm:w-3 h-3 sm:h-3" />
@@ -756,16 +754,16 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
 
             {/* Schedule Status Button */}
             <div
-              className={`h-7 sm:h-8 px-1 sm:px-2 text-xs sm:text-xs font-medium rounded-md w-auto flex items-center justify-center text-white ${
+              className={`h-6 px-1 sm:px-2 py-0 text-xs sm:text-xs font-medium rounded-md w-auto flex items-center justify-center text-white whitespace-nowrap ${
                 isCompleted
                   ? 'bg-green-600'
                   : hasTimeBlocks
-                  ? 'bg-yellow-500'
-                  : 'bg-blue-600'
+                  ? 'bg-blue-600'
+                  : 'bg-pink-500'
               }`}
               title={earliestTimeBlock ? `Scheduled for ${earliestTimeBlock.scheduled_date}` : undefined}
             >
-              <span className="text-xs sm:text-xs">
+              <span className="text-xs sm:text-xs whitespace-nowrap">
                 {isCompleted
                   ? 'Completed'
                   : hasTimeBlocks && earliestTimeBlock

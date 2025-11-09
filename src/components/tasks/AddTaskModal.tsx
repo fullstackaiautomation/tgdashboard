@@ -12,7 +12,7 @@ import type {
   Priority,
   Area,
   Automation,
-  EffortLevel,
+  EnergyLevel,
   RecurringType
 } from '../../types/task';
 
@@ -36,7 +36,7 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
   // Common fields (both single and recurring)
   const [taskName, setTaskName] = useState('');
   const [description, setDescription] = useState('');
-  const [effortLevel, setEffortLevel] = useState<EffortLevel>('8) Vibing (8');
+  const [energyLevel, setEnergyLevel] = useState<EnergyLevel>('Deep Work');
   const [automation, setAutomation] = useState<Automation>('Manual');
   const [hoursProjected, setHoursProjected] = useState('');
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>(defaultBusinessId || '');
@@ -58,16 +58,20 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
   const { data: phasesData } = usePhases(selectedProjectId || '');
   const phases = phasesData || [];
 
-  // Reset project/phase when business changes
+  // Reset project/phase when business changes (but only if it's a user-initiated change, not initial default)
   useEffect(() => {
-    setSelectedProjectId('');
-    setSelectedPhaseId('');
-  }, [selectedBusinessId]);
+    if (!defaultBusinessId || selectedBusinessId !== defaultBusinessId) {
+      setSelectedProjectId('');
+      setSelectedPhaseId('');
+    }
+  }, [selectedBusinessId, defaultBusinessId]);
 
-  // Reset phase when project changes
+  // Reset phase when project changes (but only if it's a user-initiated change, not initial default)
   useEffect(() => {
-    setSelectedPhaseId('');
-  }, [selectedProjectId]);
+    if (!defaultProjectId || selectedProjectId !== defaultProjectId) {
+      setSelectedPhaseId('');
+    }
+  }, [selectedProjectId, defaultProjectId]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -84,13 +88,15 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
         description: description.trim() || undefined,
         status: 'Not started',
         priority: 'Medium',
-        effort_level: effortLevel || undefined,
+        energy_level: energyLevel || undefined,
         automation: automation || undefined,
         hours_projected: hoursProjected ? parseFloat(hoursProjected) : 0,
-        business_id: selectedBusinessId || undefined,
-        project_id: selectedProjectId || undefined,
-        phase_id: selectedPhaseId || undefined,
+        business_id: selectedBusinessId || null,
+        project_id: selectedProjectId || null,
+        phase_id: selectedPhaseId || null,
       };
+
+      console.log('Creating task with:', templateTask);
 
       if (taskType === 'recurring') {
         // Create recurring task with parent template and child instances
@@ -140,16 +146,16 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
         await createTask.mutateAsync(singleTask);
       }
 
-      // Reset form
+      // Reset form (but preserve defaults if provided)
       setTaskName('');
       setDescription('');
       setDueDate('');
-      setEffortLevel('8) Vibing (8');
+      setEnergyLevel('Deep Work');
       setAutomation('Manual');
       setHoursProjected('');
-      setSelectedBusinessId('');
-      setSelectedProjectId('');
-      setSelectedPhaseId('');
+      setSelectedBusinessId(defaultBusinessId || '');
+      setSelectedProjectId(defaultProjectId || '');
+      setSelectedPhaseId(defaultPhaseId || '');
       setTaskType('single');
       setRecurringType('weekly');
       setRecurringDayOfWeek(1);
@@ -299,24 +305,20 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
             </div>
           </div>
 
-          {/* Effort Level, Automation, Hours Projected - Always shown on one line */}
+          {/* Energy Level, Automation, Hours Projected - Always shown on one line */}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label htmlFor="effort_level" className="block text-sm font-medium text-gray-300 mb-1">
-                Effort Level
+              <label htmlFor="energy_level" className="block text-sm font-medium text-gray-300 mb-1">
+                Energy Level
               </label>
               <select
-                id="effort_level"
-                value={effortLevel}
-                onChange={(e) => setEffortLevel(e.target.value as EffortLevel)}
+                id="energy_level"
+                value={energyLevel}
+                onChange={(e) => setEnergyLevel(e.target.value as EnergyLevel)}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">None</option>
-                <option value="$$$ Printer $$$" style={{ color: '#22c55e' }}>$$$ Printer $$$</option>
-                <option value="$ Makes Money $" style={{ color: '#84cc16' }}>$ Makes Money $</option>
-                <option value="-$ Save Dat $-" style={{ color: '#f97316' }}>-$ Save Dat $-</option>
-                <option value=":( No Money ):" style={{ color: '#ef4444' }}>:( No Money ):</option>
-                <option value="8) Vibing (8" style={{ color: '#a855f7' }}>8) Vibing (8</option>
+                <option value="Deep Work">🎯 Deep Work</option>
+                <option value="Admin">📋 Admin</option>
               </select>
             </div>
 
