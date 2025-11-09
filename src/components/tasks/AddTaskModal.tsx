@@ -91,9 +91,9 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
         energy_level: energyLevel || undefined,
         automation: automation || undefined,
         hours_projected: hoursProjected ? parseFloat(hoursProjected) : 0,
-        business_id: selectedBusinessId || null,
-        project_id: selectedProjectId || null,
-        phase_id: selectedPhaseId || null,
+        business_id: selectedBusinessId || undefined,
+        project_id: selectedProjectId || undefined,
+        phase_id: selectedPhaseId || undefined,
       };
 
       console.log('Creating task with:', templateTask);
