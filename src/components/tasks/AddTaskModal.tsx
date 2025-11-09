@@ -317,8 +317,9 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
                 onChange={(e) => setEnergyLevel(e.target.value as EnergyLevel)}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="Deep Work">🎯 Deep Work</option>
-                <option value="Admin">📋 Admin</option>
+                <option value="Deep Work">Deep Work</option>
+                <option value="Mild Focus">Mild Focus</option>
+                <option value="Admin">Admin</option>
               </select>
             </div>
 

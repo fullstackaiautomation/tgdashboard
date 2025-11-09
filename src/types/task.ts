@@ -26,7 +26,7 @@ export type Automation = 'Automate' | 'Manual' | 'Delegate'
 
 export type RecurringType = 'none' | 'daily' | 'daily_weekdays' | 'weekly' | 'monthly' | 'custom'
 
-export type EnergyLevel = 'Deep Work' | 'Admin'
+export type EnergyLevel = 'Deep Work' | 'Mild Focus' | 'Admin'
 
 export type EstimationAccuracy = 'Overestimated' | 'Underestimated' | 'Accurate'
 

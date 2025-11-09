@@ -703,16 +703,17 @@ export const TaskCard: FC<TaskCardProps> = ({ task, className = '', scheduleDate
               <SelectTrigger
                 className="h-6 text-xs px-2 sm:px-3 py-0 border-0 whitespace-nowrap text-white font-medium [&>svg]:hidden flex items-center justify-center"
                 style={{
-                  backgroundColor: task.energy_level === 'Deep Work' ? '#2563eb' : task.energy_level === 'Admin' ? '#f59e0b' : '#6b7280',
-                  borderColor: task.energy_level === 'Deep Work' ? '#2563eb' : task.energy_level === 'Admin' ? '#f59e0b' : '#6b7280'
+                  backgroundColor: task.energy_level === 'Deep Work' ? '#2563eb' : task.energy_level === 'Mild Focus' ? '#10b981' : task.energy_level === 'Admin' ? '#f59e0b' : '#6b7280',
+                  borderColor: task.energy_level === 'Deep Work' ? '#2563eb' : task.energy_level === 'Mild Focus' ? '#10b981' : task.energy_level === 'Admin' ? '#f59e0b' : '#6b7280'
                 }}
               >
                 <SelectValue placeholder="Energy" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No Energy Level</SelectItem>
-                <SelectItem value="Deep Work">🎯 Deep Work</SelectItem>
-                <SelectItem value="Admin">📋 Admin</SelectItem>
+                <SelectItem value="Deep Work">Deep Work</SelectItem>
+                <SelectItem value="Mild Focus">Mild Focus</SelectItem>
+                <SelectItem value="Admin">Admin</SelectItem>
               </SelectContent>
             </Select>
 
