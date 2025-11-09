@@ -1,10 +1,9 @@
 import type { FC } from 'react';
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Trash2, Calendar } from 'lucide-react';
+import { Plus, Trash2, Calendar, Edit2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { useBusinesses } from '../../hooks/useBusinesses';
 import { useProjects, usePhases, useDeleteProject, useUpdateProject } from '../../hooks/useProjects';
 import { useTasks, useUpdateTask } from '../../hooks/useTasks';
@@ -13,8 +12,11 @@ import { useBusinessProgress } from '../../hooks/useBusinessProgress';
 import { supabase } from '../../lib/supabase';
 import { ProjectCard } from './ProjectCard';
 import { NewProjectModal } from './NewProjectModal';
+import { AddPhaseModal } from './AddPhaseModal';
 import { BusinessMetrics } from './BusinessMetrics';
 import { ProjectScheduling } from './ProjectScheduling';
+import { ProjectGameplanDetailBox } from './ProjectGameplanDetailBox';
+import { useProjectMetrics } from '../../hooks/useProjectMetrics';
 import { formatDateString, parseLocalDate } from '../../utils/dateHelpers';
 
 interface BusinessDashboardProps {
@@ -31,9 +33,13 @@ export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusin
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editDescription, setEditDescription] = useState('');
+  const [editingProjectGoalId, setEditingProjectGoalId] = useState<string | null>(null);
+  const [editProjectGoal, setEditProjectGoal] = useState('');
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState('');
   const [editingTaskDueDate, setEditingTaskDueDate] = useState<string | null>(null);
+  const [expandedPhases, setExpandedPhases] = useState<Record<string, boolean>>({});
+  const [showAddPhaseModal, setShowAddPhaseModal] = useState(false);
   const deleteProject = useDeleteProject();
   const updateProject = useUpdateProject();
   const updateTask = useUpdateTask();
@@ -68,6 +74,24 @@ export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusin
     }
   }, [preselectedBusinessArea, businesses]);
 
+  // Initialize all phases as expanded by default
+  useEffect(() => {
+    if (allPhases && allPhases.length > 0) {
+      const initialState: Record<string, boolean> = {};
+      allPhases.forEach(phase => {
+        initialState[phase.id] = true;
+      });
+      setExpandedPhases(initialState);
+    }
+  }, [allPhases]);
+
+  const togglePhase = (phaseId: string) => {
+    setExpandedPhases(prev => ({
+      ...prev,
+      [phaseId]: !prev[phaseId]
+    }));
+  };
+
   // Handle project deletion with confirmation
   const handleDeleteProject = (projectId: string) => {
     if (deleteConfirmId === projectId) {
@@ -101,6 +125,20 @@ export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusin
       setEditDescription('');
     } catch (error) {
       console.error('Failed to update project description:', error);
+    }
+  };
+
+  // Handle project goal update
+  const handleUpdateProjectGoal = async (projectId: string, projectGoal: string) => {
+    try {
+      await updateProject.mutateAsync({
+        id: projectId,
+        updates: { project_goal: projectGoal }
+      });
+      setEditingProjectGoalId(null);
+      setEditProjectGoal('');
+    } catch (error) {
+      console.error('Failed to update project goal:', error);
     }
   };
 
@@ -166,6 +204,10 @@ export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusin
     selectedBusinessId ? filteredTasks : []
   );
 
+  // Calculate selected project metrics - MUST call hook unconditionally
+  const selectedProject = filteredProjects.length === 1 ? filteredProjects[0] : null;
+  const selectedProjectMetrics = useProjectMetrics(selectedProject, allPhases, allTasks);
+
   if (businessesLoading) {
     return (
       <div className="p-6">
@@ -191,28 +233,83 @@ export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusin
 
   return (
     <div className="p-6 space-y-6 bg-gray-950 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-100">Projects</h1>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            className="bg-gray-700 hover:bg-gray-600 text-white"
-            onClick={() => onNavigateToScheduling?.(selectedBusinessId, selectedProjectId)}
-          >
-            <Calendar className="w-4 h-4 mr-1" />
-            Schedule
-          </Button>
-          <Button
-            size="sm"
-            className="bg-purple-600 hover:bg-purple-700 text-white"
-            onClick={() => setShowNewProjectModal(true)}
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Add Project
-          </Button>
-        </div>
-      </div>
+      {/* Calculate metrics for header display */}
+      {(() => {
+        const selectedBusiness = businesses?.find(b => b.id === selectedBusinessId);
+        const pageTitle = selectedBusinessId && selectedBusiness
+          ? `${selectedBusiness.name} Projects`
+          : 'Projects';
+
+        // Calculate metrics based on filtered projects (respects project filter)
+        const currentFilteredTasks = filteredTasks.filter(t =>
+          filteredProjects.some(p => p.id === t.project_id)
+        );
+        const totalHoursWorked = currentFilteredTasks.reduce((sum, task) => {
+          return sum + (task.hours_worked || 0);
+        }, 0);
+        const completedTasks = currentFilteredTasks.filter(t => (t.progress_percentage ?? 0) === 100).length;
+
+        return (
+          <>
+            {/* Header with Title and Metrics and Buttons */}
+            <div className="flex items-center justify-between gap-4">
+              {/* Left side: Title */}
+              <h1 className="text-3xl font-bold text-gray-100 whitespace-nowrap">{pageTitle}</h1>
+
+              {/* Center: Metrics */}
+              {selectedBusinessId && businessMetrics.totalProjects > 0 && (
+                <div className="flex gap-3 items-center flex-1 justify-center">
+                  {/* Projects */}
+                  <div className="flex items-center gap-1 px-3 py-2 bg-gray-800 rounded border border-gray-700">
+                    <span className="text-base text-gray-400">Projects</span>
+                    <span className="text-base font-bold text-gray-100">{filteredProjects.length}</span>
+                  </div>
+
+                  {/* Overall Progress */}
+                  <div className="flex items-center gap-1 px-3 py-2 bg-gray-800 rounded border border-gray-700">
+                    <span className="text-base text-gray-400">Completion</span>
+                    <span className="text-base font-bold text-gray-100">{Math.round(businessMetrics.overallCompletion)}%</span>
+                  </div>
+
+                  {/* Tasks */}
+                  <div className="flex items-center gap-1 px-3 py-2 bg-gray-800 rounded border border-gray-700">
+                    <span className="text-base text-gray-400">Tasks</span>
+                    <span className="text-base font-bold text-gray-100">
+                      <span className="text-white">{currentFilteredTasks.length - completedTasks}</span>
+                      <span className="text-gray-500 text-xs mx-1">/</span>
+                      <span className="text-white">{currentFilteredTasks.length}</span>
+                    </span>
+                  </div>
+
+                  {/* Hours Invested */}
+                  <div className="flex items-center gap-1 px-3 py-2 bg-gray-800 rounded border border-gray-700">
+                    <span className="text-base text-gray-400">Hours</span>
+                    <span className="text-base font-bold text-gray-100">{Math.round(totalHoursWorked)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Right side: Buttons */}
+              <div className="flex gap-3 whitespace-nowrap">
+                <Button
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 text-base font-semibold"
+                  onClick={() => onNavigateToScheduling?.(selectedBusinessId, selectedProjectId)}
+                >
+                  <Calendar className="w-5 h-5 mr-2" />
+                  Schedule
+                </Button>
+                <Button
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 text-base font-semibold"
+                  onClick={() => setShowNewProjectModal(true)}
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Add Project
+                </Button>
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* Project Filter Buttons - Show at top when a business is selected */}
       {selectedBusinessId && allProjects && (() => {
@@ -220,199 +317,212 @@ export const BusinessDashboard: FC<BusinessDashboardProps> = ({ preselectedBusin
         const businessColor = selectedBusiness?.color || '#a855f7';
 
         return (
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant="outline"
-              className="h-12 px-6 text-base font-semibold transition-all border-2"
-              style={{
-                backgroundColor: selectedProjectId === null ? businessColor : `${businessColor}20`,
-                borderColor: selectedProjectId === null ? businessColor : `${businessColor}60`,
-                color: selectedProjectId === null ? 'white' : businessColor,
-                boxShadow: selectedProjectId === null ? `0 4px 14px -2px ${businessColor}40` : undefined,
-              }}
-              onClick={() => setSelectedProjectId(null)}
-            >
-              All Projects
-            </Button>
-            {allProjects
-              .filter(p => p.business_id === selectedBusinessId)
-              .map((project) => {
-                const isSelected = selectedProjectId === project.id;
-                return (
-                  <Button
-                    key={project.id}
-                    variant="outline"
-                    className="h-12 px-6 text-base font-semibold transition-all border-2"
-                    style={{
-                      backgroundColor: isSelected ? businessColor : `${businessColor}20`,
-                      borderColor: isSelected ? businessColor : `${businessColor}60`,
-                      color: isSelected ? 'white' : businessColor,
-                      boxShadow: isSelected ? `0 4px 14px -2px ${businessColor}40` : undefined,
-                    }}
-                    onClick={() => setSelectedProjectId(project.id)}
-                  >
-                    {project.name}
-                  </Button>
-                );
-              })}
-          </div>
-        );
-      })()}
+          <>
+            <div className="flex flex-wrap gap-3 mt-8">
+              <Button
+                variant="outline"
+                className="h-14 px-6 text-base font-semibold transition-all border-2"
+                style={{
+                  backgroundColor: selectedProjectId === null ? businessColor : `${businessColor}20`,
+                  borderColor: selectedProjectId === null ? businessColor : `${businessColor}60`,
+                  color: selectedProjectId === null ? 'white' : businessColor,
+                  boxShadow: selectedProjectId === null ? `0 4px 14px -2px ${businessColor}40` : undefined,
+                }}
+                onClick={() => setSelectedProjectId(null)}
+              >
+                All Projects
+              </Button>
+              {allProjects
+                .filter(p => p.business_id === selectedBusinessId)
+                .map((project) => {
+                  const isSelected = selectedProjectId === project.id;
+                  return (
+                    <Button
+                      key={project.id}
+                      variant="outline"
+                      className="h-14 px-6 text-base font-semibold transition-all border-2"
+                      style={{
+                        backgroundColor: isSelected ? businessColor : `${businessColor}20`,
+                        borderColor: isSelected ? businessColor : `${businessColor}60`,
+                        color: isSelected ? 'white' : businessColor,
+                        boxShadow: isSelected ? `0 4px 14px -2px ${businessColor}40` : undefined,
+                      }}
+                      onClick={() => setSelectedProjectId(project.id)}
+                    >
+                      {project.name}
+                    </Button>
+                  );
+                })}
+            </div>
 
-      {/* Business Metrics - Show when a business is selected */}
-      {selectedBusinessId && businessMetrics.totalProjects > 0 && (() => {
-        // Calculate total hours worked for this business
-        const totalHoursWorked = filteredTasks.reduce((sum, task) => {
-          return sum + (task.hours_worked || 0);
-        }, 0);
-
-        return (
-          <BusinessMetrics
-            projectCount={businessMetrics.totalProjects}
-            overallProgress={businessMetrics.overallCompletion}
-            activeTasks={businessMetrics.activeTasks}
-            completedTasks={businessMetrics.completedTasks}
-            hoursInvested={totalHoursWorked}
-            isStalled={businessMetrics.isStalled}
-            daysSinceActivity={businessMetrics.daysSinceActivity}
-          />
+          </>
         );
       })()}
 
       {/* Projects Section */}
       <div>
-        {/* Projects List */}
-        <div>
-          {filteredProjects.length === 0 ? (
-            <Card className="bg-gray-900/50 border-gray-800">
-              <CardContent className="py-12">
-                <div className="text-center text-gray-400">
-                  <p className="text-lg mb-2">No projects yet</p>
-                  <p className="text-sm">Create your first project to get started</p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-6">
-              {filteredProjects.map((project) => {
-              const business = businesses.find(b => b.id === project.business_id);
-              const projectPhases = allPhases?.filter(p => p.project_id === project.id) || [];
-              const projectTasks = filteredTasks.filter(t => t.project_id === project.id);
+        {filteredProjects.length === 0 ? (
+          <Card className="bg-gray-900/50 border-gray-800">
+            <CardContent className="py-12">
+              <div className="text-center text-gray-400">
+                <p className="text-lg mb-2">No projects yet</p>
+                <p className="text-sm">Create your first project to get started</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : selectedProjectId ? (
+          // Two-column layout when a project is selected
+          (() => {
+            const selectedProjectData = filteredProjects.find(p => p.id === selectedProjectId);
+            const business = businesses?.find(b => b.id === selectedProjectData?.business_id);
+            if (!selectedProjectData) return null;
 
-              const completedTasks = projectTasks.filter(t => t.progress_percentage === 100).length;
-              const totalTasks = projectTasks.length;
+            const projectPhases = allPhases?.filter(p => p.project_id === selectedProjectData.id) || [];
+            const projectTasks = filteredTasks.filter(t => t.project_id === selectedProjectData.id);
 
-              // Calculate project progress
-              let projectProgress = 0;
-              if (projectPhases.length > 0) {
-                const phaseProgresses = projectPhases.map(phase => {
-                  const phaseTasks = projectTasks.filter(t => t.phase_id === phase.id);
-                  if (phaseTasks.length === 0) return 0;
-                  return phaseTasks.reduce((sum, t) => sum + (t.progress_percentage ?? 0), 0) / phaseTasks.length;
-                });
-                projectProgress = phaseProgresses.reduce((sum, p) => sum + p, 0) / phaseProgresses.length;
-              } else if (totalTasks > 0) {
-                projectProgress = projectTasks.reduce((sum, t) => sum + (t.progress_percentage ?? 0), 0) / totalTasks;
-              }
-
-              return (
-                <Card key={project.id} className="bg-gray-900/60 border-gray-800 shadow-lg overflow-hidden">
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Column - Project Card (65%) */}
+                <div className="lg:col-span-2">
+                  <Card className="bg-gray-900/60 border-gray-800 shadow-lg overflow-hidden">
                     {/* Project Header */}
-                    <div className="p-5" style={{ backgroundColor: `${business?.color}30` }}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 flex-1">
-                          <h3 className="text-xl font-bold text-gray-100">{project.name}</h3>
+                    <div className="px-5 pt-3 pb-5" style={{ backgroundColor: `${business?.color}30` }}>
+                      <div className="flex items-center gap-4 min-h-16">
+                        {/* Left: Project Name */}
+                        <h3 className="text-4xl font-bold text-gray-100 leading-none whitespace-nowrap">{selectedProjectData.name}</h3>
 
-                          {/* Project Description - Inline Editable */}
-                          <div className="flex-1">
-                            {editingProjectId === project.id ? (
-                              <input
-                                type="text"
-                                value={editDescription}
-                                onChange={(e) => setEditDescription(e.target.value)}
-                                onBlur={() => handleUpdateDescription(project.id, editDescription)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    handleUpdateDescription(project.id, editDescription);
-                                  } else if (e.key === 'Escape') {
-                                    setEditingProjectId(null);
-                                    setEditDescription('');
-                                  }
-                                }}
-                                className="w-full px-2 py-1 rounded focus:outline-none text-sm bg-white/10 text-gray-200 border border-white/30"
-                                placeholder="Add project description..."
-                                autoFocus
-                              />
-                            ) : (
-                              <p
-                                onClick={() => {
-                                  setEditingProjectId(project.id);
-                                  setEditDescription(project.description || '');
-                                }}
-                                className="text-sm cursor-pointer px-2 py-1 text-gray-300 italic"
-                              >
-                                {project.description || '+'}
-                              </p>
-                            )}
-                          </div>
-                        </div>
+                        {/* Center: Empty space */}
+                        <div className="flex-1"></div>
 
-                        <div className="flex items-center gap-6">
-                          {/* Project Stats */}
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className="flex flex-col items-center">
-                              <span className="text-gray-400 text-xs">Phases</span>
-                              <span className="font-semibold text-gray-100">{projectPhases.length}</span>
-                            </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-gray-400 text-xs">Tasks</span>
-                              <span className="font-semibold text-gray-100">{completedTasks} / {totalTasks}</span>
-                            </div>
-                          </div>
-
-                          {/* Progress Badge */}
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-300">Progress:</span>
-                            <Badge className={`px-3 py-1 font-bold ${
-                              projectProgress === 100
-                                ? 'bg-green-600 text-white'
-                                : 'bg-gray-700 text-gray-200'
-                            }`}>
-                              {projectProgress.toFixed(0)}%
-                            </Badge>
-                          </div>
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteProject(project.id);
+                        {/* Right: Project Goal Input */}
+                        <div className="w-96 flex-shrink-0">
+                          <textarea
+                            value={editingProjectGoalId === selectedProjectData.id ? editProjectGoal : (selectedProjectData.project_goal || '')}
+                            onClick={() => {
+                              if (editingProjectGoalId !== selectedProjectData.id) {
+                                setEditingProjectGoalId(selectedProjectData.id);
+                                setEditProjectGoal(selectedProjectData.project_goal || '');
+                              }
                             }}
-                            className={`h-8 w-8 p-0 transition-colors ${
-                              deleteConfirmId === project.id
-                                ? 'bg-red-600 hover:bg-red-700 text-white'
-                                : 'text-gray-400 hover:text-red-400'
-                            }`}
-                            title={deleteConfirmId === project.id ? 'Click again to confirm deletion' : 'Delete project'}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                            onChange={(e) => {
+                              setEditProjectGoal(e.target.value);
+                              handleUpdateProjectGoal(selectedProjectData.id, e.target.value);
+                            }}
+                            onBlur={() => {
+                              setEditingProjectGoalId(null);
+                            }}
+                            className="w-full px-3 py-2 rounded-lg text-xs bg-gray-900 border-2 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none font-medium"
+                            style={{
+                              borderColor: `${business?.color}`,
+                              backgroundColor: `${business?.color}20`,
+                            }}
+                            rows={2}
+                            placeholder="Enter project goal..."
+                          />
                         </div>
                       </div>
                     </div>
 
                     {/* Phases Content */}
                     <div className="bg-gray-900/30">
-                      <ProjectCard project={project} businessId={project.business_id} businessColor={business?.color} />
+                      <ProjectCard project={selectedProjectData} businessId={selectedProjectData.business_id} businessColor={business?.color} expandedPhases={expandedPhases} onTogglePhase={togglePhase} />
                     </div>
                   </Card>
+                </div>
+
+                {/* Right Column - Project Gameplan Detail Box (35%) */}
+                <div className="lg:col-span-1">
+                  <ProjectGameplanDetailBox
+                    project={selectedProjectData}
+                    metrics={selectedProjectMetrics}
+                    businessColor={business?.color}
+                  />
+                </div>
+              </div>
+            );
+          })()
+        ) : (
+          // Single-column layout showing all projects
+          <div className="space-y-6">
+            {filteredProjects.map((project) => {
+              const business = businesses?.find(b => b.id === project.business_id);
+              const projectPhases = allPhases?.filter(p => p.project_id === project.id) || [];
+              const projectTasks = filteredTasks.filter(t => t.project_id === project.id);
+              // Use selectedProjectMetrics if this is the selected project, otherwise create a temporary calculation
+              const metrics = project.id === selectedProjectId ? selectedProjectMetrics : {
+                totalPhases: projectPhases.length,
+                totalTasks: projectTasks.length,
+                completedTasks: projectTasks.filter(t => (t.progress_percentage ?? 0) === 100).length,
+                completionPercentage: projectTasks.length > 0 ? (projectTasks.filter(t => (t.progress_percentage ?? 0) === 100).length / projectTasks.length) * 100 : 0,
+                completionStatus: 'Not Started' as const,
+                estimatedHours: 0,
+                actualHours: 0,
+                hoursAccuracy: 0,
+                estimationAccuracy: 'No Data' as const,
+                timelineAccuracyDays: null,
+                isOverdue: false,
+              };
+
+              return (
+                <Card key={project.id} className="bg-gray-900/60 border-gray-800 shadow-lg overflow-hidden">
+                  {/* Project Header */}
+                  <div className="px-5 pt-3 pb-5" style={{ backgroundColor: `${business?.color}30` }}>
+                    <div className="flex items-center gap-4 min-h-16">
+                      {/* Left: Project Name */}
+                      <h3 className="text-4xl font-bold text-gray-100 leading-none whitespace-nowrap">{project.name}</h3>
+
+                      {/* Center: Empty space */}
+                      <div className="flex-1"></div>
+
+                      {/* Right: Project Goal Input */}
+                      <div className="w-96 flex-shrink-0">
+                        <textarea
+                          value={editingProjectGoalId === project.id ? editProjectGoal : (project.project_goal || '')}
+                          onClick={() => {
+                            if (editingProjectGoalId !== project.id) {
+                              setEditingProjectGoalId(project.id);
+                              setEditProjectGoal(project.project_goal || '');
+                            }
+                          }}
+                          onChange={(e) => {
+                            setEditProjectGoal(e.target.value);
+                            handleUpdateProjectGoal(project.id, e.target.value);
+                          }}
+                          onBlur={() => {
+                            setEditingProjectGoalId(null);
+                          }}
+                          className="w-full px-3 py-2 rounded-lg text-xs bg-gray-900 border-2 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none font-medium"
+                          style={{
+                            borderColor: `${business?.color}`,
+                            backgroundColor: `${business?.color}20`,
+                          }}
+                          rows={2}
+                          placeholder="Enter project goal..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Phases Content */}
+                  <div className="bg-gray-900/30">
+                    <ProjectCard project={project} businessId={project.business_id} businessColor={business?.color} expandedPhases={expandedPhases} onTogglePhase={togglePhase} />
+                  </div>
+                </Card>
               );
             })}
           </div>
         )}
-        </div>
       </div>
+
+      {/* Add Phase Modal */}
+      {selectedProjectId && (
+        <AddPhaseModal
+          isOpen={showAddPhaseModal}
+          onClose={() => setShowAddPhaseModal(false)}
+          projectId={selectedProjectId}
+          projectName={filteredProjects.find(p => p.id === selectedProjectId)?.name || ''}
+        />
+      )}
 
       {/* New Project Modal */}
       <NewProjectModal

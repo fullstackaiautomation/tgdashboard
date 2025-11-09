@@ -23,7 +23,7 @@ export const Schedule: FC<ScheduleProps> = ({ date = new Date() }) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tasks')
-        .select('*, businesses(name, color), projects(name), phases(name), life_areas(name, color)')
+        .select('*, businesses(name, color), projects(name), phases(name)')
         .eq('scheduled_date', selectedDate)
         .not('scheduled_time', 'is', null)
         .order('scheduled_time', { ascending: true });

@@ -55,7 +55,7 @@ export const TodoList: FC<TodoListProps> = ({ date = new Date() }) => {
       console.log('[TodoList] Fetching tasks for date:', selectedDate);
       const { data, error } = await supabase
         .from('tasks')
-        .select('*, businesses(name, color), projects(name), phases(name), life_areas(name, color)')
+        .select('*, businesses(name, color), projects(name), phases(name)')
         .or(`scheduled_date.eq.${selectedDate},due_date.eq.${selectedDate}`)
         .order('priority', { ascending: false })
         .order('scheduled_time', { ascending: true, nullsFirst: false });
@@ -77,7 +77,7 @@ export const TodoList: FC<TodoListProps> = ({ date = new Date() }) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tasks')
-        .select('*, businesses(name, color), projects(name), phases(name), life_areas(name, color)')
+        .select('*, businesses(name, color), projects(name), phases(name)')
         .or(`scheduled_date.eq.${tomorrow},due_date.eq.${tomorrow}`)
         .order('priority', { ascending: false })
         .limit(5); // Show only first 5 tomorrow tasks

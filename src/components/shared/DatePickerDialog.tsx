@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { formatDateString, parseLocalDate, parseLocalDateForDisplay } from '@/utils/dateHelpers'
 
 interface DatePickerDialogProps {
   value: string | null
@@ -22,14 +23,14 @@ export const DatePickerDialog: FC<DatePickerDialogProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date>(
-    value ? new Date(value) : new Date()
+    value ? parseLocalDateForDisplay(value) || new Date() : new Date()
   )
   const [viewMonth, setViewMonth] = useState(selectedDate.getMonth())
   const [viewYear, setViewYear] = useState(selectedDate.getFullYear())
 
   const handleDateSelect = (day: number) => {
     const newDate = new Date(viewYear, viewMonth, day)
-    const dateString = newDate.toISOString().split('T')[0]
+    const dateString = formatDateString(newDate)
     onChange(dateString)
     setSelectedDate(newDate)
     setIsOpen(false)

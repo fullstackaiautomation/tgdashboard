@@ -30,7 +30,7 @@ import type { Area } from '@/types/task';
 
 // Area colors (matching App.tsx)
 const AREA_COLORS: Record<Area, string> = {
-  'Full Stack': '#10b981',  // green
+  'Full Stack': '#00b495',  // teal
   'Huge Capital': '#a855f7', // purple
   'S4': '#3b82f6',          // blue
   '808': '#eab308',         // yellow

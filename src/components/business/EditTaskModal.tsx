@@ -181,7 +181,7 @@ export const EditTaskModal: FC<EditTaskModalProps> = ({ task, isOpen, onClose, b
                   <SelectItem value="no-phase">No Phase Identified</SelectItem>
                   {projectPhases?.map((ph) => (
                     <SelectItem key={ph.id} value={ph.id}>
-                      {ph.name}
+                      {ph.sequence_order}. {ph.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

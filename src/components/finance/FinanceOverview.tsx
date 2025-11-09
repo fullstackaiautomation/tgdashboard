@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Wallet, TrendingUp, CreditCard, DollarSign, Calendar, Save, Landmark, History } from 'lucide-react'
 import {
   useAccountsWithBalances,
@@ -7,8 +7,17 @@ import {
   useSaveNetWorthLog,
   useNetWorthLog,
 } from '../../hooks/useFinance'
-import type { AccountDetail } from '../../types/finance'
+import type { AccountDetail, NetWorthLogEntry, AccountSubcategory } from '../../types/finance'
 import { formatDateString, getTodayNoon, parseLocalDate } from '../../utils/dateHelpers'
+
+interface TrendSnapshot {
+  changeLast: number
+  percentLast: number
+  change30Days: number
+  percent30Days: number
+  change1Year: number
+  percent1Year: number
+}
 
 const FinanceOverview = () => {
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -46,6 +55,14 @@ const FinanceOverview = () => {
   const { data: yearHistory } = useNetWorthLog(365)
   const saveBalances = useSaveBalanceSnapshots()
   const saveNetWorthLog = useSaveNetWorthLog()
+
+  const accountSubcategoryByName = useMemo(() => {
+    const map = new Map<string, AccountSubcategory>()
+    accounts?.forEach((account) => {
+      map.set(account.account_name.toLowerCase(), account.subcategory)
+    })
+    return map
+  }, [accounts])
 
   // Initialize balances when accounts load
   useEffect(() => {
@@ -86,55 +103,160 @@ const FinanceOverview = () => {
     }).format(Math.round(amount))
   }
 
+  const selectedDateObj = parseLocalDate(selectedDate) ?? new Date()
+
+  const findClosestEntry = (entries: NetWorthLogEntry[] | null | undefined, targetDate: Date) => {
+    if (!entries || entries.length === 0) return null
+
+    let closest = entries[0]
+    let smallestDiff = Infinity
+
+    for (const entry of entries) {
+      const entryDate = parseLocalDate(entry.snapshot_date) ?? new Date(entry.snapshot_date)
+      const diff = Math.abs(entryDate.getTime() - targetDate.getTime())
+      if (diff < smallestDiff) {
+        smallestDiff = diff
+        closest = entry
+      }
+    }
+
+    return closest
+  }
+
+  const formatChangeLabel = (delta: number | null) => {
+    if (delta === null) return '-'
+    const rounded = Math.round(delta)
+    if (rounded === 0) return '$0'
+    const formatted = formatCurrency(Math.abs(rounded))
+    return `${rounded > 0 ? '+' : '-'}${formatted}`
+  }
+
+  const getChangeColor = (delta: number | null, positiveIsGood = true) => {
+    if (delta === null) return 'text-gray-500'
+    const rounded = Math.round(delta)
+    if (rounded === 0) return 'text-gray-400'
+    const isPositive = rounded > 0
+    if (positiveIsGood) {
+      return isPositive ? 'text-green-500' : 'text-red-500'
+    }
+    return isPositive ? 'text-red-500' : 'text-green-500'
+  }
+
+  const renderTrendSummary = (
+    trends: TrendSnapshot,
+    positiveIsGood = true,
+    variant: 'default' | 'compact' = 'default'
+  ) => {
+    const entries = [
+      { label: 'Year', change: trends.change1Year, percent: trends.percent1Year },
+      { label: '30d', change: trends.change30Days, percent: trends.percent30Days },
+      { label: 'Last', change: trends.changeLast, percent: trends.percentLast },
+    ]
+
+    return (
+      <div className={variant === 'compact' ? '' : 'mt-4'}>
+        <div
+          className={`rounded-lg border border-white/10 bg-white/5 ${
+            variant === 'compact' ? 'px-3 py-2 text-xs leading-relaxed' : 'p-3 backdrop-blur-sm'
+          }`}
+        >
+          <div
+            className={`font-semibold uppercase tracking-[0.2em] text-white/60 ${
+              variant === 'compact' ? 'mb-1 text-[0.6rem]' : 'mb-2 text-[0.7rem]'
+            }`}
+          >
+            Trend
+          </div>
+          <div className={variant === 'compact' ? 'space-y-1' : 'space-y-1.5'}>
+            {entries.map(({ label, change, percent }) => {
+              const isPositive = change >= 0
+              const isGood = positiveIsGood ? isPositive : !isPositive
+              const hasMovement = Math.abs(change) >= 0.5
+              const color = hasMovement ? (isGood ? 'text-emerald-300' : 'text-rose-300') : 'text-white/70'
+
+              return (
+                <div
+                  key={label}
+                  className={`flex items-center justify-between ${
+                    variant === 'compact' ? 'text-[0.7rem]' : 'text-sm'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`inline-flex items-center justify-center rounded-md bg-white/10 font-medium uppercase tracking-wide text-white/80 ${
+                        variant === 'compact' ? 'px-1.5 py-0.5 text-[0.55rem]' : 'px-2 py-0.5 text-[0.7rem]'
+                      }`}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                  <span className={`font-semibold ${color}`}>
+                    {change >= 0 ? '+' : ''}{formatCurrency(change)}
+                    <span className={`ml-1 text-white/60 ${variant === 'compact' ? 'text-[0.6rem]' : 'text-xs'}`}>
+                      ({percent >= 0 ? '+' : ''}{percent.toFixed(0)}%)
+                    </span>
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // Calculate trends from historical data
   const calculateTrends = (currentValue: number, metricType: 'netWorth' | 'cash' | 'creditDebt' | 'totalDebt') => {
-    const lastEntry = netWorthHistory && netWorthHistory.length > 0 ? netWorthHistory[0] : null
-    const thirtyDaysAgo = netWorthHistory && netWorthHistory.length > 0 ? netWorthHistory[netWorthHistory.length - 1] : null
-    const oneYearAgo = yearHistory && yearHistory.length > 0 ? yearHistory[yearHistory.length - 1] : null
-
-    let valueLast = 0
-    let value30Days = 0
-    let value1Year = 0
-
-    if (metricType === 'netWorth') {
-      valueLast = lastEntry?.net_worth || 0
-      value30Days = thirtyDaysAgo?.net_worth || 0
-      value1Year = oneYearAgo?.net_worth || 0
-    } else if (metricType === 'cash') {
-      valueLast = lastEntry?.cash_accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      value30Days = thirtyDaysAgo?.cash_accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      value1Year = oneYearAgo?.cash_accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-    } else if (metricType === 'creditDebt') {
-      const creditLast = lastEntry?.credit_card_accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      const loansLast = lastEntry?.loan_accounts?.filter(acc => acc.name.includes('Personal'))
-        .reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      valueLast = creditLast + loansLast
-
-      const credit30 = thirtyDaysAgo?.credit_card_accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      const loans30 = thirtyDaysAgo?.loan_accounts?.filter(acc => acc.name.includes('Personal'))
-        .reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      value30Days = credit30 + loans30
-
-      const credit1Y = oneYearAgo?.credit_card_accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      const loans1Y = oneYearAgo?.loan_accounts?.filter(acc => acc.name.includes('Personal'))
-        .reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      value1Year = credit1Y + loans1Y
-    } else if (metricType === 'totalDebt') {
-      const creditLast = lastEntry?.credit_card_accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      const loansLast = lastEntry?.loan_accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      const taxLast = lastEntry?.tax_accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      valueLast = creditLast + loansLast + taxLast
-
-      const credit30 = thirtyDaysAgo?.credit_card_accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      const loans30 = thirtyDaysAgo?.loan_accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      const tax30 = thirtyDaysAgo?.tax_accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      value30Days = credit30 + loans30 + tax30
-
-      const credit1Y = oneYearAgo?.credit_card_accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      const loans1Y = oneYearAgo?.loan_accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      const tax1Y = oneYearAgo?.tax_accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0
-      value1Year = credit1Y + loans1Y + tax1Y
+    const historySource = yearHistory && yearHistory.length > 0 ? yearHistory : netWorthHistory
+    if (!historySource || historySource.length === 0) {
+      return {
+        changeLast: 0,
+        percentLast: 0,
+        change30Days: 0,
+        percent30Days: 0,
+        change1Year: 0,
+        percent1Year: 0,
+      }
     }
+
+    const lastEntry = netWorthHistory && netWorthHistory.length > 0 ? netWorthHistory[0] : historySource[0]
+    const thirtyDaysTarget = new Date(selectedDateObj)
+    thirtyDaysTarget.setDate(thirtyDaysTarget.getDate() - 30)
+    const oneYearTarget = new Date(selectedDateObj)
+    oneYearTarget.setFullYear(oneYearTarget.getFullYear() - 1)
+
+    const thirtyDayEntry = findClosestEntry(historySource, thirtyDaysTarget) || lastEntry
+    const oneYearEntry = findClosestEntry(historySource, oneYearTarget) || lastEntry
+
+    const computeValue = (entry: NetWorthLogEntry | null, type: typeof metricType) => {
+      if (!entry) return 0
+      const totalAssets = entry.cash_total + entry.investments_total
+      const totalDebt = entry.credit_cards_owed + entry.loans_total + entry.taxes_owed
+      const personalLoans = entry.loan_accounts
+        .filter((acc) => {
+          const nameKey = acc.name.toLowerCase()
+          const subcategory = accountSubcategoryByName.get(nameKey)
+          if (subcategory === 'auto_loan') return false
+          if (subcategory === 'personal_loan') return true
+          return !nameKey.includes('auto')
+        })
+        .reduce((sum, acc) => sum + acc.balance, 0)
+
+      switch (type) {
+        case 'netWorth':
+          return totalAssets - totalDebt
+        case 'cash':
+          return entry.cash_total
+        case 'creditDebt':
+          return entry.credit_cards_owed + personalLoans
+        case 'totalDebt':
+          return totalDebt
+      }
+    }
+
+    const valueLast = computeValue(lastEntry, metricType)
+    const value30Days = computeValue(thirtyDayEntry, metricType)
+    const value1Year = computeValue(oneYearEntry, metricType)
 
     const changeLast = currentValue - valueLast
     const change30Days = currentValue - value30Days
@@ -275,11 +397,12 @@ const FinanceOverview = () => {
         const creditCardsAvailable = creditCardDetails.reduce((sum, a) => sum + (a.available || 0), 0)
         const loansTotal = loanDetails.reduce((sum, a) => sum + a.balance, 0)
         const taxesOwed = taxDetails.reduce((sum, a) => sum + a.balance, 0)
+        const netWorthValue = cashTotal + investmentsTotal - (creditCardsOwed + loansTotal + taxesOwed)
 
         // Save net worth log
         await saveNetWorthLog.mutateAsync({
           snapshot_date: selectedDate, // Send YYYY-MM-DD directly for DATE type
-          net_worth: summary.net_worth,
+          net_worth: netWorthValue,
           cash_total: cashTotal,
           investments_total: investmentsTotal,
           credit_cards_owed: creditCardsOwed,
@@ -340,10 +463,16 @@ const FinanceOverview = () => {
   const totalDebt = creditCardBalanceTotal + loansTotal
   const totalDebtOriginal = creditCardLimitTotal + loansTotalOriginal
   const totalDebtUtilization = totalDebtOriginal > 0 ? (totalDebt / totalDebtOriginal) * 100 : 0
+  const netWorthCurrent = cashTotal + investmentTotal - totalDebt
+
+  const netWorthTrends = calculateTrends(netWorthCurrent, 'netWorth')
+  const cashTrends = calculateTrends(cashTotal, 'cash')
+  const creditDebtTrends = calculateTrends(creditCardBalanceTotal + personalLoansTotal, 'creditDebt')
+  const totalDebtTrends = calculateTrends(totalDebt, 'totalDebt')
 
   return (
-    <div className="h-full overflow-y-auto p-4 pr-6 space-y-4" style={{ minWidth: 0 }}>
-      <div className="w-full max-w-5xl mx-auto"  style={{ minWidth: 0 }}>
+    <div className="h-full overflow-y-auto px-3 sm:px-4 lg:px-5 py-4 space-y-4" style={{ minWidth: 0 }}>
+      <div className="w-full max-w-screen-2xl mx-auto px-3 sm:px-4 lg:px-6" style={{ minWidth: 0 }}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
@@ -374,244 +503,157 @@ const FinanceOverview = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
         {/* Net Worth */}
         <div className="bg-gradient-to-br from-green-600 to-emerald-700 rounded-xl p-4 text-white min-w-0 overflow-hidden">
-          <div className="flex items-center gap-2 mb-2">
-            <Wallet className="w-5 h-5 flex-shrink-0" />
-            <p className="text-xs opacity-90">Net Worth</p>
-          </div>
-          <div className="flex flex-col gap-1">
-            <h3 className="text-3xl xl:text-4xl font-bold">{formatCurrency(summary?.net_worth || 0)}</h3>
-            {(() => {
-              const trends = calculateTrends(summary?.net_worth || 0, 'netWorth')
-              return (
-                <div className="space-y-0.5 text-xs">
-                  <div className="flex items-center gap-1">
-                    <span className="w-6 text-right font-semibold opacity-80">1y:</span>
-                    <span className={`${trends.change1Year >= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
-                      {trends.change1Year >= 0 ? '+' : ''}{formatCurrency(trends.change1Year)} ({trends.percent1Year >= 0 ? '+' : ''}{trends.percent1Year.toFixed(0)}%)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-6 text-right font-semibold opacity-80">30d:</span>
-                    <span className={`${trends.change30Days >= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
-                      {trends.change30Days >= 0 ? '+' : ''}{formatCurrency(trends.change30Days)} ({trends.percent30Days >= 0 ? '+' : ''}{trends.percent30Days.toFixed(0)}%)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-6 text-right font-semibold opacity-80">last:</span>
-                    <span className={`${trends.changeLast >= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
-                      {trends.changeLast >= 0 ? '+' : ''}{formatCurrency(trends.changeLast)} ({trends.percentLast >= 0 ? '+' : ''}{trends.percentLast.toFixed(0)}%)
-                    </span>
-                  </div>
-                </div>
-              )
-            })()}
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 items-start">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <Wallet className="w-5 h-5 flex-shrink-0" />
+                <p className="text-base font-semibold tracking-wide uppercase text-white">Net Worth</p>
+              </div>
+              <h3 className="text-[2.4rem] sm:text-[2.6rem] font-bold leading-tight">{formatCurrency(netWorthCurrent)}</h3>
+            </div>
+            {renderTrendSummary(netWorthTrends, true, 'compact')}
           </div>
         </div>
 
         {/* Cash on Hand */}
         <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-4 text-white min-w-0 overflow-hidden">
-          <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="w-5 h-5 flex-shrink-0" />
-            <p className="text-xs opacity-90">Cash on Hand</p>
-          </div>
-          <div className="flex flex-col gap-1">
-            <h3 className="text-3xl xl:text-4xl font-bold">{formatCurrency(cashTotal || 0)}</h3>
-            {(() => {
-              const trends = calculateTrends(cashTotal, 'cash')
-              return (
-                <div className="space-y-0.5 text-xs">
-                  <div className="flex items-center gap-1">
-                    <span className="w-6 text-right font-semibold opacity-80">1y:</span>
-                    <span className={`${trends.change1Year >= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
-                      {trends.change1Year >= 0 ? '+' : ''}{formatCurrency(trends.change1Year)} ({trends.percent1Year >= 0 ? '+' : ''}{trends.percent1Year.toFixed(0)}%)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-6 text-right font-semibold opacity-80">30d:</span>
-                    <span className={`${trends.change30Days >= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
-                      {trends.change30Days >= 0 ? '+' : ''}{formatCurrency(trends.change30Days)} ({trends.percent30Days >= 0 ? '+' : ''}{trends.percent30Days.toFixed(0)}%)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-6 text-right font-semibold opacity-80">last:</span>
-                    <span className={`${trends.changeLast >= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
-                      {trends.changeLast >= 0 ? '+' : ''}{formatCurrency(trends.changeLast)} ({trends.percentLast >= 0 ? '+' : ''}{trends.percentLast.toFixed(0)}%)
-                    </span>
-                  </div>
-                </div>
-              )
-            })()}
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 items-start">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <DollarSign className="w-5 h-5 flex-shrink-0" />
+                <p className="text-base font-semibold tracking-wide uppercase text-white">Cash on Hand</p>
+              </div>
+              <h3 className="text-[2.4rem] sm:text-[2.6rem] font-bold leading-tight">{formatCurrency(cashTotal || 0)}</h3>
+            </div>
+            {renderTrendSummary(cashTrends, true, 'compact')}
           </div>
         </div>
 
         {/* CC & Personal */}
         <div className="bg-gradient-to-br from-pink-600 to-pink-700 rounded-xl p-4 text-white min-w-0 overflow-hidden">
-          <div className="flex items-center gap-2 mb-2">
-            <CreditCard className="w-5 h-5 flex-shrink-0" />
-            <p className="text-xs opacity-90">CC & Personal</p>
-          </div>
-          <div className="flex flex-col gap-1">
-            <h3 className="text-3xl xl:text-4xl font-bold">{formatCurrency(creditCardBalanceTotal + personalLoansTotal)}</h3>
-            {(() => {
-              const trends = calculateTrends(creditCardBalanceTotal + personalLoansTotal, 'creditDebt')
-              return (
-                <div className="space-y-0.5 text-xs">
-                  <div className="flex items-center gap-1">
-                    <span className="w-6 text-right font-semibold opacity-80">1y:</span>
-                    <span className={`${trends.change1Year <= 0 ? 'text-green-200' : 'text-red-200'} flex-1 text-right`}>
-                      {trends.change1Year >= 0 ? '+' : ''}{formatCurrency(trends.change1Year)} ({trends.percent1Year >= 0 ? '+' : ''}{trends.percent1Year.toFixed(0)}%)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-6 text-right font-semibold opacity-80">30d:</span>
-                    <span className={`${trends.change30Days <= 0 ? 'text-green-200' : 'text-red-200'} flex-1 text-right`}>
-                      {trends.change30Days >= 0 ? '+' : ''}{formatCurrency(trends.change30Days)} ({trends.percent30Days >= 0 ? '+' : ''}{trends.percent30Days.toFixed(0)}%)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-6 text-right font-semibold opacity-80">last:</span>
-                    <span className={`${trends.changeLast <= 0 ? 'text-green-200' : 'text-red-200'} flex-1 text-right`}>
-                      {trends.changeLast >= 0 ? '+' : ''}{formatCurrency(trends.changeLast)} ({trends.percentLast >= 0 ? '+' : ''}{trends.percentLast.toFixed(0)}%)
-                    </span>
-                  </div>
-                </div>
-              )
-            })()}
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 items-start">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <CreditCard className="w-5 h-5 flex-shrink-0" />
+                <p className="text-base font-semibold tracking-wide uppercase text-white">CC & Personal</p>
+              </div>
+              <h3 className="text-[2.4rem] sm:text-[2.6rem] font-bold leading-tight">{formatCurrency(creditCardBalanceTotal + personalLoansTotal)}</h3>
+            </div>
+            {renderTrendSummary(creditDebtTrends, false, 'compact')}
           </div>
         </div>
 
         {/* Total Debt */}
         <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl p-4 text-white min-w-0 overflow-hidden">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="w-5 h-5 flex-shrink-0" />
-            <p className="text-xs opacity-90">Total Debt</p>
-          </div>
-          <div className="flex flex-col gap-1">
-            <h3 className="text-3xl xl:text-4xl font-bold">{formatCurrency(totalDebt)}</h3>
-            {(() => {
-              const trends = calculateTrends(totalDebt, 'totalDebt')
-              return (
-                <div className="space-y-0.5 text-xs">
-                  <div className="flex items-center gap-1">
-                    <span className="w-6 text-right font-semibold opacity-80">1y:</span>
-                    <span className={`${trends.change1Year <= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
-                      {trends.change1Year >= 0 ? '+' : ''}{formatCurrency(trends.change1Year)} ({trends.percent1Year >= 0 ? '+' : ''}{trends.percent1Year.toFixed(0)}%)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-6 text-right font-semibold opacity-80">30d:</span>
-                    <span className={`${trends.change30Days <= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
-                      {trends.change30Days >= 0 ? '+' : ''}{formatCurrency(trends.change30Days)} ({trends.percent30Days >= 0 ? '+' : ''}{trends.percent30Days.toFixed(0)}%)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-6 text-right font-semibold opacity-80">last:</span>
-                    <span className={`${trends.changeLast <= 0 ? 'text-green-300' : 'text-red-300'} flex-1 text-right`}>
-                      {trends.changeLast >= 0 ? '+' : ''}{formatCurrency(trends.changeLast)} ({trends.percentLast >= 0 ? '+' : ''}{trends.percentLast.toFixed(0)}%)
-                    </span>
-                  </div>
-                </div>
-              )
-            })()}
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 items-start">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <TrendingUp className="w-5 h-5 flex-shrink-0" />
+                <p className="text-base font-semibold tracking-wide uppercase text-white">Total Debt</p>
+              </div>
+              <h3 className="text-[2.4rem] sm:text-[2.6rem] font-bold leading-tight">{formatCurrency(totalDebt)}</h3>
+            </div>
+            {renderTrendSummary(totalDebtTrends, false, 'compact')}
           </div>
         </div>
       </div>
 
       {/* 3-Column Balance Entry */}
-      <div className="grid grid-cols-1 3xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
         {/* Column 1: Cash & Investments */}
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 border border-green-500/20 shadow-xl">
-          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-green-500/30">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 border border-green-500/20 shadow-xl flex flex-col h-full">
+          <div className="flex items-center gap-2 pb-2 border-b border-green-500/30 mb-4">
             <div className="p-1.5 bg-green-500/10 rounded-lg">
               <Wallet className="w-6 h-6 text-green-400" />
             </div>
             <h3 className="text-lg font-bold text-green-400">Cash & Investments</h3>
           </div>
-
-          {/* Cash Section */}
-          <div className="mb-3">
-            <div className="space-y-2.5">
-              {cashAccounts.map((account) => {
-                const isUpdated = updatedAccounts.has(account.id)
-                return (
-                  <div key={account.id} className="flex items-center justify-between gap-2">
-                    <label className="text-gray-300 text-base font-medium truncate flex-1">{account.account_name}</label>
-                    <div className="flex items-center gap-0.5 w-36 justify-end">
-                      <span className="text-green-400 text-base font-semibold">$</span>
-                      <input
-                        type="text"
-                        value={getInputValue(account.id)}
-                        onFocus={() => handleFocus(account.id)}
-                        onBlur={() => handleBlur(account.id)}
-                        onChange={(e) => handleBalanceChange(account.id, e.target.value)}
-                        className={`w-28 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-base font-semibold transition-all focus:outline-none ${
-                          isUpdated ? 'text-white' : 'text-gray-500'
-                        }`}
-                      />
+          <div className="flex-1 space-y-4">
+            {/* Cash Section */}
+            <div>
+              <div className="space-y-2.5">
+                {cashAccounts.map((account) => {
+                  const isUpdated = updatedAccounts.has(account.id)
+                  return (
+                    <div key={account.id} className="flex items-center justify-between gap-2">
+                      <label className="text-gray-300 text-base font-medium truncate flex-1">{account.account_name}</label>
+                      <div className="flex items-center gap-0.5 w-36 justify-end">
+                        <span className="text-green-400 text-base font-semibold">$</span>
+                        <input
+                          type="text"
+                          value={getInputValue(account.id)}
+                          onFocus={() => handleFocus(account.id)}
+                          onBlur={() => handleBlur(account.id)}
+                          onChange={(e) => handleBalanceChange(account.id, e.target.value)}
+                          className={`w-28 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-base font-semibold transition-all focus:outline-none ${
+                            isUpdated ? 'text-white' : 'text-gray-500'
+                          }`}
+                        />
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
-            <div className="pt-2 mt-2 border-t border-green-500/30">
-              <div className="flex items-center justify-between bg-green-500/10 p-2 rounded">
-                <span className="text-lg font-bold text-green-300">Total Cash</span>
-                <span className="text-lg font-bold text-green-400 w-28 text-right">{formatCurrency(cashTotal)}</span>
+                  )
+                })}
+              </div>
+              <div className="pt-2 mt-2 border-t border-green-500/30">
+                <div className="flex items-center justify-between bg-green-500/10 p-2 rounded">
+                  <span className="text-lg font-bold text-green-300">Total Cash</span>
+                  <span className="text-lg font-bold text-green-400 w-28 text-right">{formatCurrency(cashTotal)}</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Investments Section */}
-          <div className="mb-3">
-            <div className="space-y-2.5">
-              {investmentAccounts.map((account) => {
-                const isUpdated = updatedAccounts.has(account.id)
-                return (
-                  <div key={account.id} className="flex items-center justify-between gap-2">
-                    <label className="text-gray-300 text-base font-medium truncate flex-1">{account.account_name}</label>
-                    <div className="flex items-center gap-0.5 w-36 justify-end">
-                      <span className="text-blue-400 text-base font-semibold">$</span>
-                      <input
-                        type="text"
-                        value={getInputValue(account.id)}
-                        onFocus={() => handleFocus(account.id)}
-                        onBlur={() => handleBlur(account.id)}
-                        onChange={(e) => handleBalanceChange(account.id, e.target.value)}
-                        className={`w-28 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-base font-semibold transition-all focus:outline-none ${
-                          isUpdated ? 'text-white' : 'text-gray-500'
-                        }`}
-                      />
+            {/* Investments Section */}
+            <div>
+              <div className="space-y-2.5">
+                {investmentAccounts.map((account) => {
+                  const isUpdated = updatedAccounts.has(account.id)
+                  return (
+                    <div key={account.id} className="flex items-center justify-between gap-2">
+                      <label className="text-gray-300 text-base font-medium truncate flex-1">{account.account_name}</label>
+                      <div className="flex items-center gap-0.5 w-36 justify-end">
+                        <span className="text-blue-400 text-base font-semibold">$</span>
+                        <input
+                          type="text"
+                          value={getInputValue(account.id)}
+                          onFocus={() => handleFocus(account.id)}
+                          onBlur={() => handleBlur(account.id)}
+                          onChange={(e) => handleBalanceChange(account.id, e.target.value)}
+                          className={`w-28 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-base font-semibold transition-all focus:outline-none ${
+                            isUpdated ? 'text-white' : 'text-gray-500'
+                          }`}
+                        />
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
-            <div className="pt-2 mt-2 border-t border-blue-500/30">
-              <div className="flex items-center justify-between bg-blue-500/10 p-2 rounded">
-                <span className="text-xl font-bold text-blue-300">Total Investments</span>
-                <span className="text-xl font-bold text-blue-400 w-28 text-right">{formatCurrency(investmentTotal)}</span>
+                  )
+                })}
+              </div>
+              <div className="pt-2 mt-2 border-t border-blue-500/30">
+                <div className="flex items-center justify-between bg-blue-500/10 p-2 rounded">
+                  <span className="text-xl font-bold text-blue-300">Total Investments</span>
+                  <span className="text-xl font-bold text-blue-400 w-28 text-right">{formatCurrency(investmentTotal)}</span>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Combined Total */}
-          <div className="pt-2 mt-2 border-t border-green-500/40">
+          <div className="pt-3 mt-auto border-t border-green-500/40">
             <div className="flex items-center justify-between bg-green-500/20 p-2 rounded">
-              <span className="text-lg font-bold text-green-300">Total Assets</span>
-              <span className="text-lg font-bold text-green-400 w-28 text-right">{formatCurrency(cashTotal + investmentTotal)}</span>
+              <span className="text-xl font-bold text-green-300 whitespace-nowrap">Total Assets</span>
+              <span className="text-xl font-bold text-green-400 w-28 text-right">{formatCurrency(cashTotal + investmentTotal)}</span>
             </div>
           </div>
         </div>
 
         {/* Column 2: Credit Cards */}
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 border border-orange-500/20 shadow-xl">
-          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-orange-500/30">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 border border-orange-500/20 shadow-xl flex flex-col h-full">
+          <div className="flex items-center gap-2 pb-2 border-b border-orange-500/30 mb-4">
             <div className="p-1.5 bg-orange-500/10 rounded-lg">
               <CreditCard className="w-6 h-6 text-orange-400" />
             </div>
             <h3 className="text-xl font-bold text-orange-400">Credit Cards</h3>
           </div>
-          <div className="space-y-2.5">
+          <div className="space-y-2.5 flex-1">
             {sortedCreditCardIds.length > 0
               ? sortedCreditCardIds.map(id => {
                   const account = creditCardAccounts.find(a => a.id === id)
@@ -621,10 +663,10 @@ const FinanceOverview = () => {
                   const utilization = limit > 0 ? (balance / limit) * 100 : 0
                   const isUpdated = updatedAccounts.has(account.id)
                   return (
-                  <div key={account.id} className="flex items-center justify-between py-0.5">
-                    <label className="text-gray-300 text-lg font-medium truncate" style={{ width: '200px' }}>{account.account_name}</label>
-                    <div className="flex items-center gap-1">
-                      <div className="flex items-center gap-0.5 justify-end" style={{ width: '125px' }}>
+                  <div key={account.id} className="flex flex-wrap items-center justify-between gap-2 py-0.5">
+                    <label className="text-gray-300 text-lg font-medium truncate flex-1 min-w-[120px] max-w-[180px]">{account.account_name}</label>
+                    <div className="flex items-center gap-2 justify-end">
+                      <div className="flex items-center gap-0.5 justify-end w-28 sm:w-32">
                         <span className="text-orange-400 text-lg font-semibold">$</span>
                         <input
                           type="text"
@@ -637,8 +679,8 @@ const FinanceOverview = () => {
                           }`}
                         />
                       </div>
-                      <span className="text-gray-400 text-base font-medium text-center" style={{ width: '125px' }}>{formatCurrency(limit)}</span>
-                      <span className={`text-base font-semibold text-right pr-4 ${utilization > 70 ? 'text-orange-400' : 'text-gray-400'}`} style={{ width: '50px' }}>{utilization.toFixed(0)}%</span>
+                      <span className="text-gray-400 text-base font-medium text-center w-24 sm:w-28">{formatCurrency(limit)}</span>
+                      <span className={`text-base font-semibold text-right ${utilization > 70 ? 'text-orange-400' : 'text-gray-400'} w-12`}>{utilization.toFixed(0)}%</span>
                     </div>
                   </div>
                 )
@@ -649,10 +691,10 @@ const FinanceOverview = () => {
                 const utilization = limit > 0 ? (balance / limit) * 100 : 0
                 const isUpdated = updatedAccounts.has(account.id)
                 return (
-                  <div key={account.id} className="flex items-center justify-between py-0.5">
-                    <label className="text-gray-300 text-lg font-medium truncate" style={{ width: '200px' }}>{account.account_name}</label>
-                    <div className="flex items-center gap-1">
-                      <div className="flex items-center gap-0.5 justify-end" style={{ width: '125px' }}>
+                  <div key={account.id} className="flex flex-wrap items-center justify-between gap-2 py-0.5">
+                    <label className="text-gray-300 text-lg font-medium truncate flex-1 min-w-[120px] max-w-[180px]">{account.account_name}</label>
+                    <div className="flex items-center gap-2 justify-end">
+                      <div className="flex items-center gap-0.5 justify-end w-28 sm:w-32">
                         <span className="text-orange-400 text-lg font-semibold">$</span>
                         <input
                           type="text"
@@ -665,34 +707,34 @@ const FinanceOverview = () => {
                           }`}
                         />
                       </div>
-                      <span className="text-gray-400 text-base font-medium text-center" style={{ width: '125px' }}>{formatCurrency(limit)}</span>
-                      <span className={`text-base font-semibold text-right pr-4 ${utilization > 70 ? 'text-orange-400' : 'text-gray-400'}`} style={{ width: '50px' }}>{utilization.toFixed(0)}%</span>
+                      <span className="text-gray-400 text-base font-medium text-center w-24 sm:w-28">{formatCurrency(limit)}</span>
+                      <span className={`text-base font-semibold text-right ${utilization > 70 ? 'text-orange-400' : 'text-gray-400'} w-12`}>{utilization.toFixed(0)}%</span>
                     </div>
                   </div>
                 )
               })}
           </div>
-          <div className="pt-2 mt-2 border-t border-orange-500/40">
-            <div className="flex items-center justify-between bg-orange-500/10 p-2 rounded">
-              <span className="text-xl font-bold text-orange-300 whitespace-nowrap" style={{ width: '200px' }}>Total Credit Cards</span>
-              <div className="flex items-center gap-1">
-                <span className="text-xl font-bold text-orange-400 text-right" style={{ width: '125px' }}>{formatCurrency(creditCardBalanceTotal)}</span>
-                <span className="text-xl font-bold text-orange-400 text-center" style={{ width: '125px' }}>{formatCurrency(creditCardLimitTotal)}</span>
-                <span className={`text-base font-semibold text-right pr-2 ${creditUtilization > 70 ? 'text-orange-400' : 'text-gray-400'}`} style={{ width: '50px' }}>{creditUtilization.toFixed(0)}%</span>
+          <div className="pt-3 mt-auto border-t border-orange-500/40">
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-orange-500/10 p-2 rounded">
+              <span className="text-xl font-bold text-orange-300 whitespace-nowrap flex-1 min-w-[120px] max-w-[200px]">Total Credit Cards</span>
+              <div className="flex items-center gap-2 justify-end">
+                <span className="text-xl font-bold text-orange-400 text-right w-24 sm:w-28">{formatCurrency(creditCardBalanceTotal)}</span>
+                <span className="text-xl font-bold text-orange-400 text-center w-24 sm:w-28">{formatCurrency(creditCardLimitTotal)}</span>
+                <span className={`text-base font-semibold text-right ${creditUtilization > 70 ? 'text-orange-400' : 'text-gray-400'} w-12`}>{creditUtilization.toFixed(0)}%</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Column 3: Loans & Taxes */}
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 border border-red-500/20 shadow-xl">
-          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-red-500/30">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 border border-red-500/20 shadow-xl flex flex-col h-full">
+          <div className="flex items-center gap-2 pb-2 border-b border-red-500/30 mb-4">
             <div className="p-1.5 bg-red-500/10 rounded-lg">
               <Landmark className="w-6 h-6 text-red-400" />
             </div>
             <h3 className="text-xl font-bold text-red-400">Loans & Taxes</h3>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-3 flex-1">
             {/* Personal Loans Section */}
             {personalLoans.length > 0 && (
               <div>
@@ -726,7 +768,7 @@ const FinanceOverview = () => {
                 </div>
                 <div className="mt-2 pt-2 border-t border-red-500/30 space-y-1">
                   <div className="flex items-center justify-between bg-red-500/10 p-2 rounded">
-                    <span className="text-xl font-bold text-red-300 min-w-[140px]">Total Personal Loans</span>
+                    <span className="text-lg md:text-xl font-bold text-red-300 min-w-[140px] whitespace-nowrap">Total Personal Loans</span>
                     <div className="flex items-center gap-1">
                       <span className="text-xl font-bold text-red-400 w-28 text-right">{formatCurrency(personalLoansTotal)}</span>
                       <span className="text-gray-400 text-base font-medium w-20 text-right">{formatCurrency(personalLoansTotalOriginal)}</span>
@@ -770,7 +812,7 @@ const FinanceOverview = () => {
                 </div>
                 <div className="mt-2 pt-2 border-t border-red-500/30 space-y-1">
                   <div className="flex items-center justify-between bg-red-500/10 p-2 rounded">
-                    <span className="text-xl font-bold text-red-300 min-w-[140px]">Total Auto Loans</span>
+                    <span className="text-lg md:text-xl font-bold text-red-300 min-w-[140px] whitespace-nowrap">Total Auto Loans</span>
                     <div className="flex items-center gap-1">
                       <span className="text-xl font-bold text-red-400 w-28 text-right">{formatCurrency(autoLoansTotal)}</span>
                       <span className="text-gray-400 text-base font-medium w-20 text-right">{formatCurrency(autoLoansTotalOriginal)}</span>
@@ -815,10 +857,10 @@ const FinanceOverview = () => {
               </div>
             )}
           </div>
-          <div className="pt-2 mt-2 border-t border-red-500/40 space-y-1">
+          <div className="pt-3 mt-auto border-t border-red-500/40 space-y-2">
             {taxes.length > 0 && (
               <div className="flex items-center justify-between bg-red-500/10 p-2 rounded">
-                <span className="text-xl font-bold text-red-300 min-w-[140px]">Total Taxes</span>
+                <span className="text-xl font-bold text-red-300 min-w-[140px] whitespace-nowrap">Total Taxes</span>
                 <div className="flex items-center gap-1">
                   <span className="text-xl font-bold text-red-400 w-28 text-right">{formatCurrency(taxesTotal)}</span>
                   <span className="text-gray-400 text-base font-medium w-20 text-right">{formatCurrency(taxesTotalOriginal)}</span>
@@ -827,7 +869,7 @@ const FinanceOverview = () => {
               </div>
             )}
             <div className="flex items-center justify-between bg-red-500/10 p-2 rounded">
-              <span className="text-xl font-bold text-red-300 min-w-[140px]">Total Loans</span>
+              <span className="text-xl font-bold text-red-300 min-w-[140px] whitespace-nowrap">Total Loans</span>
               <div className="flex items-center gap-1">
                 <span className="text-xl font-bold text-red-400 w-28 text-right">{formatCurrency(allLoansTotal)}</span>
                 <span className="text-gray-400 text-base font-medium w-20 text-right">{formatCurrency(allLoansTotalOriginal)}</span>
@@ -835,7 +877,7 @@ const FinanceOverview = () => {
               </div>
             </div>
             <div className="flex items-center justify-between bg-red-500/10 p-2 rounded">
-              <span className="text-xl font-bold text-red-300 min-w-[140px]">Total Debt</span>
+              <span className="text-xl font-bold text-red-300 min-w-[140px] whitespace-nowrap">Total Debt</span>
               <div className="flex items-center gap-1">
                 <span className="text-xl font-bold text-red-400 w-28 text-right">{formatCurrency(totalDebt)}</span>
                 <span className="text-gray-400 text-base font-medium w-20 text-right">{formatCurrency(totalDebtOriginal)}</span>
@@ -848,10 +890,113 @@ const FinanceOverview = () => {
 
       {/* Net Worth Log Section - Full Width */}
       <div className="mt-8">
-        <div className="flex items-center gap-3 mb-5">
-          <History className="text-blue-400" size={28} />
-          <h2 className="text-2xl font-bold text-white">Net Worth History</h2>
-          <span className="text-gray-400 text-sm ml-2">(Last 30 entries)</span>
+        <div className="flex flex-col gap-4 mb-5">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <History className="text-blue-400" size={28} />
+              <h2 className="text-2xl font-bold text-white">Net Worth History</h2>
+            </div>
+          </div>
+
+          {netWorthHistory && netWorthHistory.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-7 gap-4">
+              {(() => {
+                const bestNetWorth = netWorthHistory.reduce((best, entry) => {
+                  const assets = entry.cash_total + entry.investments_total
+                  const debt = entry.credit_cards_owed + entry.loans_total + entry.taxes_owed
+                  const value = assets - debt
+                  if (!best || value > best.value) {
+                    return { value, date: entry.snapshot_date }
+                  }
+                  return best
+                }, null as { value: number; date: string } | null)
+
+                const bestAssets = netWorthHistory.reduce((best, entry) => {
+                  const value = entry.cash_total + entry.investments_total
+                  if (!best || value > best.value) {
+                    return { value, date: entry.snapshot_date }
+                  }
+                  return best
+                }, null as { value: number; date: string } | null)
+
+                const bestCash = netWorthHistory.reduce((best, entry) => {
+                  const value = entry.cash_total
+                  if (!best || value > best.value) {
+                    return { value, date: entry.snapshot_date }
+                  }
+                  return best
+                }, null as { value: number; date: string } | null)
+
+                const bestInvestments = netWorthHistory.reduce((best, entry) => {
+                  const value = entry.investments_total
+                  if (!best || value > best.value) {
+                    return { value, date: entry.snapshot_date }
+                  }
+                  return best
+                }, null as { value: number; date: string } | null)
+
+                const bestCreditCards = netWorthHistory.reduce((best, entry) => {
+                  const value = entry.credit_cards_owed
+                  if (!best || value < best.value) {
+                    return { value, date: entry.snapshot_date }
+                  }
+                  return best
+                }, null as { value: number; date: string } | null)
+
+                const bestPersonalLoans = netWorthHistory.reduce((best, entry) => {
+                  const value = entry.loan_accounts.filter(acc => !acc.name.toLowerCase().includes('auto')).reduce((sum, acc) => sum + acc.balance, 0)
+                  if (!best || value < best.value) {
+                    return { value, date: entry.snapshot_date }
+                  }
+                  return best
+                }, null as { value: number; date: string } | null)
+
+                const bestTotalDebt = netWorthHistory.reduce((best, entry) => {
+                  const value = entry.credit_cards_owed + entry.loans_total + entry.taxes_owed
+                  if (!best || value < best.value) {
+                    return { value, date: entry.snapshot_date }
+                  }
+                  return best
+                }, null as { value: number; date: string } | null)
+
+                const formatDate = (dateString?: string) => {
+                  if (!dateString) return '—'
+                  const date = parseLocalDate(dateString)
+                  if (!date) return dateString
+                  return date.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })
+                }
+
+                const ScoreCard = ({ title, value, date, accent }: { title: string; value: number | null; date?: string; accent: 'emerald' | 'rose' }) => {
+                  const accentClasses = accent === 'emerald'
+                    ? 'border-emerald-400/40 bg-emerald-500/10'
+                    : 'border-rose-400/40 bg-rose-500/10'
+                  return (
+                  <div className={`rounded-xl border ${accentClasses} p-4 shadow-sm`}>
+                    <div className="text-sm font-semibold uppercase tracking-wide text-white/70">{title}</div>
+                    <div className="mt-2 text-2xl font-semibold text-white">{value !== null ? formatCurrency(value) : '—'}</div>
+                    <div className="mt-1 text-sm text-white/60">{formatDate(date)}</div>
+                  </div>
+                  )
+                }
+
+                return (
+                  <>
+                    <ScoreCard title="Best Net Worth" value={bestNetWorth?.value ?? null} date={bestNetWorth?.date} accent="emerald" />
+                    <ScoreCard title="Best Total Assets" value={bestAssets?.value ?? null} date={bestAssets?.date} accent="emerald" />
+                    <ScoreCard title="Best Cash" value={bestCash?.value ?? null} date={bestCash?.date} accent="emerald" />
+                    <ScoreCard title="Best Investments" value={bestInvestments?.value ?? null} date={bestInvestments?.date} accent="emerald" />
+                    <ScoreCard title="Lowest Credit Cards" value={bestCreditCards?.value ?? null} date={bestCreditCards?.date} accent="rose" />
+                    <ScoreCard title="Low Personal Loans" value={bestPersonalLoans?.value ?? null} date={bestPersonalLoans?.date} accent="rose" />
+                    <ScoreCard title="Lowest Total Debt" value={bestTotalDebt?.value ?? null} date={bestTotalDebt?.date} accent="rose" />
+                  </>
+                )
+              })()}
+            </div>
+          )}
         </div>
 
         {historyLoading ? (
@@ -868,68 +1013,77 @@ const FinanceOverview = () => {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-black border-b-2 border-gray-800">
-                    <th className="px-4 py-4 text-center text-gray-400 text-xs font-semibold uppercase tracking-wide sticky left-0 bg-black z-10" style={{minWidth: '100px'}}>
+                    <th className="px-5 py-4 text-center text-gray-300 text-base font-semibold tracking-wide sticky left-0 bg-black z-10" style={{minWidth: '120px'}}>
                       Date
                     </th>
-                    <th className="px-3 py-4 text-center text-white text-xs font-semibold uppercase tracking-wide" style={{minWidth: '90px'}}>
-                      Net Worth
+                    <th className="px-4 py-4 text-center text-white text-base font-semibold tracking-wide" style={{minWidth: '120px'}}>
+                      Net worth
                     </th>
-                    <th className="px-3 py-4 text-center text-white text-xs font-semibold uppercase tracking-wide" style={{minWidth: '80px'}}>
-                      Change
-                    </th>
-                    <th className="px-3 py-4 text-center text-green-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '90px'}}>
-                      Total Assets
-                    </th>
-                    <th className="px-3 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '90px'}}>
-                      Total Debt
-                    </th>
-                    <th className="px-3 py-4 text-center text-green-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '80px'}}>
+                    <th className="px-4 py-4 text-center text-emerald-400 text-base font-semibold tracking-wide whitespace-nowrap" style={{minWidth: '110px'}}>
                       Cash
                     </th>
-                    <th className="px-3 py-4 text-center text-green-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '90px'}}>
+                    <th className="px-4 py-4 text-center text-emerald-400 text-base font-semibold tracking-wide whitespace-nowrap" style={{minWidth: '120px'}}>
                       Investments
                     </th>
-                    <th className="px-3 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '90px'}}>
-                      Credit Cards
+                    <th className="px-4 py-4 text-center text-emerald-400 text-base font-semibold tracking-wide whitespace-nowrap" style={{minWidth: '130px'}}>
+                      Total assets
                     </th>
-                    <th className="px-3 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '90px'}}>
-                      Personal Loans
+                    <th className="px-4 py-4 text-center text-rose-400 text-base font-semibold tracking-wide whitespace-nowrap" style={{minWidth: '115px'}}>
+                      Credit cards
                     </th>
-                    <th className="px-3 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '90px'}}>
-                      Auto Loans
+                    <th className="px-4 py-4 text-center text-rose-400 text-base font-semibold tracking-wide whitespace-nowrap" style={{minWidth: '125px'}}>
+                      Personal loans
                     </th>
-                    <th className="px-3 py-4 text-center text-red-400 text-xs font-semibold uppercase tracking-wide whitespace-nowrap" style={{minWidth: '80px'}}>
+                    <th className="px-4 py-4 text-center text-rose-400 text-base font-semibold tracking-wide whitespace-nowrap" style={{minWidth: '115px'}}>
+                      Auto loans
+                    </th>
+                    <th className="px-4 py-4 text-center text-rose-400 text-base font-semibold tracking-wide whitespace-nowrap" style={{minWidth: '105px'}}>
                       Taxes
+                    </th>
+                    <th className="px-4 py-4 text-center text-rose-400 text-base font-semibold tracking-wide whitespace-nowrap" style={{minWidth: '130px'}}>
+                      Total debt
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {netWorthHistory.map((entry, index) => {
                     const previousEntry = index < netWorthHistory.length - 1 ? netWorthHistory[index + 1] : null
-                    const change = previousEntry ? entry.net_worth - previousEntry.net_worth : 0
-                    const changePercentage = previousEntry && previousEntry.net_worth !== 0
-                      ? ((change / Math.abs(previousEntry.net_worth)) * 100)
-                      : 0
 
-                    // Calculate summary values for this entry
+                    // Aggregate current values
                     const totalAssets = entry.cash_total + entry.investments_total
                     const totalDebt = entry.credit_cards_owed + entry.loans_total + entry.taxes_owed
-                    // Filter loans: auto loans contain 'Auto' or 'auto', personal loans are everything else
                     const autoLoans = entry.loan_accounts.filter(acc => acc.name.toLowerCase().includes('auto')).reduce((sum, acc) => sum + acc.balance, 0)
                     const personalLoans = entry.loan_accounts.filter(acc => !acc.name.toLowerCase().includes('auto')).reduce((sum, acc) => sum + acc.balance, 0)
 
-                    // Calculate previous values for percentage changes
-                    const prevTotalAssets = previousEntry ? (previousEntry.cash_total + previousEntry.investments_total) : 0
-                    const prevTotalDebt = previousEntry ? (previousEntry.credit_cards_owed + previousEntry.loans_total + previousEntry.taxes_owed) : 0
-                    const prevAutoLoans = previousEntry ? previousEntry.loan_accounts.filter(acc => acc.name.toLowerCase().includes('auto')).reduce((sum, acc) => sum + acc.balance, 0) : 0
-                    const prevPersonalLoans = previousEntry ? previousEntry.loan_accounts.filter(acc => !acc.name.toLowerCase().includes('auto')).reduce((sum, acc) => sum + acc.balance, 0) : 0
+                    // Previous entry values for change calculations
+                    const prevCash = previousEntry ? previousEntry.cash_total : null
+                    const prevInvestments = previousEntry ? previousEntry.investments_total : null
+                    const prevTotalAssets = previousEntry ? (previousEntry.cash_total + previousEntry.investments_total) : null
+                    const prevCreditCards = previousEntry ? previousEntry.credit_cards_owed : null
+                    const prevPersonalLoans = previousEntry ? previousEntry.loan_accounts.filter(acc => !acc.name.toLowerCase().includes('auto')).reduce((sum, acc) => sum + acc.balance, 0) : null
+                    const prevAutoLoans = previousEntry ? previousEntry.loan_accounts.filter(acc => acc.name.toLowerCase().includes('auto')).reduce((sum, acc) => sum + acc.balance, 0) : null
+                    const prevTaxes = previousEntry ? previousEntry.taxes_owed : null
+                    const prevTotalDebt = previousEntry ? (previousEntry.credit_cards_owed + previousEntry.loans_total + previousEntry.taxes_owed) : null
+                    const currentNetWorth = totalAssets - totalDebt
+                    const prevNetWorth = previousEntry
+                      ? (prevTotalAssets ?? 0) - (prevTotalDebt ?? 0)
+                      : null
+                    const netWorthDelta = prevNetWorth !== null ? currentNetWorth - prevNetWorth : null
+                    const cashDelta = prevCash !== null ? entry.cash_total - prevCash : null
+                    const investmentsDelta = prevInvestments !== null ? entry.investments_total - prevInvestments : null
+                    const assetsDelta = prevTotalAssets !== null ? totalAssets - prevTotalAssets : null
+                    const creditCardsDelta = prevCreditCards !== null ? entry.credit_cards_owed - prevCreditCards : null
+                    const personalLoansDelta = prevPersonalLoans !== null ? personalLoans - prevPersonalLoans : null
+                    const autoLoansDelta = prevAutoLoans !== null ? autoLoans - prevAutoLoans : null
+                    const taxesDelta = prevTaxes !== null ? entry.taxes_owed - prevTaxes : null
+                    const totalDebtDelta = prevTotalDebt !== null ? totalDebt - prevTotalDebt : null
 
                     return (
                       <tr
                         key={entry.id}
                         className={`border-b border-gray-800 ${index === 0 ? 'bg-gray-950' : ''}`}
                       >
-                        <td className={`px-6 py-4 text-center text-white text-sm sticky left-0 ${index === 0 ? 'bg-gray-950 font-semibold' : 'bg-gray-900'} z-10`}>
+                        <td className={`px-6 py-4 text-center text-white text-lg sticky left-0 ${index === 0 ? 'bg-gray-950 font-semibold' : 'bg-gray-900'} z-10`}>
                           {(() => {
                             // For DATE type fields, parse in local timezone to avoid UTC shift
                             const date = parseLocalDate(entry.snapshot_date)
@@ -940,110 +1094,85 @@ const FinanceOverview = () => {
                               year: 'numeric',
                             })
                           })()}
-                          {index === 0 && (
-                            <span className="ml-2 text-xs px-2 py-1 bg-blue-500 text-white rounded font-semibold">
-                              LATEST
+                        </td>
+                        <td className="px-6 py-4 text-center text-white text-[1.55rem] font-semibold whitespace-nowrap">
+                          <div className="flex flex-col items-center gap-0.5 rounded-lg border border-white/10 bg-white/5 px-4 py-2 shadow-sm">
+                            <span className="text-[1.55rem] font-semibold">{formatCurrency(currentNetWorth)}</span>
+                            <span className={`text-sm font-medium ${getChangeColor(netWorthDelta, true)}`}>
+                              {formatChangeLabel(netWorthDelta)}
                             </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-center text-white text-base font-bold whitespace-nowrap">
-                          {formatCurrency(entry.net_worth)}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          {previousEntry ? (
-                            <span className={`text-sm font-semibold ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                              {change >= 0 ? '+' : ''}{formatCurrency(change)}
-                            </span>
-                          ) : (
-                            <span className="text-gray-500 text-xs">-</span>
-                          )}
-                        </td>
-                        {/* Total Assets */}
-                        <td className="px-6 py-4 text-center text-sm whitespace-nowrap">
-                          <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-white">{formatCurrency(totalAssets)}</span>
-                            {previousEntry && prevTotalAssets !== 0 && (
-                              <span className={`text-xs ${totalAssets - prevTotalAssets >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {totalAssets - prevTotalAssets >= 0 ? '+' : ''}{(((totalAssets - prevTotalAssets) / Math.abs(prevTotalAssets)) * 100).toFixed(1)}%
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        {/* Total Debt */}
-                        <td className="px-6 py-4 text-center text-sm whitespace-nowrap">
-                          <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-white">{formatCurrency(totalDebt)}</span>
-                            {previousEntry && prevTotalDebt !== 0 && (
-                              <span className={`text-xs ${totalDebt - prevTotalDebt >= 0 ? 'text-red-500' : 'text-green-500'}`}>
-                                {totalDebt - prevTotalDebt >= 0 ? '+' : ''}{(((totalDebt - prevTotalDebt) / Math.abs(prevTotalDebt)) * 100).toFixed(1)}%
-                              </span>
-                            )}
                           </div>
                         </td>
                         {/* Cash */}
-                        <td className="px-6 py-4 text-center text-sm whitespace-nowrap">
+                        <td className="px-6 py-4 text-center text-lg whitespace-nowrap">
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-white">{formatCurrency(entry.cash_total)}</span>
-                            {previousEntry && previousEntry.cash_total !== 0 && (
-                              <span className={`text-xs ${entry.cash_total - previousEntry.cash_total >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {entry.cash_total - previousEntry.cash_total >= 0 ? '+' : ''}{(((entry.cash_total - previousEntry.cash_total) / Math.abs(previousEntry.cash_total)) * 100).toFixed(1)}%
-                              </span>
-                            )}
+                            <span className="text-white text-lg">{formatCurrency(entry.cash_total)}</span>
+                            <span className={`text-base ${getChangeColor(cashDelta, true)}`}>
+                              {formatChangeLabel(cashDelta)}
+                            </span>
                           </div>
                         </td>
                         {/* Investments */}
-                        <td className="px-6 py-4 text-center text-sm whitespace-nowrap">
+                        <td className="px-6 py-4 text-center text-lg whitespace-nowrap">
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-white">{formatCurrency(entry.investments_total)}</span>
-                            {previousEntry && previousEntry.investments_total !== 0 && (
-                              <span className={`text-xs ${entry.investments_total - previousEntry.investments_total >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {entry.investments_total - previousEntry.investments_total >= 0 ? '+' : ''}{(((entry.investments_total - previousEntry.investments_total) / Math.abs(previousEntry.investments_total)) * 100).toFixed(1)}%
-                              </span>
-                            )}
+                            <span className="text-white text-lg">{formatCurrency(entry.investments_total)}</span>
+                            <span className={`text-base ${getChangeColor(investmentsDelta, true)}`}>
+                              {formatChangeLabel(investmentsDelta)}
+                            </span>
+                          </div>
+                        </td>
+                        {/* Total Assets */}
+                        <td className="px-6 py-4 text-center text-lg whitespace-nowrap">
+                          <div className="flex flex-col items-center gap-0.5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 shadow-sm">
+                            <span className="text-white text-lg">{formatCurrency(totalAssets)}</span>
+                            <span className={`text-base ${getChangeColor(assetsDelta, true)}`}>
+                              {formatChangeLabel(assetsDelta)}
+                            </span>
                           </div>
                         </td>
                         {/* Credit Cards */}
-                        <td className="px-6 py-4 text-center text-sm whitespace-nowrap">
+                        <td className="px-6 py-4 text-center text-lg whitespace-nowrap">
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-white">{formatCurrency(entry.credit_cards_owed)}</span>
-                            {previousEntry && previousEntry.credit_cards_owed !== 0 && (
-                              <span className={`text-xs ${entry.credit_cards_owed - previousEntry.credit_cards_owed >= 0 ? 'text-red-500' : 'text-green-500'}`}>
-                                {entry.credit_cards_owed - previousEntry.credit_cards_owed >= 0 ? '+' : ''}{(((entry.credit_cards_owed - previousEntry.credit_cards_owed) / Math.abs(previousEntry.credit_cards_owed)) * 100).toFixed(1)}%
-                              </span>
-                            )}
+                            <span className="text-white text-lg">{formatCurrency(entry.credit_cards_owed)}</span>
+                            <span className={`text-base ${getChangeColor(creditCardsDelta, false)}`}>
+                              {formatChangeLabel(creditCardsDelta)}
+                            </span>
                           </div>
                         </td>
                         {/* Personal Loans */}
-                        <td className="px-6 py-4 text-center text-sm whitespace-nowrap">
+                        <td className="px-6 py-4 text-center text-lg whitespace-nowrap">
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-white">{formatCurrency(personalLoans)}</span>
-                            {previousEntry && prevPersonalLoans !== 0 && (
-                              <span className={`text-xs ${personalLoans - prevPersonalLoans >= 0 ? 'text-red-500' : 'text-green-500'}`}>
-                                {personalLoans - prevPersonalLoans >= 0 ? '+' : ''}{(((personalLoans - prevPersonalLoans) / Math.abs(prevPersonalLoans)) * 100).toFixed(1)}%
-                              </span>
-                            )}
+                            <span className="text-white text-lg">{formatCurrency(personalLoans)}</span>
+                            <span className={`text-base ${getChangeColor(personalLoansDelta, false)}`}>
+                              {formatChangeLabel(personalLoansDelta)}
+                            </span>
                           </div>
                         </td>
                         {/* Auto Loans */}
-                        <td className="px-6 py-4 text-center text-sm whitespace-nowrap">
+                        <td className="px-6 py-4 text-center text-lg whitespace-nowrap">
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-white">{formatCurrency(autoLoans)}</span>
-                            {previousEntry && prevAutoLoans !== 0 && (
-                              <span className={`text-xs ${autoLoans - prevAutoLoans >= 0 ? 'text-red-500' : 'text-green-500'}`}>
-                                {autoLoans - prevAutoLoans >= 0 ? '+' : ''}{(((autoLoans - prevAutoLoans) / Math.abs(prevAutoLoans)) * 100).toFixed(1)}%
-                              </span>
-                            )}
+                            <span className="text-white text-lg">{formatCurrency(autoLoans)}</span>
+                            <span className={`text-base ${getChangeColor(autoLoansDelta, false)}`}>
+                              {formatChangeLabel(autoLoansDelta)}
+                            </span>
                           </div>
                         </td>
                         {/* Taxes */}
-                        <td className="px-6 py-4 text-center text-sm whitespace-nowrap">
+                        <td className="px-6 py-4 text-center text-lg whitespace-nowrap">
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-white">{formatCurrency(entry.taxes_owed)}</span>
-                            {previousEntry && previousEntry.taxes_owed !== 0 && (
-                              <span className={`text-xs ${entry.taxes_owed - previousEntry.taxes_owed >= 0 ? 'text-red-500' : 'text-green-500'}`}>
-                                {entry.taxes_owed - previousEntry.taxes_owed >= 0 ? '+' : ''}{(((entry.taxes_owed - previousEntry.taxes_owed) / Math.abs(previousEntry.taxes_owed)) * 100).toFixed(1)}%
-                              </span>
-                            )}
+                            <span className="text-white text-lg">{formatCurrency(entry.taxes_owed)}</span>
+                            <span className={`text-base ${getChangeColor(taxesDelta, false)}`}>
+                              {formatChangeLabel(taxesDelta)}
+                            </span>
+                          </div>
+                        </td>
+                        {/* Total Debt */}
+                        <td className="px-6 py-4 text-center text-lg whitespace-nowrap">
+                          <div className="flex flex-col items-center gap-0.5 rounded-lg border border-rose-500/25 bg-rose-500/10 px-4 py-2 shadow-sm">
+                            <span className="text-white text-lg">{formatCurrency(totalDebt)}</span>
+                            <span className={`text-base ${getChangeColor(totalDebtDelta, false)}`}>
+                              {formatChangeLabel(totalDebtDelta)}
+                            </span>
                           </div>
                         </td>
                       </tr>

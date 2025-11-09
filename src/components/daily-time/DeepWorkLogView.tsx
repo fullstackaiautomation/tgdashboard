@@ -15,7 +15,7 @@ interface DeepWorkLogViewProps {
 
 // Area colors
 const AREA_COLORS: Record<Area, string> = {
-  'Full Stack': '#10b981',
+  'Full Stack': '#00b495',
   'Huge Capital': '#a855f7',
   'S4': '#3b82f6',
   '808': '#eab308',

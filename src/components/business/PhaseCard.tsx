@@ -144,21 +144,21 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
   };
 
   return (
-    <div className="border-t border-gray-700/50">
+    <div className="border-t border-gray-700/50 flex flex-col h-full min-w-0">
       {/* Phase Header */}
       <div
-        className="px-4 py-3 cursor-pointer hover:bg-gray-800/30 transition-colors flex items-center justify-between"
+        className="px-4 py-3 cursor-pointer hover:bg-gray-800/30 transition-colors flex items-center justify-between flex-shrink-0 min-w-0"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="w-5 h-5 p-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <Button variant="ghost" size="sm" className="w-5 h-5 p-0 flex-shrink-0">
             {isExpanded ? (
               <ChevronDown className="w-4 h-4 text-gray-400" />
             ) : (
               <ChevronRight className="w-4 h-4 text-gray-400" />
             )}
           </Button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0 truncate">
             {isEditingPhaseName && phase.id !== 'no-phase' ? (
               <input
                 type="text"
@@ -179,7 +179,7 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
               />
             ) : (
               <span
-                className={`text-base font-semibold text-gray-100 ${
+                className={`text-base font-semibold text-gray-100 truncate ${
                   phase.id !== 'no-phase' ? 'cursor-pointer hover:text-blue-400' : ''
                 }`}
                 onClick={(e) => {
@@ -194,13 +194,13 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
               </span>
             )}
             {progress === 100 && (
-              <Badge className="bg-green-600 text-white text-xs px-2 py-0.5">
+              <Badge className="bg-green-600 text-white text-xs px-2 py-0.5 flex-shrink-0">
                 Completed
               </Badge>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap">
           <div
             className="text-right cursor-pointer hover:text-blue-400 transition-colors"
             onClick={(e) => {
@@ -231,17 +231,17 @@ export const PhaseCard: FC<PhaseCardProps> = ({ phase, projectId, businessId }) 
 
       {/* Tasks Section */}
       {isExpanded && (
-        <div className="bg-gray-900/20 px-4 pb-4">
+        <div className="bg-gray-900/20 px-4 pb-4 overflow-hidden flex flex-col flex-1 min-w-0">
           {/* Table Header */}
-          <table className="w-full">
+          <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="text-xs text-gray-400 border-b border-gray-700/50">
                 <th className="text-left font-normal py-2 pl-2 w-12">Done</th>
-                <th className="text-left font-normal py-2 w-32">Due Date</th>
-                <th className="text-left font-normal py-2 w-32">Status</th>
-                <th className="text-left font-normal py-2">Task Name</th>
-                <th className="text-left font-normal py-2">Description</th>
-                <th className="text-right font-normal py-2 pr-2 w-10"></th>
+                <th className="text-left font-normal py-2 w-20">Due</th>
+                <th className="text-left font-normal py-2 w-20">Status</th>
+                <th className="text-left font-normal py-2 min-w-0">Task</th>
+                <th className="text-left font-normal py-2 min-w-0 hidden sm:table-cell">Desc</th>
+                <th className="text-right font-normal py-2 pr-2 w-8"></th>
               </tr>
             </thead>
             <tbody>

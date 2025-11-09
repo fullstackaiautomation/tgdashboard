@@ -18,7 +18,7 @@ type TimePeriod = 'All Time' | 'Today' | 'This Week' | 'This Month';
 const AREA_COLORS: Record<string, string> = {
   'All Areas': 'bg-blue-500',
   'Personal': 'bg-pink-500',
-  'Full Stack': 'bg-green-500',
+  'Full Stack': 'bg-teal-500',
   'Huge Capital': 'bg-purple-500',
   '808': 'bg-yellow-500',
   'S4': 'bg-blue-600',
@@ -29,7 +29,7 @@ const AREA_COLORS: Record<string, string> = {
 const AREA_TEXT_COLORS: Record<string, string> = {
   'All Areas': 'text-blue-400',
   'Personal': 'text-pink-400',
-  'Full Stack': 'text-green-400',
+  'Full Stack': 'text-teal-400',
   'Huge Capital': 'text-purple-400',
   '808': 'text-yellow-400',
   'S4': 'text-blue-400',

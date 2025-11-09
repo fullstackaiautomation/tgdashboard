@@ -7,6 +7,7 @@ import { useTasks } from '../../hooks/useTasks';
 import { Button } from '@/components/ui/button';
 import { TaskCard } from '../tasks/TaskCard';
 import { AddTaskModal } from '../tasks/AddTaskModal';
+import { AddPhaseModal } from './AddPhaseModal';
 
 interface ProjectCardProps {
   project: Project;
@@ -21,6 +22,7 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId, busines
   const { data: allTasks } = useTasks();
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
+  const [showAddPhaseModal, setShowAddPhaseModal] = useState(false);
 
   // Filter tasks for this project
   const projectTasks = allTasks?.filter((task) => task.project_id === project.id) || [];
@@ -163,78 +165,97 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId, busines
           const unassignedActHours = unassignedTasks.reduce((sum, t) => sum + (t.hours_worked || 0), 0);
           const unassignedAccuracy = unassignedEstHours > 0 ? Math.round((unassignedActHours / unassignedEstHours) * 100) : 0;
 
-          return unassignedTasks.length > 0 ? (
-            <div className="border-t" style={{ borderColor: businessColor ? `${businessColor}20` : 'rgb(55 65 81)' }}>
-              {/* Phase Header */}
-              <div
-                onClick={() => onTogglePhase('no-phase')}
-                className="px-6 py-4 cursor-pointer hover:bg-black/30 transition-colors flex items-center justify-between gap-4"
-              >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className={`transform transition-transform flex-shrink-0 ${expandedPhases['no-phase'] ? 'rotate-90' : ''}`}>
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+          if (unassignedTasks.length > 0) {
+            return (
+              <div className="border-t" style={{ borderColor: businessColor ? `${businessColor}20` : 'rgb(55 65 81)' }}>
+                {/* Phase Header */}
+                <div
+                  onClick={() => onTogglePhase('no-phase')}
+                  className="px-6 py-4 cursor-pointer hover:bg-black/30 transition-colors flex items-center justify-between gap-4"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className={`transform transition-transform flex-shrink-0 ${expandedPhases['no-phase'] ? 'rotate-90' : ''}`}>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-semibold text-gray-100 truncate">Unassigned</h3>
                   </div>
-                  <h3 className="text-2xl font-semibold text-gray-100 truncate">Unassigned</h3>
+
+                  {/* Unassigned Statistics Scorecards */}
+                  <div className="flex items-center gap-3 flex-1 justify-end">
+                    {/* Status */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
+                      <span className={`font-semibold ${
+                        unassignedCompletion === 100 ? 'text-green-400' : unassignedCompletion > 0 ? 'text-blue-400' : 'text-gray-400'
+                      }`}>
+                        {unassignedCompletion === 100 ? 'Completed' : unassignedCompletion > 0 ? 'In Progress' : 'Not Started'}
+                      </span>
+                    </div>
+
+                    {/* Tasks */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
+                      <span className="text-gray-100 font-semibold">{unassignedCompleted}/{unassignedTotal}</span>
+                    </div>
+
+                    {/* Estimated Hours */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
+                      <span className="text-gray-400">Hours Est</span>
+                      <span className="text-gray-100 font-semibold">{Math.round(unassignedEstHours)}h</span>
+                    </div>
+
+                    {/* Actual Hours */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
+                      <span className="text-gray-400">Hours Worked</span>
+                      <span className="text-gray-100 font-semibold">{Math.round(unassignedActHours)}h</span>
+                    </div>
+
+                    {/* Hours Accuracy (difference) */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
+                      <span className="text-gray-400">Hours Accuracy</span>
+                      <span className={`font-semibold ${Math.abs(unassignedActHours - unassignedEstHours) <= 2 ? 'text-green-400' : Math.abs(unassignedActHours - unassignedEstHours) <= 5 ? 'text-blue-400' : 'text-orange-400'}`}>
+                        {Math.round(unassignedActHours - unassignedEstHours)}h
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Unassigned Statistics Scorecards */}
-                <div className="flex items-center gap-3 flex-1 justify-end">
-                  {/* Status */}
-                  <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
-                    <span className={`font-semibold ${
-                      unassignedCompletion === 100 ? 'text-green-400' : unassignedCompletion > 0 ? 'text-blue-400' : 'text-gray-400'
-                    }`}>
-                      {unassignedCompletion === 100 ? 'Completed' : unassignedCompletion > 0 ? 'In Progress' : 'Not Started'}
-                    </span>
+                {/* Unassigned Tasks */}
+                {expandedPhases['no-phase'] && (
+                  <div className="px-6 py-4 space-y-3 bg-black/20">
+                    {unassignedTasks.map((task) => (
+                      <TaskCard key={task.id} task={task} compact />
+                    ))}
                   </div>
-
-                  {/* Tasks */}
-                  <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
-                    <span className="text-gray-100 font-semibold">{unassignedCompleted}/{unassignedTotal}</span>
-                  </div>
-
-                  {/* Estimated Hours */}
-                  <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
-                    <span className="text-gray-400">Hours Est</span>
-                    <span className="text-gray-100 font-semibold">{Math.round(unassignedEstHours)}h</span>
-                  </div>
-
-                  {/* Actual Hours */}
-                  <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
-                    <span className="text-gray-400">Hours Worked</span>
-                    <span className="text-gray-100 font-semibold">{Math.round(unassignedActHours)}h</span>
-                  </div>
-
-                  {/* Hours Accuracy (difference) */}
-                  <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/60 rounded border border-gray-700 text-sm whitespace-nowrap">
-                    <span className="text-gray-400">Hours Accuracy</span>
-                    <span className={`font-semibold ${Math.abs(unassignedActHours - unassignedEstHours) <= 2 ? 'text-green-400' : Math.abs(unassignedActHours - unassignedEstHours) <= 5 ? 'text-blue-400' : 'text-orange-400'}`}>
-                      {Math.round(unassignedActHours - unassignedEstHours)}h
-                    </span>
-                  </div>
-                </div>
+                )}
               </div>
-
-              {/* Unassigned Tasks */}
-              {expandedPhases['no-phase'] && (
-                <div className="px-6 py-4 space-y-3 bg-black/20">
-                  {unassignedTasks.map((task) => (
-                    <TaskCard key={task.id} task={task} compact />
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : null
+            );
+          }
+          return null;
         })()}
       </div>
 
-      {/* No Phases Message */}
-      {(!phases || phases.length === 0) && unassignedTasks.length === 0 && (
+      {/* Add Phase Button or Empty State */}
+      {(!phases || phases.length === 0) && unassignedTasks.length === 0 ? (
         <div className="px-6 py-12 text-center text-gray-400">
           <p className="text-sm mb-4">No phases or tasks yet.</p>
-          <Button className="bg-purple-600 hover:bg-purple-700 text-white">
+          <Button
+            onClick={() => setShowAddPhaseModal(true)}
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Add Phase
+          </Button>
+        </div>
+      ) : (
+        <div className="px-6 py-4 border-t" style={{ borderColor: businessColor ? `${businessColor}20` : 'rgb(55 65 81)' }}>
+          <Button
+            onClick={() => setShowAddPhaseModal(true)}
+            className="text-white"
+            style={{
+              backgroundColor: businessColor || '#6b7280',
+            }}
+          >
             <Plus className="w-4 h-4 mr-1" />
             Add Phase
           </Button>
@@ -249,6 +270,17 @@ export const ProjectCard: FC<ProjectCardProps> = ({ project, businessId, busines
           setShowAddTaskModal(false);
           setSelectedPhaseId(null);
         }}
+        defaultBusinessId={businessId}
+        defaultProjectId={project.id}
+        defaultPhaseId={selectedPhaseId || undefined}
+      />
+
+      {/* Add Phase Modal */}
+      <AddPhaseModal
+        isOpen={showAddPhaseModal}
+        onClose={() => setShowAddPhaseModal(false)}
+        projectId={project.id}
+        projectName={project.name}
       />
     </div>
   );

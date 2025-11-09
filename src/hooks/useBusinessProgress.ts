@@ -5,8 +5,7 @@ import type { TaskHub } from '../types/task';
 interface BusinessProgress {
   overallCompletion: number;
   totalProjects: number;
-  activeTasks: number;
-  completedTasks: number;
+  incompleteTasks: number;
   totalTasks: number;
   lastActivityDate: string | null;
   isStalled: boolean;
@@ -31,8 +30,7 @@ export const useBusinessProgress = (
       return {
         overallCompletion: 0,
         totalProjects: 0,
-        activeTasks: 0,
-        completedTasks: 0,
+        incompleteTasks: 0,
         totalTasks: 0,
         lastActivityDate: null,
         isStalled: false,
@@ -77,10 +75,7 @@ export const useBusinessProgress = (
     const overallCompletion = projectProgresses.reduce((sum, p) => sum + p, 0) / projects.length;
 
     // Task counts
-    const completedTasks = tasks.filter((task) => (task.progress_percentage ?? 0) === 100).length;
-    const activeTasks = tasks.filter(
-      (task) => (task.progress_percentage ?? 0) > 0 && (task.progress_percentage ?? 0) < 100
-    ).length;
+    const incompleteTasks = tasks.filter((task) => (task.progress_percentage ?? 0) < 100).length;
     const totalTasks = tasks.length;
 
     // Find most recent activity
@@ -100,8 +95,7 @@ export const useBusinessProgress = (
     return {
       overallCompletion: Math.round(overallCompletion * 10) / 10,
       totalProjects: projects.length,
-      activeTasks,
-      completedTasks,
+      incompleteTasks,
       totalTasks,
       lastActivityDate,
       isStalled,

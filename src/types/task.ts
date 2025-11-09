@@ -55,14 +55,9 @@ export interface Task {
   checklist: ChecklistItem[]
   recurring_type: RecurringType
   recurring_interval: number
-  recurring_days: number[] | null
-  last_recurring_date: Date | null
   is_recurring_template: boolean
-  original_recurring_task_id: string | null
   hours_projected: number | null
   hours_worked: number | null
-  scheduled_start: Date | null
-  scheduled_end: Date | null
 }
 
 // New TaskHub interface with relationships (for Tasks Hub - uses string dates from Supabase)
@@ -86,7 +81,6 @@ export interface TaskHub {
   business_id: string | null
   project_id: string | null
   phase_id: string | null
-  life_area_id: string | null
 
   // Joined relations (from Supabase queries)
   businesses?: Business
@@ -100,8 +94,6 @@ export interface TaskHub {
   past_due: boolean
   hours_projected: number | null
   hours_worked: number | null
-  scheduled_start: string | null
-  scheduled_end: string | null
 
   // Daily scheduling
   scheduled_date: string | null
@@ -112,11 +104,8 @@ export interface TaskHub {
   // Recurring tasks
   recurring_type: RecurringType
   recurring_interval: number
-  recurring_days: number[] | null
   recurring_parent_id: string | null
-  last_recurring_date: string | null
   is_recurring_template: boolean
-  original_recurring_task_id: string | null
 
   // Checklist
   checklist: ChecklistItem[]
@@ -143,7 +132,6 @@ export interface CreateTaskDTO {
   business_id?: string
   project_id?: string
   phase_id?: string
-  life_area_id?: string
 
   // Legacy fields
   area?: Area
@@ -154,8 +142,6 @@ export interface CreateTaskDTO {
   // Time tracking
   due_date?: string
   hours_projected?: number
-  scheduled_start?: string
-  scheduled_end?: string
 
   // Daily scheduling
   scheduled_date?: string
@@ -166,7 +152,6 @@ export interface CreateTaskDTO {
   // Recurring
   recurring_type?: RecurringType
   recurring_interval?: number
-  recurring_days?: number[]
   is_recurring_template?: boolean
   recurring_parent_id?: string
 
@@ -187,7 +172,6 @@ export interface UpdateTaskDTO {
   business_id?: string | null
   project_id?: string | null
   phase_id?: string | null
-  life_area_id?: string | null
 
   // Legacy fields
   area?: Area | null
@@ -201,8 +185,6 @@ export interface UpdateTaskDTO {
   past_due?: boolean
   hours_projected?: number | null
   hours_worked?: number | null
-  scheduled_start?: string | null
-  scheduled_end?: string | null
 
   // Daily scheduling
   scheduled_date?: string | null
@@ -213,7 +195,6 @@ export interface UpdateTaskDTO {
   // Recurring
   recurring_type?: RecurringType | null
   recurring_interval?: number | null
-  recurring_days?: number[] | null
 
   // Metadata fields
   energy_level?: EnergyLevel | null

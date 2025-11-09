@@ -20,13 +20,16 @@ interface AddTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  defaultBusinessId?: string;
+  defaultProjectId?: string;
+  defaultPhaseId?: string;
 }
 
 /**
  * AddTaskModal - Modal for creating new tasks in Tasks Hub
  * Supports both standalone tasks and tasks linked to businesses/projects/phases
  */
-export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess }) => {
+export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess, defaultBusinessId, defaultProjectId, defaultPhaseId }) => {
   // Task type toggle
   const [taskType, setTaskType] = useState<'single' | 'recurring'>('single');
 
@@ -36,9 +39,9 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
   const [effortLevel, setEffortLevel] = useState<EffortLevel>('8) Vibing (8');
   const [automation, setAutomation] = useState<Automation>('Manual');
   const [hoursProjected, setHoursProjected] = useState('');
-  const [selectedBusinessId, setSelectedBusinessId] = useState<string>('');
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [selectedPhaseId, setSelectedPhaseId] = useState<string>('');
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string>(defaultBusinessId || '');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(defaultProjectId || '');
+  const [selectedPhaseId, setSelectedPhaseId] = useState<string>(defaultPhaseId || '');
 
   // Single task specific fields
   const [dueDate, setDueDate] = useState('');
@@ -289,7 +292,7 @@ export const AddTaskModal: FC<AddTaskModalProps> = ({ isOpen, onClose, onSuccess
                 <option value="">None</option>
                 {phases.map((phase: any) => (
                   <option key={phase.id} value={phase.id}>
-                    {phase.name}
+                    {phase.sequence_order}. {phase.name}
                   </option>
                 ))}
               </select>

@@ -15,8 +15,7 @@ export const useTasks = () => {
           *,
           businesses(id, name, color, slug),
           projects(id, name, description),
-          phases(id, name, description),
-          life_areas(id, name, color, category)
+          phases(id, name, description)
         `)
         .order('created_at', { ascending: false });
 
@@ -55,8 +54,7 @@ export const useCreateTask = () => {
           *,
           businesses(id, name, color, slug),
           projects(id, name, description),
-          phases(id, name, description),
-          life_areas(id, name, color, category)
+          phases(id, name, description)
         `)
         .single();
 

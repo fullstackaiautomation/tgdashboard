@@ -7,7 +7,7 @@ type Area = 'Full Stack' | 'S4' | '808' | 'Personal' | 'Huge Capital' | 'Golf' |
 
 // Area color mapping (matching task area colors from App.tsx)
 export const AREA_COLORS: Record<Area, string> = {
-  'Full Stack': '#10b981',   // emerald-500
+  'Full Stack': '#00b495',   // teal
   'Huge Capital': '#a855f7', // purple-500
   'S4': '#3b82f6',           // blue-500
   '808': '#eab308',          // yellow-500

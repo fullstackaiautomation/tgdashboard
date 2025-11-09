@@ -13,7 +13,7 @@ interface TaskFiltersProps {
 }
 
 const BUSINESSES = [
-  { id: 'full-stack', label: 'Full Stack', gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }, // green gradient
+  { id: 'full-stack', label: 'Full Stack', gradient: 'linear-gradient(135deg, #00b495 0%, #00996b 100%)' }, // teal gradient
   { id: 'huge-capital', label: 'Huge Capital', gradient: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)' }, // purple gradient
   { id: 's4', label: 'S4', gradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' }, // blue gradient
   { id: '808', label: '808', gradient: 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)' }, // yellow gradient

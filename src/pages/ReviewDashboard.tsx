@@ -44,7 +44,7 @@ interface ReviewDashboardProps {
  */
 // Filters matching Tasks page order exactly
 const BUSINESSES = [
-  { id: 'full-stack', label: 'Full Stack', gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' },
+  { id: 'full-stack', label: 'Full Stack', gradient: 'linear-gradient(135deg, #00b495 0%, #00996b 100%)' },
   { id: 'huge-capital', label: 'Huge Capital', gradient: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)' },
   { id: 's4', label: 'S4', gradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' },
 ];

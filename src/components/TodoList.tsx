@@ -67,14 +67,9 @@ const TodoList = () => {
         updated_at: row.updated_at ? new Date(row.updated_at) : new Date(),
         recurring_type: row.recurring_type || 'none',
         recurring_interval: row.recurring_interval || 1,
-        recurring_days: row.recurring_days || null,
-        last_recurring_date: row.last_recurring_date ? new Date(row.last_recurring_date) : null,
         is_recurring_template: row.is_recurring_template || false,
-        original_recurring_task_id: row.original_recurring_task_id || null,
         hours_projected: row['Hours Projected'] ? Number(row['Hours Projected']) : null,
         hours_worked: row['Hours Worked'] ? Number(row['Hours Worked']) : null,
-        scheduled_start: row.scheduled_start ? new Date(row.scheduled_start) : null,
-        scheduled_end: row.scheduled_end ? new Date(row.scheduled_end) : null,
         checklist: row.checklist ? JSON.parse(row.checklist) : []
       }))
 
@@ -334,7 +329,7 @@ const TodoList = () => {
         break
     }
 
-    // Sort tasks: Primary by scheduled_start, Secondary by Area priority
+    // Sort tasks by area priority for consistent grouping
     const areaPriority: Record<Area, number> = {
       'Full Stack': 1,
       'Huge Capital': 2,
@@ -345,26 +340,7 @@ const TodoList = () => {
       'Golf': 7
     }
 
-    filtered.sort((a, b) => {
-      console.log("Comparing:", a.task_name, "("+a.area+", scheduled:", a.scheduled_start ? "YES" : "NO", ") vs", b.task_name, "("+b.area+", scheduled:", b.scheduled_start ? "YES" : "NO", ")")
-      // Primary sort: scheduled_start (ascending - earliest first)
-      if (a.scheduled_start && b.scheduled_start) {
-        const timeDiff = a.scheduled_start.getTime() - b.scheduled_start.getTime()
-        if (timeDiff !== 0) return timeDiff
-        // If same scheduled time, use area priority
-        return areaPriority[a.area] - areaPriority[b.area]
-      }
-
-      // If only one has scheduled_start, prioritize it
-      if (a.scheduled_start && !b.scheduled_start) return -1
-      if (!a.scheduled_start && b.scheduled_start) return 1
-
-      // If neither has scheduled_start, sort by area priority
-      return areaPriority[a.area] - areaPriority[b.area]
-    })
-
-    console.log("Final sorted order:", filtered.map(t => t.task_name + " (" + t.area + ")").join(", "))
-    console.log('Filtered tasks:', filtered.length)
+    filtered.sort((a, b) => areaPriority[a.area] - areaPriority[b.area])
     return filtered
   }, [tasks, selectedArea, filter])
 
