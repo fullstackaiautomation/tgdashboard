@@ -474,86 +474,96 @@ const FinanceOverview = () => {
     <div className="h-full overflow-y-auto px-3 sm:px-4 lg:px-5 py-4 space-y-4" style={{ minWidth: 0 }}>
       <div className="w-full max-w-screen-2xl mx-auto px-3 sm:px-4 lg:px-6" style={{ minWidth: 0 }}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-white">Net Worth</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white">Net Worth</h2>
         </div>
 
         {/* Date Selector */}
-        <div className="flex items-center gap-3">
-          <Calendar className="w-5 h-5 text-yellow-500" />
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded-lg"
-          />
+        <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 flex-shrink-0" />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="flex-1 px-3 sm:px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded-lg text-sm sm:text-base"
+            />
+          </div>
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold flex items-center gap-2 disabled:opacity-50"
+            className="px-3 sm:px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base"
           >
             <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save Balances'}
+            {isSaving ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
         {/* Net Worth */}
-        <div className="bg-gradient-to-br from-green-600 to-emerald-700 rounded-xl p-4 text-white min-w-0 overflow-hidden">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 items-start">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <Wallet className="w-5 h-5 flex-shrink-0" />
-                <p className="text-base font-semibold tracking-wide uppercase text-white">Net Worth</p>
+        <div className="bg-gradient-to-br from-green-600 to-emerald-700 rounded-xl p-3 sm:p-4 text-white min-w-0 overflow-hidden">
+          <div className="flex flex-col sm:grid sm:grid-cols-[minmax(0,1fr)_auto] gap-2 sm:gap-4 items-start">
+            <div className="space-y-1 sm:space-y-2 w-full">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Wallet className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <p className="text-xs sm:text-base font-semibold tracking-wide uppercase text-white truncate">Net Worth</p>
               </div>
-              <h3 className="text-[2.4rem] sm:text-[2.6rem] font-bold leading-tight">{formatCurrency(netWorthCurrent)}</h3>
+              <h3 className="text-xl sm:text-[2.4rem] md:text-[2.6rem] font-bold leading-tight">{formatCurrency(netWorthCurrent)}</h3>
             </div>
-            {renderTrendSummary(netWorthTrends, true, 'compact')}
+            <div className="hidden sm:block">
+              {renderTrendSummary(netWorthTrends, true, 'compact')}
+            </div>
           </div>
         </div>
 
         {/* Cash on Hand */}
-        <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-4 text-white min-w-0 overflow-hidden">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 items-start">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <DollarSign className="w-5 h-5 flex-shrink-0" />
-                <p className="text-base font-semibold tracking-wide uppercase text-white">Cash on Hand</p>
+        <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-3 sm:p-4 text-white min-w-0 overflow-hidden">
+          <div className="flex flex-col sm:grid sm:grid-cols-[minmax(0,1fr)_auto] gap-2 sm:gap-4 items-start">
+            <div className="space-y-1 sm:space-y-2 w-full">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <p className="text-xs sm:text-base font-semibold tracking-wide uppercase text-white truncate">Cash</p>
               </div>
-              <h3 className="text-[2.4rem] sm:text-[2.6rem] font-bold leading-tight">{formatCurrency(cashTotal || 0)}</h3>
+              <h3 className="text-xl sm:text-[2.4rem] md:text-[2.6rem] font-bold leading-tight">{formatCurrency(cashTotal || 0)}</h3>
             </div>
-            {renderTrendSummary(cashTrends, true, 'compact')}
+            <div className="hidden sm:block">
+              {renderTrendSummary(cashTrends, true, 'compact')}
+            </div>
           </div>
         </div>
 
         {/* CC & Personal */}
-        <div className="bg-gradient-to-br from-pink-600 to-pink-700 rounded-xl p-4 text-white min-w-0 overflow-hidden">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 items-start">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <CreditCard className="w-5 h-5 flex-shrink-0" />
-                <p className="text-base font-semibold tracking-wide uppercase text-white">CC & Personal</p>
+        <div className="bg-gradient-to-br from-pink-600 to-pink-700 rounded-xl p-3 sm:p-4 text-white min-w-0 overflow-hidden">
+          <div className="flex flex-col sm:grid sm:grid-cols-[minmax(0,1fr)_auto] gap-2 sm:gap-4 items-start">
+            <div className="space-y-1 sm:space-y-2 w-full">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <p className="text-xs sm:text-base font-semibold tracking-wide uppercase text-white truncate">CC & Loans</p>
               </div>
-              <h3 className="text-[2.4rem] sm:text-[2.6rem] font-bold leading-tight">{formatCurrency(creditCardBalanceTotal + personalLoansTotal)}</h3>
+              <h3 className="text-xl sm:text-[2.4rem] md:text-[2.6rem] font-bold leading-tight">{formatCurrency(creditCardBalanceTotal + personalLoansTotal)}</h3>
             </div>
-            {renderTrendSummary(creditDebtTrends, false, 'compact')}
+            <div className="hidden sm:block">
+              {renderTrendSummary(creditDebtTrends, false, 'compact')}
+            </div>
           </div>
         </div>
 
         {/* Total Debt */}
-        <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl p-4 text-white min-w-0 overflow-hidden">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 items-start">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <TrendingUp className="w-5 h-5 flex-shrink-0" />
-                <p className="text-base font-semibold tracking-wide uppercase text-white">Total Debt</p>
+        <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl p-3 sm:p-4 text-white min-w-0 overflow-hidden">
+          <div className="flex flex-col sm:grid sm:grid-cols-[minmax(0,1fr)_auto] gap-2 sm:gap-4 items-start">
+            <div className="space-y-1 sm:space-y-2 w-full">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <p className="text-xs sm:text-base font-semibold tracking-wide uppercase text-white truncate">Total Debt</p>
               </div>
-              <h3 className="text-[2.4rem] sm:text-[2.6rem] font-bold leading-tight">{formatCurrency(totalDebt)}</h3>
+              <h3 className="text-xl sm:text-[2.4rem] md:text-[2.6rem] font-bold leading-tight">{formatCurrency(totalDebt)}</h3>
             </div>
-            {renderTrendSummary(totalDebtTrends, false, 'compact')}
+            <div className="hidden sm:block">
+              {renderTrendSummary(totalDebtTrends, false, 'compact')}
+            </div>
           </div>
         </div>
       </div>
@@ -561,31 +571,31 @@ const FinanceOverview = () => {
       {/* 3-Column Balance Entry */}
       <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
         {/* Column 1: Cash & Investments */}
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 border border-green-500/20 shadow-xl flex flex-col h-full">
-          <div className="flex items-center gap-2 pb-2 border-b border-green-500/30 mb-4">
-            <div className="p-1.5 bg-green-500/10 rounded-lg">
-              <Wallet className="w-6 h-6 text-green-400" />
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-3 sm:p-4 border border-green-500/20 shadow-xl flex flex-col h-full">
+          <div className="flex items-center gap-2 pb-2 border-b border-green-500/30 mb-3 sm:mb-4">
+            <div className="p-1 sm:p-1.5 bg-green-500/10 rounded-lg">
+              <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-green-400" />
             </div>
-            <h3 className="text-lg font-bold text-green-400">Cash & Investments</h3>
+            <h3 className="text-base sm:text-lg font-bold text-green-400">Cash & Investments</h3>
           </div>
-          <div className="flex-1 space-y-4">
+          <div className="flex-1 space-y-3 sm:space-y-4">
             {/* Cash Section */}
             <div>
-              <div className="space-y-2.5">
+              <div className="space-y-2 sm:space-y-2.5">
                 {cashAccounts.map((account) => {
                   const isUpdated = updatedAccounts.has(account.id)
                   return (
                     <div key={account.id} className="flex items-center justify-between gap-2">
-                      <label className="text-gray-300 text-base font-medium truncate flex-1">{account.account_name}</label>
-                      <div className="flex items-center gap-0.5 w-36 justify-end">
-                        <span className="text-green-400 text-base font-semibold">$</span>
+                      <label className="text-gray-300 text-sm sm:text-base font-medium truncate flex-1">{account.account_name}</label>
+                      <div className="flex items-center gap-0.5 justify-end">
+                        <span className="text-green-400 text-sm sm:text-base font-semibold">$</span>
                         <input
                           type="text"
                           value={getInputValue(account.id)}
                           onFocus={() => handleFocus(account.id)}
                           onBlur={() => handleBlur(account.id)}
                           onChange={(e) => handleBalanceChange(account.id, e.target.value)}
-                          className={`w-28 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-base font-semibold transition-all focus:outline-none ${
+                          className={`w-20 sm:w-28 px-1.5 sm:px-2 py-1.5 sm:py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-sm sm:text-base font-semibold transition-all focus:outline-none ${
                             isUpdated ? 'text-white' : 'text-gray-500'
                           }`}
                         />
@@ -595,30 +605,30 @@ const FinanceOverview = () => {
                 })}
               </div>
               <div className="pt-2 mt-2 border-t border-green-500/30">
-                <div className="flex items-center justify-between bg-green-500/10 p-2 rounded">
-                  <span className="text-lg font-bold text-green-300">Total Cash</span>
-                  <span className="text-lg font-bold text-green-400 w-28 text-right">{formatCurrency(cashTotal)}</span>
+                <div className="flex items-center justify-between bg-green-500/10 p-1.5 sm:p-2 rounded">
+                  <span className="text-sm sm:text-lg font-bold text-green-300">Total Cash</span>
+                  <span className="text-sm sm:text-lg font-bold text-green-400 text-right">{formatCurrency(cashTotal)}</span>
                 </div>
               </div>
             </div>
 
             {/* Investments Section */}
             <div>
-              <div className="space-y-2.5">
+              <div className="space-y-2 sm:space-y-2.5">
                 {investmentAccounts.map((account) => {
                   const isUpdated = updatedAccounts.has(account.id)
                   return (
                     <div key={account.id} className="flex items-center justify-between gap-2">
-                      <label className="text-gray-300 text-base font-medium truncate flex-1">{account.account_name}</label>
-                      <div className="flex items-center gap-0.5 w-36 justify-end">
-                        <span className="text-blue-400 text-base font-semibold">$</span>
+                      <label className="text-gray-300 text-sm sm:text-base font-medium truncate flex-1">{account.account_name}</label>
+                      <div className="flex items-center gap-0.5 justify-end">
+                        <span className="text-blue-400 text-sm sm:text-base font-semibold">$</span>
                         <input
                           type="text"
                           value={getInputValue(account.id)}
                           onFocus={() => handleFocus(account.id)}
                           onBlur={() => handleBlur(account.id)}
                           onChange={(e) => handleBalanceChange(account.id, e.target.value)}
-                          className={`w-28 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-base font-semibold transition-all focus:outline-none ${
+                          className={`w-20 sm:w-28 px-1.5 sm:px-2 py-1.5 sm:py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-sm sm:text-base font-semibold transition-all focus:outline-none ${
                             isUpdated ? 'text-white' : 'text-gray-500'
                           }`}
                         />
@@ -628,32 +638,32 @@ const FinanceOverview = () => {
                 })}
               </div>
               <div className="pt-2 mt-2 border-t border-blue-500/30">
-                <div className="flex items-center justify-between bg-blue-500/10 p-2 rounded">
-                  <span className="text-xl font-bold text-blue-300">Total Investments</span>
-                  <span className="text-xl font-bold text-blue-400 w-28 text-right">{formatCurrency(investmentTotal)}</span>
+                <div className="flex items-center justify-between bg-blue-500/10 p-1.5 sm:p-2 rounded">
+                  <span className="text-base sm:text-xl font-bold text-blue-300">Total Investments</span>
+                  <span className="text-base sm:text-xl font-bold text-blue-400 text-right">{formatCurrency(investmentTotal)}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Combined Total */}
-          <div className="pt-3 mt-auto border-t border-green-500/40">
-            <div className="flex items-center justify-between bg-green-500/20 p-2 rounded">
-              <span className="text-xl font-bold text-green-300 whitespace-nowrap">Total Assets</span>
-              <span className="text-xl font-bold text-green-400 w-28 text-right">{formatCurrency(cashTotal + investmentTotal)}</span>
+          <div className="pt-2 sm:pt-3 mt-auto border-t border-green-500/40">
+            <div className="flex items-center justify-between bg-green-500/20 p-1.5 sm:p-2 rounded">
+              <span className="text-base sm:text-xl font-bold text-green-300 whitespace-nowrap">Total Assets</span>
+              <span className="text-base sm:text-xl font-bold text-green-400 text-right">{formatCurrency(cashTotal + investmentTotal)}</span>
             </div>
           </div>
         </div>
 
         {/* Column 2: Credit Cards */}
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 border border-orange-500/20 shadow-xl flex flex-col h-full">
-          <div className="flex items-center gap-2 pb-2 border-b border-orange-500/30 mb-4">
-            <div className="p-1.5 bg-orange-500/10 rounded-lg">
-              <CreditCard className="w-6 h-6 text-orange-400" />
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-3 sm:p-4 border border-orange-500/20 shadow-xl flex flex-col h-full">
+          <div className="flex items-center gap-2 pb-2 border-b border-orange-500/30 mb-3 sm:mb-4">
+            <div className="p-1 sm:p-1.5 bg-orange-500/10 rounded-lg">
+              <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-orange-400" />
             </div>
-            <h3 className="text-xl font-bold text-orange-400">Credit Cards</h3>
+            <h3 className="text-base sm:text-xl font-bold text-orange-400">Credit Cards</h3>
           </div>
-          <div className="space-y-2.5 flex-1">
+          <div className="space-y-2 sm:space-y-2.5 flex-1">
             {sortedCreditCardIds.length > 0
               ? sortedCreditCardIds.map(id => {
                   const account = creditCardAccounts.find(a => a.id === id)
@@ -663,24 +673,24 @@ const FinanceOverview = () => {
                   const utilization = limit > 0 ? (balance / limit) * 100 : 0
                   const isUpdated = updatedAccounts.has(account.id)
                   return (
-                  <div key={account.id} className="flex flex-wrap items-center justify-between gap-2 py-0.5">
-                    <label className="text-gray-300 text-lg font-medium truncate flex-1 min-w-[120px] max-w-[180px]">{account.account_name}</label>
-                    <div className="flex items-center gap-2 justify-end">
-                      <div className="flex items-center gap-0.5 justify-end w-28 sm:w-32">
-                        <span className="text-orange-400 text-lg font-semibold">$</span>
+                  <div key={account.id} className="flex items-center justify-between gap-1 sm:gap-2 py-0.5">
+                    <label className="text-gray-300 text-sm sm:text-base font-medium truncate flex-1 min-w-0">{account.account_name}</label>
+                    <div className="flex items-center gap-1 sm:gap-2 justify-end flex-shrink-0">
+                      <div className="flex items-center gap-0.5 justify-end">
+                        <span className="text-orange-400 text-sm sm:text-base font-semibold">$</span>
                         <input
                           type="text"
                           value={getInputValue(account.id)}
                           onFocus={() => handleFocus(account.id)}
                           onBlur={() => handleBlur(account.id)}
                           onChange={(e) => handleBalanceChange(account.id, e.target.value)}
-                          className={`w-20 px-2 py-1 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-lg font-semibold transition-all focus:outline-none ${
+                          className={`w-16 sm:w-20 px-1 sm:px-2 py-1 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-sm sm:text-base font-semibold transition-all focus:outline-none ${
                             isUpdated ? 'text-white' : 'text-gray-500'
                           }`}
                         />
                       </div>
-                      <span className="text-gray-400 text-base font-medium text-center w-24 sm:w-28">{formatCurrency(limit)}</span>
-                      <span className={`text-base font-semibold text-right ${utilization > 70 ? 'text-orange-400' : 'text-gray-400'} w-12`}>{utilization.toFixed(0)}%</span>
+                      <span className="hidden sm:inline text-gray-400 text-sm font-medium text-center w-20">{formatCurrency(limit)}</span>
+                      <span className={`text-xs sm:text-sm font-semibold text-right ${utilization > 70 ? 'text-orange-400' : 'text-gray-400'} w-8 sm:w-10`}>{utilization.toFixed(0)}%</span>
                     </div>
                   </div>
                 )
@@ -691,88 +701,88 @@ const FinanceOverview = () => {
                 const utilization = limit > 0 ? (balance / limit) * 100 : 0
                 const isUpdated = updatedAccounts.has(account.id)
                 return (
-                  <div key={account.id} className="flex flex-wrap items-center justify-between gap-2 py-0.5">
-                    <label className="text-gray-300 text-lg font-medium truncate flex-1 min-w-[120px] max-w-[180px]">{account.account_name}</label>
-                    <div className="flex items-center gap-2 justify-end">
-                      <div className="flex items-center gap-0.5 justify-end w-28 sm:w-32">
-                        <span className="text-orange-400 text-lg font-semibold">$</span>
+                  <div key={account.id} className="flex items-center justify-between gap-1 sm:gap-2 py-0.5">
+                    <label className="text-gray-300 text-sm sm:text-base font-medium truncate flex-1 min-w-0">{account.account_name}</label>
+                    <div className="flex items-center gap-1 sm:gap-2 justify-end flex-shrink-0">
+                      <div className="flex items-center gap-0.5 justify-end">
+                        <span className="text-orange-400 text-sm sm:text-base font-semibold">$</span>
                         <input
                           type="text"
                           value={getInputValue(account.id)}
                           onFocus={() => handleFocus(account.id)}
                           onBlur={() => handleBlur(account.id)}
                           onChange={(e) => handleBalanceChange(account.id, e.target.value)}
-                          className={`w-20 px-2 py-1 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-lg font-semibold transition-all focus:outline-none ${
+                          className={`w-16 sm:w-20 px-1 sm:px-2 py-1 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-sm sm:text-base font-semibold transition-all focus:outline-none ${
                             isUpdated ? 'text-white' : 'text-gray-500'
                           }`}
                         />
                       </div>
-                      <span className="text-gray-400 text-base font-medium text-center w-24 sm:w-28">{formatCurrency(limit)}</span>
-                      <span className={`text-base font-semibold text-right ${utilization > 70 ? 'text-orange-400' : 'text-gray-400'} w-12`}>{utilization.toFixed(0)}%</span>
+                      <span className="hidden sm:inline text-gray-400 text-sm font-medium text-center w-20">{formatCurrency(limit)}</span>
+                      <span className={`text-xs sm:text-sm font-semibold text-right ${utilization > 70 ? 'text-orange-400' : 'text-gray-400'} w-8 sm:w-10`}>{utilization.toFixed(0)}%</span>
                     </div>
                   </div>
                 )
               })}
           </div>
-          <div className="pt-3 mt-auto border-t border-orange-500/40">
-            <div className="flex flex-wrap items-center justify-between gap-2 bg-orange-500/10 p-2 rounded">
-              <span className="text-xl font-bold text-orange-300 whitespace-nowrap flex-1 min-w-[120px] max-w-[200px]">Total Credit Cards</span>
-              <div className="flex items-center gap-2 justify-end">
-                <span className="text-xl font-bold text-orange-400 text-right w-24 sm:w-28">{formatCurrency(creditCardBalanceTotal)}</span>
-                <span className="text-xl font-bold text-orange-400 text-center w-24 sm:w-28">{formatCurrency(creditCardLimitTotal)}</span>
-                <span className={`text-base font-semibold text-right ${creditUtilization > 70 ? 'text-orange-400' : 'text-gray-400'} w-12`}>{creditUtilization.toFixed(0)}%</span>
+          <div className="pt-2 sm:pt-3 mt-auto border-t border-orange-500/40">
+            <div className="flex items-center justify-between gap-1 sm:gap-2 bg-orange-500/10 p-1.5 sm:p-2 rounded">
+              <span className="text-sm sm:text-lg font-bold text-orange-300 whitespace-nowrap">Total</span>
+              <div className="flex items-center gap-1 sm:gap-2 justify-end">
+                <span className="text-sm sm:text-lg font-bold text-orange-400 text-right">{formatCurrency(creditCardBalanceTotal)}</span>
+                <span className="hidden sm:inline text-sm font-bold text-orange-400 text-center w-20">{formatCurrency(creditCardLimitTotal)}</span>
+                <span className={`text-xs sm:text-sm font-semibold text-right ${creditUtilization > 70 ? 'text-orange-400' : 'text-gray-400'} w-8 sm:w-10`}>{creditUtilization.toFixed(0)}%</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Column 3: Loans & Taxes */}
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 border border-red-500/20 shadow-xl flex flex-col h-full">
-          <div className="flex items-center gap-2 pb-2 border-b border-red-500/30 mb-4">
-            <div className="p-1.5 bg-red-500/10 rounded-lg">
-              <Landmark className="w-6 h-6 text-red-400" />
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-3 sm:p-4 border border-red-500/20 shadow-xl flex flex-col h-full">
+          <div className="flex items-center gap-2 pb-2 border-b border-red-500/30 mb-3 sm:mb-4">
+            <div className="p-1 sm:p-1.5 bg-red-500/10 rounded-lg">
+              <Landmark className="w-5 h-5 sm:w-6 sm:h-6 text-red-400" />
             </div>
-            <h3 className="text-xl font-bold text-red-400">Loans & Taxes</h3>
+            <h3 className="text-base sm:text-xl font-bold text-red-400">Loans & Taxes</h3>
           </div>
-          <div className="space-y-3 flex-1">
+          <div className="space-y-2 sm:space-y-3 flex-1">
             {/* Personal Loans Section */}
             {personalLoans.length > 0 && (
               <div>
-                <div className="space-y-2.5">
+                <div className="space-y-2 sm:space-y-2.5">
                   {personalLoans.map((account) => {
                     const balance = balances[account.id] || 0
                     const original = account.credit_limit || 0
                     const percentRemaining = original > 0 ? (balance / original) * 100 : 0
                     const isUpdated = updatedAccounts.has(account.id)
                     return (
-                      <div key={account.id} className="flex items-center justify-between px-2" style={{ paddingTop: '0.225rem', paddingBottom: '0.225rem' }}>
-                        <label className="text-gray-300 text-base font-medium truncate min-w-[140px]">{account.account_name}</label>
-                        <div className="flex items-center gap-1 justify-end">
-                          <span className="text-red-400 text-base font-semibold">$</span>
+                      <div key={account.id} className="flex items-center justify-between gap-1 sm:gap-2 px-1 sm:px-2 py-0.5">
+                        <label className="text-gray-300 text-sm sm:text-base font-medium truncate flex-1 min-w-0">{account.account_name}</label>
+                        <div className="flex items-center gap-1 justify-end flex-shrink-0">
+                          <span className="text-red-400 text-sm sm:text-base font-semibold">$</span>
                           <input
                             type="text"
                             value={getInputValue(account.id)}
                             onFocus={() => handleFocus(account.id)}
                             onBlur={() => handleBlur(account.id)}
                             onChange={(e) => handleBalanceChange(account.id, e.target.value)}
-                            className={`w-20 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-base font-semibold transition-all focus:outline-none ${
+                            className={`w-16 sm:w-20 px-1 sm:px-2 py-1.5 sm:py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-sm sm:text-base font-semibold transition-all focus:outline-none ${
                               isUpdated ? 'text-white' : 'text-gray-500'
                             }`}
                           />
-                          <span className="text-gray-400 text-base font-medium w-20 text-right">{formatCurrency(original)}</span>
-                          <span className="text-gray-400 text-base font-medium w-12 text-right">{percentRemaining.toFixed(0)}%</span>
+                          <span className="hidden sm:inline text-gray-400 text-sm font-medium w-16 text-right">{formatCurrency(original)}</span>
+                          <span className="text-gray-400 text-xs sm:text-sm font-medium w-8 sm:w-10 text-right">{percentRemaining.toFixed(0)}%</span>
                         </div>
                       </div>
                     )
                   })}
                 </div>
-                <div className="mt-2 pt-2 border-t border-red-500/30 space-y-1">
-                  <div className="flex items-center justify-between bg-red-500/10 p-2 rounded">
-                    <span className="text-lg md:text-xl font-bold text-red-300 min-w-[140px] whitespace-nowrap">Total Personal Loans</span>
+                <div className="mt-2 pt-2 border-t border-red-500/30">
+                  <div className="flex items-center justify-between bg-red-500/10 p-1.5 sm:p-2 rounded">
+                    <span className="text-sm sm:text-lg font-bold text-red-300 whitespace-nowrap">Personal</span>
                     <div className="flex items-center gap-1">
-                      <span className="text-xl font-bold text-red-400 w-28 text-right">{formatCurrency(personalLoansTotal)}</span>
-                      <span className="text-gray-400 text-base font-medium w-20 text-right">{formatCurrency(personalLoansTotalOriginal)}</span>
-                      <span className="text-gray-400 text-base font-bold w-12 text-right">{personalLoansPercentRemaining.toFixed(0)}%</span>
+                      <span className="text-sm sm:text-lg font-bold text-red-400 text-right">{formatCurrency(personalLoansTotal)}</span>
+                      <span className="hidden sm:inline text-gray-400 text-sm font-medium w-16 text-right">{formatCurrency(personalLoansTotalOriginal)}</span>
+                      <span className="text-gray-400 text-xs sm:text-sm font-bold w-8 sm:w-10 text-right">{personalLoansPercentRemaining.toFixed(0)}%</span>
                     </div>
                   </div>
                 </div>
@@ -782,41 +792,41 @@ const FinanceOverview = () => {
             {/* Auto Loans Section */}
             {autoLoans.length > 0 && (
               <div>
-                <div className="space-y-2.5">
+                <div className="space-y-2 sm:space-y-2.5">
                   {autoLoans.map((account) => {
                     const balance = balances[account.id] || 0
                     const original = account.credit_limit || 0
                     const percentRemaining = original > 0 ? (balance / original) * 100 : 0
                     const isUpdated = updatedAccounts.has(account.id)
                     return (
-                      <div key={account.id} className="flex items-center justify-between px-2" style={{ paddingTop: '0.225rem', paddingBottom: '0.225rem' }}>
-                        <label className="text-gray-300 text-base font-medium truncate min-w-[140px]">{account.account_name}</label>
-                        <div className="flex items-center gap-1 justify-end">
-                          <span className="text-red-400 text-base font-semibold">$</span>
+                      <div key={account.id} className="flex items-center justify-between gap-1 sm:gap-2 px-1 sm:px-2 py-0.5">
+                        <label className="text-gray-300 text-sm sm:text-base font-medium truncate flex-1 min-w-0">{account.account_name}</label>
+                        <div className="flex items-center gap-1 justify-end flex-shrink-0">
+                          <span className="text-red-400 text-sm sm:text-base font-semibold">$</span>
                           <input
                             type="text"
                             value={getInputValue(account.id)}
                             onFocus={() => handleFocus(account.id)}
                             onBlur={() => handleBlur(account.id)}
                             onChange={(e) => handleBalanceChange(account.id, e.target.value)}
-                            className={`w-20 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-base font-semibold transition-all focus:outline-none ${
+                            className={`w-16 sm:w-20 px-1 sm:px-2 py-1.5 sm:py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-sm sm:text-base font-semibold transition-all focus:outline-none ${
                               isUpdated ? 'text-white' : 'text-gray-500'
                             }`}
                           />
-                          <span className="text-gray-400 text-base font-medium w-20 text-right">{formatCurrency(original)}</span>
-                          <span className="text-gray-400 text-base font-medium w-12 text-right">{percentRemaining.toFixed(0)}%</span>
+                          <span className="hidden sm:inline text-gray-400 text-sm font-medium w-16 text-right">{formatCurrency(original)}</span>
+                          <span className="text-gray-400 text-xs sm:text-sm font-medium w-8 sm:w-10 text-right">{percentRemaining.toFixed(0)}%</span>
                         </div>
                       </div>
                     )
                   })}
                 </div>
-                <div className="mt-2 pt-2 border-t border-red-500/30 space-y-1">
-                  <div className="flex items-center justify-between bg-red-500/10 p-2 rounded">
-                    <span className="text-lg md:text-xl font-bold text-red-300 min-w-[140px] whitespace-nowrap">Total Auto Loans</span>
+                <div className="mt-2 pt-2 border-t border-red-500/30">
+                  <div className="flex items-center justify-between bg-red-500/10 p-1.5 sm:p-2 rounded">
+                    <span className="text-sm sm:text-lg font-bold text-red-300 whitespace-nowrap">Auto</span>
                     <div className="flex items-center gap-1">
-                      <span className="text-xl font-bold text-red-400 w-28 text-right">{formatCurrency(autoLoansTotal)}</span>
-                      <span className="text-gray-400 text-base font-medium w-20 text-right">{formatCurrency(autoLoansTotalOriginal)}</span>
-                      <span className="text-gray-400 text-base font-bold w-12 text-right">{(autoLoansTotalOriginal > 0 ? (autoLoansTotal / autoLoansTotalOriginal) * 100 : 0).toFixed(0)}%</span>
+                      <span className="text-sm sm:text-lg font-bold text-red-400 text-right">{formatCurrency(autoLoansTotal)}</span>
+                      <span className="hidden sm:inline text-gray-400 text-sm font-medium w-16 text-right">{formatCurrency(autoLoansTotalOriginal)}</span>
+                      <span className="text-gray-400 text-xs sm:text-sm font-bold w-8 sm:w-10 text-right">{(autoLoansTotalOriginal > 0 ? (autoLoansTotal / autoLoansTotalOriginal) * 100 : 0).toFixed(0)}%</span>
                     </div>
                   </div>
                 </div>
@@ -826,29 +836,29 @@ const FinanceOverview = () => {
             {/* Taxes Section */}
             {taxes.length > 0 && (
               <div>
-                <div className="space-y-2.5">
+                <div className="space-y-2 sm:space-y-2.5">
                   {taxes.map((account) => {
                     const balance = balances[account.id] || 0
                     const original = account.credit_limit || 0
                     const percentRemaining = original > 0 ? (balance / original) * 100 : 0
                     const isUpdated = updatedAccounts.has(account.id)
                     return (
-                      <div key={account.id} className="flex items-center justify-between px-2" style={{ paddingTop: '0.225rem', paddingBottom: '0.225rem' }}>
-                        <label className="text-gray-300 text-base font-medium truncate min-w-[140px]">{account.account_name}</label>
-                        <div className="flex items-center gap-1 justify-end">
-                          <span className="text-red-400 text-base font-semibold">$</span>
+                      <div key={account.id} className="flex items-center justify-between gap-1 sm:gap-2 px-1 sm:px-2 py-0.5">
+                        <label className="text-gray-300 text-sm sm:text-base font-medium truncate flex-1 min-w-0">{account.account_name}</label>
+                        <div className="flex items-center gap-1 justify-end flex-shrink-0">
+                          <span className="text-red-400 text-sm sm:text-base font-semibold">$</span>
                           <input
                             type="text"
                             value={getInputValue(account.id)}
                             onFocus={() => handleFocus(account.id)}
                             onBlur={() => handleBlur(account.id)}
                             onChange={(e) => handleBalanceChange(account.id, e.target.value)}
-                            className={`w-20 px-2 py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-base font-semibold transition-all focus:outline-none ${
+                            className={`w-16 sm:w-20 px-1 sm:px-2 py-1.5 sm:py-2 bg-gray-900 border border-gray-800 focus:border-gray-700 focus:bg-gray-850 rounded text-right text-sm sm:text-base font-semibold transition-all focus:outline-none ${
                               isUpdated ? 'text-white' : 'text-gray-500'
                             }`}
                           />
-                          <span className="text-gray-400 text-base font-medium w-20 text-right">{formatCurrency(original)}</span>
-                          <span className="text-gray-400 text-base font-medium w-12 text-right">{percentRemaining.toFixed(0)}%</span>
+                          <span className="hidden sm:inline text-gray-400 text-sm font-medium w-16 text-right">{formatCurrency(original)}</span>
+                          <span className="text-gray-400 text-xs sm:text-sm font-medium w-8 sm:w-10 text-right">{percentRemaining.toFixed(0)}%</span>
                         </div>
                       </div>
                     )
@@ -857,31 +867,31 @@ const FinanceOverview = () => {
               </div>
             )}
           </div>
-          <div className="pt-3 mt-auto border-t border-red-500/40 space-y-2">
+          <div className="pt-2 sm:pt-3 mt-auto border-t border-red-500/40 space-y-1.5 sm:space-y-2">
             {taxes.length > 0 && (
-              <div className="flex items-center justify-between bg-red-500/10 p-2 rounded">
-                <span className="text-xl font-bold text-red-300 min-w-[140px] whitespace-nowrap">Total Taxes</span>
+              <div className="flex items-center justify-between bg-red-500/10 p-1.5 sm:p-2 rounded">
+                <span className="text-sm sm:text-lg font-bold text-red-300 whitespace-nowrap">Taxes</span>
                 <div className="flex items-center gap-1">
-                  <span className="text-xl font-bold text-red-400 w-28 text-right">{formatCurrency(taxesTotal)}</span>
-                  <span className="text-gray-400 text-base font-medium w-20 text-right">{formatCurrency(taxesTotalOriginal)}</span>
-                  <span className="text-gray-400 text-base font-bold w-12 text-right">{taxesPercentRemaining.toFixed(0)}%</span>
+                  <span className="text-sm sm:text-lg font-bold text-red-400 text-right">{formatCurrency(taxesTotal)}</span>
+                  <span className="hidden sm:inline text-gray-400 text-sm font-medium w-16 text-right">{formatCurrency(taxesTotalOriginal)}</span>
+                  <span className="text-gray-400 text-xs sm:text-sm font-bold w-8 sm:w-10 text-right">{taxesPercentRemaining.toFixed(0)}%</span>
                 </div>
               </div>
             )}
-            <div className="flex items-center justify-between bg-red-500/10 p-2 rounded">
-              <span className="text-xl font-bold text-red-300 min-w-[140px] whitespace-nowrap">Total Loans</span>
+            <div className="flex items-center justify-between bg-red-500/10 p-1.5 sm:p-2 rounded">
+              <span className="text-sm sm:text-lg font-bold text-red-300 whitespace-nowrap">Total Loans</span>
               <div className="flex items-center gap-1">
-                <span className="text-xl font-bold text-red-400 w-28 text-right">{formatCurrency(allLoansTotal)}</span>
-                <span className="text-gray-400 text-base font-medium w-20 text-right">{formatCurrency(allLoansTotalOriginal)}</span>
-                <span className="text-gray-400 text-base font-bold w-12 text-right">{allLoansPercentRemaining.toFixed(0)}%</span>
+                <span className="text-sm sm:text-lg font-bold text-red-400 text-right">{formatCurrency(allLoansTotal)}</span>
+                <span className="hidden sm:inline text-gray-400 text-sm font-medium w-16 text-right">{formatCurrency(allLoansTotalOriginal)}</span>
+                <span className="text-gray-400 text-xs sm:text-sm font-bold w-8 sm:w-10 text-right">{allLoansPercentRemaining.toFixed(0)}%</span>
               </div>
             </div>
-            <div className="flex items-center justify-between bg-red-500/10 p-2 rounded">
-              <span className="text-xl font-bold text-red-300 min-w-[140px] whitespace-nowrap">Total Debt</span>
+            <div className="flex items-center justify-between bg-red-500/10 p-1.5 sm:p-2 rounded">
+              <span className="text-sm sm:text-lg font-bold text-red-300 whitespace-nowrap">Total Debt</span>
               <div className="flex items-center gap-1">
-                <span className="text-xl font-bold text-red-400 w-28 text-right">{formatCurrency(totalDebt)}</span>
-                <span className="text-gray-400 text-base font-medium w-20 text-right">{formatCurrency(totalDebtOriginal)}</span>
-                <span className="text-gray-400 text-base font-bold w-12 text-right">{totalDebtUtilization.toFixed(0)}%</span>
+                <span className="text-sm sm:text-lg font-bold text-red-400 text-right">{formatCurrency(totalDebt)}</span>
+                <span className="hidden sm:inline text-gray-400 text-sm font-medium w-16 text-right">{formatCurrency(totalDebtOriginal)}</span>
+                <span className="text-gray-400 text-xs sm:text-sm font-bold w-8 sm:w-10 text-right">{totalDebtUtilization.toFixed(0)}%</span>
               </div>
             </div>
           </div>
